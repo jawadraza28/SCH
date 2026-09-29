@@ -1,0 +1,546 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   School OS — Multi-theme design system
+   --------------------------------------------------------------------------
+   Themes are driven by `data-theme` on <html> (set by ThemeSwitcher and by
+   the inline anti-flash script in src/app/layout.tsx). Every Tailwind v4
+   utility resolves through var(--color-*), so redefining those variables per
+   theme recolors the entire app without touching any component.
+
+     Theme 1 · Ocean    — Tailwind default blue (no overrides needed)
+     Theme 2 · Emerald  Theme 3 · Violet    Theme 4 · Rose
+     Theme 5 · Amber    Theme 6 · Teal      Theme 7 · Midnight (dark)
+
+   Non-default light themes remap the whole `blue` scale onto their palette.
+   The action steps (500 → 950) sit one step deeper than the source palette
+   so white text on primary buttons always clears WCAG AA (≥ 4.5:1).
+   ========================================================================== */
+
+/* light rendering unless a theme says otherwise (ocean has no block) */
+:root {
+  color-scheme: light;
+}
+
+/* Theme 2 · Emerald ------------------------------------------------------ */
+[data-theme="emerald"] {
+  color-scheme: light;
+  --color-blue-50: oklch(97.9% 0.021 166.113);
+  --color-blue-100: oklch(95% 0.052 163.051);
+  --color-blue-200: oklch(90.5% 0.093 164.15);
+  --color-blue-300: oklch(84.5% 0.143 164.978);
+  --color-blue-400: oklch(76.5% 0.177 163.223);
+  --color-blue-500: oklch(59.6% 0.145 163.225); /* emerald-600 */
+  --color-blue-600: oklch(50.8% 0.118 165.612); /* emerald-700 */
+  --color-blue-700: oklch(43.2% 0.095 166.913); /* emerald-800 */
+  --color-blue-800: oklch(37.8% 0.077 168.94); /* emerald-900 */
+  --color-blue-900: oklch(26.2% 0.051 172.552); /* emerald-950 */
+  --color-blue-950: oklch(26.2% 0.051 172.552);
+  /* faintly green-tinted neutrals */
+  --color-slate-50: oklch(98.5% 0.006 166);
+  --color-slate-100: oklch(96.7% 0.011 165);
+  --color-slate-200: oklch(93.2% 0.016 164);
+}
+
+/* Theme 3 · Violet ------------------------------------------------------- */
+[data-theme="violet"] {
+  color-scheme: light;
+  --color-blue-50: oklch(96.9% 0.016 293.756);
+  --color-blue-100: oklch(94.3% 0.029 294.588);
+  --color-blue-200: oklch(89.4% 0.057 293.283);
+  --color-blue-300: oklch(81.1% 0.111 293.571);
+  --color-blue-400: oklch(70.2% 0.183 293.541);
+  --color-blue-500: oklch(60.6% 0.25 292.717); /* violet-600 */
+  --color-blue-600: oklch(49.1% 0.27 292.581); /* violet-700 */
+  --color-blue-700: oklch(43.2% 0.232 292.759); /* violet-800 */
+  --color-blue-800: oklch(38% 0.189 293.745); /* violet-900 */
+  --color-blue-900: oklch(28.3% 0.141 291.089); /* violet-950 */
+  --color-blue-950: oklch(28.3% 0.141 291.089);
+  /* faintly violet-tinted neutrals */
+  --color-slate-50: oklch(98.5% 0.006 293);
+  --color-slate-100: oklch(96.7% 0.011 293);
+  --color-slate-200: oklch(93.2% 0.016 293);
+}
+
+/* Theme 4 · Rose --------------------------------------------------------- */
+[data-theme="rose"] {
+  color-scheme: light;
+  --color-blue-50: oklch(96.9% 0.015 12.422);
+  --color-blue-100: oklch(94.1% 0.03 12.58);
+  --color-blue-200: oklch(89.2% 0.058 10.001);
+  --color-blue-300: oklch(81% 0.117 11.638);
+  --color-blue-400: oklch(71.2% 0.194 13.428);
+  --color-blue-500: oklch(58.6% 0.253 17.585); /* rose-600 */
+  --color-blue-600: oklch(51.4% 0.222 16.935); /* rose-700 */
+  --color-blue-700: oklch(45.5% 0.188 13.697); /* rose-800 */
+  --color-blue-800: oklch(41% 0.159 10.272); /* rose-900 */
+  --color-blue-900: oklch(27.1% 0.105 12.094); /* rose-950 */
+  --color-blue-950: oklch(27.1% 0.105 12.094);
+  /* faintly rose-tinted neutrals */
+  --color-slate-50: oklch(98.5% 0.005 12);
+  --color-slate-100: oklch(96.8% 0.01 12);
+  --color-slate-200: oklch(93.3% 0.015 12);
+}
+
+/* Theme 5 · Amber (warm sunset + stone neutrals) -------------------------- */
+[data-theme="amber"] {
+  color-scheme: light;
+  --color-blue-50: oklch(98.7% 0.022 95.277);
+  --color-blue-100: oklch(96.2% 0.059 95.617);
+  --color-blue-200: oklch(92.4% 0.12 95.746);
+  --color-blue-300: oklch(87.9% 0.169 91.605);
+  --color-blue-400: oklch(82.8% 0.189 84.429);
+  --color-blue-500: oklch(66.6% 0.179 58.318); /* amber-600 */
+  --color-blue-600: oklch(55.5% 0.163 48.998); /* amber-700 */
+  --color-blue-700: oklch(47.3% 0.137 46.201); /* amber-800 */
+  --color-blue-800: oklch(41.4% 0.112 45.904); /* amber-900 */
+  --color-blue-900: oklch(27.9% 0.077 45.635); /* amber-950 */
+  --color-blue-950: oklch(27.9% 0.077 45.635);
+  /* warm stone neutrals */
+  --color-slate-50: oklch(98.5% 0.001 106.423);
+  --color-slate-100: oklch(97% 0.001 106.424);
+  --color-slate-200: oklch(92.3% 0.003 48.717);
+}
+
+/* Theme 6 · Teal --------------------------------------------------------- */
+[data-theme="teal"] {
+  color-scheme: light;
+  --color-blue-50: oklch(98.4% 0.014 180.72);
+  --color-blue-100: oklch(95.3% 0.051 180.801);
+  --color-blue-200: oklch(91% 0.096 180.426);
+  --color-blue-300: oklch(85.5% 0.138 181.071);
+  --color-blue-400: oklch(77.7% 0.152 181.912);
+  --color-blue-500: oklch(60% 0.118 184.704); /* teal-600 */
+  --color-blue-600: oklch(51.1% 0.096 186.391); /* teal-700 */
+  --color-blue-700: oklch(43.7% 0.078 188.216); /* teal-800 */
+  --color-blue-800: oklch(38.6% 0.063 188.416); /* teal-900 */
+  --color-blue-900: oklch(27.7% 0.046 192.524); /* teal-950 */
+  --color-blue-950: oklch(27.7% 0.046 192.524);
+  /* faintly teal-tinted neutrals */
+  --color-slate-50: oklch(98.5% 0.005 181);
+  --color-slate-100: oklch(96.7% 0.01 181);
+  --color-slate-200: oklch(93.2% 0.015 181);
+}
+
+/* Theme 7 · Midnight (dark) ----------------------------------------------
+   Two rules keep dark mode coherent:
+   1. Variables that are only ever painted as TEXT/text-colored surfaces are
+      retuned for dark backgrounds.
+   2. Variables that must stay light (they ARE the light text on the
+      always-dark auth screens: login, setup, change-password, landing) are
+      left at their defaults, and their bg/border utilities get scoped
+      overrides below instead. Unlayered rules beat @layer utilities, so
+      these win without touching any component.                              */
+[data-theme="midnight"] {
+  color-scheme: dark;
+
+  --midnight-page: oklch(17.5% 0.018 264);
+  --midnight-card: oklch(23.5% 0.017 264);
+  --midnight-raised: oklch(28.5% 0.017 264);
+  --midnight-border: oklch(33.5% 0.016 264);
+
+  /* bg-only token: table heads, soft buttons, sidebar pills */
+  --color-slate-50: var(--midnight-raised);
+  /* slate-100/200/300/950 intentionally keep their light defaults — see note */
+
+  /* text scale for dark surfaces */
+  --color-slate-600: oklch(70.4% 0.03 256);
+  --color-slate-700: oklch(79.5% 0.022 257);
+  --color-slate-800: oklch(87.5% 0.015 257);
+  --color-slate-900: oklch(94.5% 0.01 258);
+}
+
+/* dark surfaces for utilities whose variables serve light text */
+[data-theme="midnight"] .bg-white {
+  background-color: var(--midnight-card);
+}
+[data-theme="midnight"] .bg-slate-100 {
+  background-color: var(--midnight-page);
+}
+[data-theme="midnight"] .bg-slate-200 {
+  background-color: var(--midnight-raised);
+}
+[data-theme="midnight"] .bg-slate-900,
+[data-theme="midnight"] .bg-slate-900\/70 {
+  background-color: var(--midnight-raised);
+}
+[data-theme="midnight"] .hover\:bg-white:hover {
+  background-color: rgb(255 255 255 / 0.1);
+}
+[data-theme="midnight"] .hover\:bg-slate-100:hover {
+  background-color: var(--midnight-card);
+}
+
+/* borders, rules and dividers */
+[data-theme="midnight"] .border-slate-100,
+[data-theme="midnight"] .border-slate-200,
+[data-theme="midnight"] .border-slate-300,
+[data-theme="midnight"] .divide-slate-100 > * {
+  border-color: var(--midnight-border);
+}
+
+/* links read brighter on dark */
+[data-theme="midnight"] .text-blue-500,
+[data-theme="midnight"] .text-blue-600 {
+  color: oklch(76% 0.13 245);
+}
+[data-theme="midnight"] .hover\:text-blue-600:hover,
+[data-theme="midnight"] .hover\:text-blue-700:hover {
+  color: oklch(86% 0.1 245);
+}
+
+/* soft status chips become tinted glass on dark */
+[data-theme="midnight"] .bg-emerald-50 {
+  background-color: rgb(16 185 129 / 0.16);
+}
+[data-theme="midnight"] .text-emerald-600,
+[data-theme="midnight"] .text-emerald-700 {
+  color: oklch(80.5% 0.13 164);
+}
+[data-theme="midnight"] .bg-red-50 {
+  background-color: rgb(239 68 68 / 0.16);
+}
+[data-theme="midnight"] .text-red-600,
+[data-theme="midnight"] .text-red-700 {
+  color: oklch(81% 0.11 22);
+}
+[data-theme="midnight"] .bg-amber-50 {
+  background-color: rgb(245 158 11 / 0.16);
+}
+[data-theme="midnight"] .text-amber-700 {
+  color: oklch(86% 0.14 82);
+}
+
+/* printing from the dark theme keeps paper-friendly contrast */
+@media print {
+  [data-theme="midnight"] {
+    --color-slate-600: #475569;
+    --color-slate-700: #334155;
+    --color-slate-800: #1e293b;
+    --color-slate-900: #0f172a;
+    --color-blue-500: #2563eb;
+    --color-blue-600: #1d4ed8;
+    --color-blue-700: #1e40af;
+  }
+  [data-theme="midnight"] .bg-white,
+  [data-theme="midnight"] .bg-slate-100,
+  [data-theme="midnight"] .bg-slate-200,
+  [data-theme="midnight"] .bg-slate-50 {
+    background-color: #fff;
+  }
+  [data-theme="midnight"] .text-emerald-600,
+  [data-theme="midnight"] .text-emerald-700 {
+    color: #047857;
+  }
+  [data-theme="midnight"] .text-red-600,
+  [data-theme="midnight"] .text-red-700 {
+    color: #b91c1c;
+  }
+}
+
+/* ==========================================================================
+   Global UX polish — applies to every section in every theme
+   ========================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* decorative glow blobs on marketing/auth pages never cause sideways scroll */
+  overflow-x: hidden;
+}
+
+/* balanced headings, comfortable paragraphs */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
+/* consistent keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 2px;
+}
+
+/* pointer affordances */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+select:not(:disabled) {
+  cursor: pointer;
+}
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-blue-500) 32%, transparent);
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+/* modern dropdown chevron on every filter select (light and dark surfaces) */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1rem 1rem;
+  padding-right: 2.35rem;
+}
+
+/* softer, layered card elevation */
+.shadow-sm {
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 10px 28px -16px rgb(15 23 42 / 0.25);
+}
+
+/* smooth micro-interactions (no transform utilities exist in the app) */
+a,
+button,
+input,
+select,
+textarea,
+summary {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+/* data tables read better with a themed row hover */
+tbody tr {
+  transition: background-color 140ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  tbody tr:hover {
+    background-color: color-mix(in oklab, var(--color-blue-600) 6%, transparent);
+  }
+}
+
+/* horizontal scrollers (all wide tables) are comfortable on touch */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* thin, theme-aware scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-slate-400) 70%, transparent) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--color-slate-400) 70%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--color-slate-500) 85%, transparent);
+}
+
+/* ==========================================================================
+   Theme switching helpers
+   ========================================================================== */
+
+/* briefly enabled by ThemeSwitcher so the whole UI cross-fades on change */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    fill 300ms ease,
+    box-shadow 300ms ease !important;
+}
+
+@keyframes theme-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.theme-panel {
+  animation: theme-pop 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  transform-origin: bottom right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: none !important;
+  }
+  .theme-panel {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   MOTION & MICRO-INTERACTIONS — UI/UX overhaul pass
+   ============================================================================= */
+
+@keyframes ss-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ss-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ss-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes ss-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes ss-pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.theme-icon {
+  animation: ss-pop 250ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+/* --- Page entrance: gentle fade for the page, staggered fade-up for sections.
+       Elements mounting later (data arriving, error/message banners) animate in
+       automatically. Runs once per element mount — re-renders do not re-trigger. */
+main {
+  animation: ss-fade-in 0.3s ease both;
+}
+main > div > * {
+  animation: ss-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+main > div > *:nth-child(1) { animation-delay: 0.03s; }
+main > div > *:nth-child(2) { animation-delay: 0.08s; }
+main > div > *:nth-child(3) { animation-delay: 0.13s; }
+main > div > *:nth-child(4) { animation-delay: 0.18s; }
+main > div > *:nth-child(5) { animation-delay: 0.23s; }
+main > div > *:nth-child(6) { animation-delay: 0.28s; }
+main > div > *:nth-child(7) { animation-delay: 0.33s; }
+main > div > *:nth-child(n + 8) { animation-delay: 0.38s; }
+
+/* --- Skeleton loaders: shimmering placeholders while data loads from the DB.
+       Always pair with a rounded-* utility so the radius is exact. */
+.skeleton {
+  display: block;
+  background-color: var(--color-blue-100);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 25%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(255, 255, 255, 0) 75%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: ss-shimmer 1.4s ease-in-out infinite;
+}
+[data-theme="midnight"] .skeleton {
+  background-color: #1e293b;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 25%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0) 75%
+  );
+}
+
+/* --- Spinner: inherits currentColor so it works on any button or label. */
+.spinner {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: ss-spin 0.7s linear infinite;
+}
+.spinner-lg {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-width: 3px;
+}
+
+/* --- Button micro-interactions: press feedback everywhere. */
+button:not(:disabled) {
+  transition:
+    transform 150ms ease,
+    box-shadow 250ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+}
+button:not(:disabled):active {
+  transform: translateY(1px) scale(0.985);
+}
+
+/* --- Cards breathe on hover (shadow only — no layout shift, no touch jitter). */
+main .shadow-sm {
+  transition: box-shadow 250ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  main .shadow-sm:hover {
+    box-shadow: 0 14px 34px -18px rgb(2 6 23 / 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main,
+  main > div > *,
+  .skeleton,
+  .spinner,
+  .theme-panel {
+    animation: none !important;
+  }
+  button:not(:disabled):active {
+    transform: none;
+  }
+  main .shadow-sm,
+  main .shadow-sm:hover {
+    box-shadow: none;
+    transition: none;
+  }
+}
+
+
