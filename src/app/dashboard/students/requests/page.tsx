@@ -56,10 +56,10 @@ export default function StudentRequestsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-900 sm:px-10">
+    <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-5xl">
         <Link href="/dashboard/students" className="text-sm font-medium text-blue-600">← Students</Link>
-        <h1 className="mt-6 text-3xl font-bold">Student requests</h1>
+        <h1 className="mt-6 text-2xl sm:text-3xl font-bold">Student requests</h1>
         <p className="mt-2 text-slate-500">Review students waiting for approval.</p>
         {notice && <p className="mt-5 rounded-xl bg-blue-50 p-4 text-sm text-blue-800">{notice}</p>}
         <section className="mt-8 space-y-3">
@@ -69,7 +69,7 @@ export default function StudentRequestsPage() {
           {loading ? (
             <ListSkeleton rows={3} />
           ) : students.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center text-sm text-slate-400">No pending student requests.</div>
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-16 sm:px-6 sm:py-20 text-center text-sm text-slate-400">No pending student requests.</div>
           ) : (
             students.map((student) => (
               <div key={student._id} className="flex flex-col justify-between gap-4 rounded-2xl bg-white p-5 shadow-sm sm:flex-row sm:items-center">

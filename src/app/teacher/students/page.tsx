@@ -83,7 +83,7 @@ export default async function TeacherStudentsPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-900 sm:px-10">
+    <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-6xl">
         <Link href="/teacher" className="text-sm font-medium text-blue-600">
           ← Teacher workspace
@@ -91,7 +91,7 @@ export default async function TeacherStudentsPage({
         <div className="mt-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">My students</p>
-            <h1 className="mt-2 text-3xl font-bold">Students</h1>
+            <h1 className="mt-2 text-2xl sm:text-3xl font-bold">Students</h1>
             <p className="mt-2 text-slate-500">
               Only students from your Admin-assigned classes and sections are shown, and only these students can be edited.
             </p>
@@ -148,38 +148,38 @@ export default async function TeacherStudentsPage({
             </p>
           </div>
           {!assignedClasses.length ? (
-            <div className="px-6 py-20 text-center text-sm text-slate-400">
+            <div className="px-4 py-16 sm:px-6 sm:py-20 text-center text-sm text-slate-400">
               No classes have been assigned to you yet. Ask an administrator to assign your classes and sections.
             </div>
           ) : students.length === 0 ? (
-            <div className="px-6 py-20 text-center text-sm text-slate-400">No students match your search.</div>
+            <div className="px-4 py-16 sm:px-6 sm:py-20 text-center text-sm text-slate-400">No students match your search.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-6 py-4">Student</th>
-                    <th className="px-6 py-4">Student ID</th>
-                    <th className="px-6 py-4">Class</th>
-                    <th className="px-6 py-4">Gender</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Action</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Student</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Student ID</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Class</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Gender</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Status</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {students.map((student) => (
                     <tr key={String(student._id)}>
-                      <td className="px-6 py-4 font-semibold">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 font-semibold">
                         {student.fullName}
                         <p className="mt-1 text-xs font-normal text-slate-400">Roll {student.rollNumber}</p>
                       </td>
-                      <td className="px-6 py-4">{student.studentId}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">{student.studentId}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         {student.class}-{student.section}
                       </td>
-                      <td className="px-6 py-4 capitalize">{student.gender ?? "-"}</td>
-                      <td className="px-6 py-4 capitalize">{student.accountStatus}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.gender ?? "-"}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.accountStatus}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <Link
                           href={`/teacher/students/${String(student._id)}/edit`}
                           className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700"

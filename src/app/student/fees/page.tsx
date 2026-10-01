@@ -14,7 +14,7 @@ export default async function StudentFeesPage() {
   const student = await Student.findOne({ cnic: session.user.cnic }).lean();
   if (!student) {
     return (
-      <main className="min-h-screen bg-slate-100 p-8 text-center text-slate-500">
+      <main className="app-page bg-slate-100 p-5 text-center sm:p-8 text-slate-500">
         Student profile not found. Please contact the school office.
       </main>
     );
@@ -37,12 +37,12 @@ export default async function StudentFeesPage() {
   const totalPaid = feeRows.filter((row) => row.status === "paid").reduce((sum, row) => sum + row.amount, 0);
 
   return (
-    <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-900 sm:px-10">
+    <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-4xl">
         <a href="/student" className="text-sm font-medium text-blue-600">
           ← Student portal
         </a>
-        <h1 className="mt-6 text-3xl font-bold">Fees</h1>
+        <h1 className="mt-6 text-2xl sm:text-3xl font-bold">Fees</h1>
         <p className="mt-2 text-slate-500">
           Your monthly fee status for the last twelve months, including previous paid and unpaid months.
         </p>
@@ -50,19 +50,19 @@ export default async function StudentFeesPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Months paid</p>
-            <p className="mt-2 text-3xl font-bold text-emerald-600">{paid}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold text-emerald-600">{paid}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Months unpaid</p>
-            <p className="mt-2 text-3xl font-bold text-red-600">{unpaid}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold text-red-600">{unpaid}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Total paid</p>
-            <p className="mt-2 text-3xl font-bold">{totalPaid}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold">{totalPaid}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Months shown</p>
-            <p className="mt-2 text-3xl font-bold">{feeRows.length}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold">{feeRows.length}</p>
           </div>
         </div>
 
@@ -77,20 +77,20 @@ export default async function StudentFeesPage() {
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-6 py-4">Month</th>
-                  <th className="px-6 py-4">Amount</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Paid date</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4">Month</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4">Amount</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4">Status</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4">Paid date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {feeRows.map((row) => (
                   <tr key={row.key}>
-                    <td className="px-6 py-4 font-medium">
+                    <td className="px-4 py-3 sm:px-6 sm:py-4 font-medium">
                       {row.month} {row.year}
                     </td>
-                    <td className="px-6 py-4">{row.amount}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 sm:px-6 sm:py-4">{row.amount}</td>
+                    <td className="px-4 py-3 sm:px-6 sm:py-4">
                       <span
                         className={
                           row.status === "paid"
@@ -101,7 +101,7 @@ export default async function StudentFeesPage() {
                         {row.status === "paid" ? "Paid" : "Unpaid"}
                       </span>
                     </td>
-                    <td className="px-6 py-4">{row.paidDate || "-"}</td>
+                    <td className="px-4 py-3 sm:px-6 sm:py-4">{row.paidDate || "-"}</td>
                   </tr>
                 ))}
               </tbody>

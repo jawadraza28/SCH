@@ -127,12 +127,12 @@ export default function FeesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-900 sm:px-10">
+    <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-7xl">
         <Link href="/dashboard" className="text-sm font-medium text-blue-600">
           ← Dashboard
         </Link>
-        <h1 className="mt-6 text-3xl font-bold">Fee management</h1>
+        <h1 className="mt-6 text-2xl sm:text-3xl font-bold">Fee management</h1>
         <p className="mt-2 text-slate-500">
           Every student in the school is listed with the fee status for the selected month. Search or filter by class,
           section, and fee status, then mark a student paid or unpaid.
@@ -234,19 +234,19 @@ export default function FeesPage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Students in list</p>
-            <p className="mt-2 text-3xl font-bold">{summary.total}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold">{summary.total}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Paid</p>
-            <p className="mt-2 text-3xl font-bold text-emerald-600">{summary.paid}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold text-emerald-600">{summary.paid}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Unpaid</p>
-            <p className="mt-2 text-3xl font-bold text-red-600">{summary.unpaid}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold text-red-600">{summary.unpaid}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-500">Monthly fee</p>
-            <p className="mt-2 text-3xl font-bold">{monthlyFee}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-bold">{monthlyFee}</p>
           </div>
         </div>
 
@@ -268,25 +268,25 @@ export default function FeesPage() {
           {loading ? (
             <SkeletonRows rows={6} className="px-6 py-6" />
           ) : rows.length === 0 ? (
-            <div className="px-6 py-20 text-center text-sm text-slate-400">No students match the selected filters.</div>
+            <div className="px-4 py-16 sm:px-6 sm:py-20 text-center text-sm text-slate-400">No students match the selected filters.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-6 py-4">Student</th>
-                    <th className="px-6 py-4">Student ID</th>
-                    <th className="px-6 py-4">Class</th>
-                    <th className="px-6 py-4">Roll</th>
-                    <th className="px-6 py-4">Amount</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Action</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Student</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Student ID</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Class</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Roll</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Amount</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Status</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {rows.map((row) => (
                     <tr key={row.id}>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <Link
                           href={`/dashboard/students/${row.id}`}
                           className="font-semibold text-blue-700 hover:underline"
@@ -297,13 +297,13 @@ export default function FeesPage() {
                           {row.accountStatus === "pending" ? "Pending approval" : row.cnic || "-"}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{row.studentId || "-"}</td>
-                      <td className="px-6 py-4 text-slate-600">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.studentId || "-"}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">
                         {row.className}-{row.section}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{row.rollNumber || "-"}</td>
-                      <td className="px-6 py-4 text-slate-600">{row.amount}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.rollNumber || "-"}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.amount}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <span
                           className={
                             row.status === "paid"
@@ -319,7 +319,7 @@ export default function FeesPage() {
                           </p>
                         ) : null}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <FeeActions
                           studentId={row.id}
                           month={filters.month}

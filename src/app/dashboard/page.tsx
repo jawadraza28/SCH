@@ -2,22 +2,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Attendance, ClassSection, Student, Teacher } from "@/Models";
+import { Attendance, ClassSection, Fee, Student, Teacher } from "@/Models";
 
 export const dynamic = "force-dynamic";
 
-const navigation = [
-  ["Overview", "/dashboard"],
-  ["Students", "/dashboard/students"],
-  ["Teachers", "/dashboard/teachers"],
-  ["Assign classes", "/dashboard/teachers/assign"],
-  ["Classes & sections", "/dashboard/classes"],
-  ["Attendance", "/dashboard/attendance"],
-  ["Fees", "/dashboard/fees"],
-  ["Notices", "/dashboard/notices"],
-  ["Student requests", "/dashboard/students/requests"],
-  ["Audit history", "/dashboard/audit"],
-];
+type StatCard = {
+  label: string;
+  value: number;
+  hint: string;
+  href: string;
+  accent: string;
+};
 
 export default function DashboardPage() {
   return <DashboardContent />;
@@ -29,40 +24,79 @@ async function DashboardContent() {
   if (session.user.role === "teacher") redirect("/teacher");
   if (session.user.role === "student") redirect("/student");
   await connectToDatabase();
+
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(startOfDay);
   endOfDay.setDate(endOfDay.getDate() + 1);
-  const [studentCount, teacherCount, classCount, presentToday, pendingCount] = await Promise.all([
+  // YYYY-MM-DD key that the students list expects in ?presentOn=, so the
+  // "Present today" card opens the real student list already filtered to
+  // today's register (advanced search, filters and pagination keep working).
+  const todayKey = `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, "0")}-${String(startOfDay.getDate()).padStart(2, "0")}`;
+  const todayLabel = startOfDay.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  const [studentCount, teacherCount, classCount, presentToday, pendingCount, unpaidFees] = await Promise.all([
     Student.countDocuments(),
     Teacher.countDocuments(),
     ClassSection.countDocuments({ isActive: true }),
     Attendance.countDocuments({ status: "present", date: { $gte: startOfDay, $lt: endOfDay } }),
     Student.countDocuments({ accountStatus: "pending" }),
+    Fee.countDocuments({ status: "unpaid" }),
   ]);
-  const cards = [
-    ["Total students", studentCount],
-    ["Total teachers", teacherCount],
-    ["Active classes", classCount],
-    ["Present today", presentToday],
-    ["Pending requests", pendingCount],
+
+  const cards: StatCard[] = [
+    { label: "Total students", value: studentCount, hint: "Search, filter and manage every student", href: "/dashboard/students", accent: "bg-blue-50 text-blue-600" },
+    { label: "Total teachers", value: teacherCount, hint: "Staff records and class assignments", href: "/dashboard/teachers", accent: "bg-indigo-50 text-indigo-600" },
+    { label: "Active classes", value: classCount, hint: "Sections that are currently running", href: "/dashboard/classes", accent: "bg-violet-50 text-violet-600" },
+    { label: "Present today", value: presentToday, hint: `Students marked present on ${todayKey}`, href: `/dashboard/students?presentOn=${todayKey}`, accent: "bg-emerald-50 text-emerald-600" },
+    { label: "Pending requests", value: pendingCount, hint: "Student requests waiting for a decision", href: "/dashboard/students/requests", accent: "bg-amber-50 text-amber-600" },
+    { label: "Unpaid fees", value: unpaidFees, hint: "Fee records still waiting for payment", href: "/dashboard/fees", accent: "bg-rose-50 text-rose-600" },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-slate-200 bg-white px-6 py-7 lg:block">
-        <div className="flex items-center gap-3 text-sm font-bold tracking-wide text-slate-800"><span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-lg text-white">S</span>SCHOOL OS</div>
-        <div className="mt-12 rounded-2xl bg-slate-50 p-4"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Signed in as</p><p className="mt-2 truncate font-semibold">{session.user.name}</p><p className="mt-1 text-sm capitalize text-slate-500">{session.user.role}</p></div>
-        <nav className="mt-8 space-y-1" aria-label="Main navigation">{navigation.map(([label, href], index) => <a key={href} href={href} className={`block rounded-xl px-4 py-3 text-sm font-medium transition ${index === 0 ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>{label}</a>)}</nav>
-      </aside>
-      <main className="lg:pl-72">
-        <div className="border-b border-slate-200 bg-white px-6 py-3 lg:hidden"><nav className="flex gap-2 overflow-x-auto" aria-label="Mobile navigation">{navigation.map(([label, href]) => <a key={href} href={href} className="whitespace-nowrap rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">{label}</a>)}</nav></div>
-        <header className="border-b border-slate-200 bg-white px-6 py-5 sm:px-10"><div className="mx-auto flex max-w-7xl items-center justify-between"><div><p className="text-sm font-medium text-blue-600">Tuesday, September 29, 2026</p><h1 className="mt-1 text-2xl font-bold tracking-tight">Good morning, {session.user.name.split(" ")[0]}</h1></div><a href="/api/auth/logout" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Sign out</a></div></header>
-        <section className="mx-auto max-w-7xl px-6 py-8 sm:px-10"><div className="rounded-3xl bg-blue-700 p-7 text-white shadow-lg shadow-blue-900/10 sm:p-9"><p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-200">School overview</p><h2 className="mt-3 text-3xl font-bold tracking-tight">Everything important, at a glance.</h2><p className="mt-2 max-w-xl text-blue-100">Your school workspace is ready. Add students, teachers, and classes to begin building today’s picture.</p></div>
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{cards.map(([label, value]) => <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-500">{label}</p><p className="mt-3 text-3xl font-bold text-slate-900">{value}</p><p className="mt-2 text-xs text-slate-400">Live from MongoDB</p></div>)}</div>
-          <div className="mt-7 grid gap-6 lg:grid-cols-[1.3fr_0.7fr]"><div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center justify-between"><h3 className="font-semibold">Recent activity</h3><span className="text-sm text-slate-400">This week</span></div><div className="mt-12 text-center"><p className="font-medium text-slate-700">Your activity feed will appear here</p><p className="mt-1 text-sm text-slate-400">Start by adding your first school records.</p></div></div><div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h3 className="font-semibold">Quick actions</h3><div className="mt-5 space-y-2"><Link href="/dashboard/students/requests" className="block rounded-xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-100">Review student requests</Link><Link href="/dashboard/teachers/new" className="block rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">Add a teacher</Link><Link href="/dashboard/classes/new" className="block rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">Create a class</Link></div></div></div>
+    <div className="app-page bg-slate-100 text-slate-900">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+        <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-6">
+          <div>
+            <p className="text-xs font-medium text-blue-600 sm:text-sm">{todayLabel}</p>
+            <h1 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">Good morning, {session.user.name.split(" ")[0]}</h1>
+          </div>
+          <a href="/api/auth/logout" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Sign out</a>
+        </header>
+
+        <section className="mt-5 sm:mt-7">
+          <div className="rounded-3xl bg-blue-700 p-6 text-white shadow-lg shadow-blue-900/10 sm:p-9">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200 sm:text-sm">School overview</p>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Everything important, at a glance.</h2>
+            <p className="mt-2 max-w-xl text-sm text-blue-100 sm:text-base">Choose any card below to jump straight to that part of the school record.</p>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {cards.map((card) => (
+              <Link key={card.label} href={card.href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm text-slate-500">{card.label}</p>
+                  <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-base font-bold ${card.accent}`}>→</span>
+                </div>
+                <p className="mt-3 text-2xl sm:text-3xl font-bold text-slate-900">{card.value}</p>
+                <p className="mt-2 text-xs text-slate-400">{card.hint}</p>
+                <p className="mt-3 text-xs font-semibold text-blue-600 group-hover:underline">Open</p>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Recent activity</h3>
+              <span className="text-sm text-slate-400">This week</span>
+            </div>
+            <div className="mt-10 text-center sm:mt-12">
+              <p className="font-medium text-slate-700">Your activity feed will appear here</p>
+              <p className="mt-1 text-sm text-slate-400">Start by adding your first school records.</p>
+            </div>
+          </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

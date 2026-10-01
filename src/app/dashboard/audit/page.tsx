@@ -39,17 +39,17 @@ export default function AuditPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-900 sm:px-10">
+    <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-7xl">
         <a href="/dashboard" className="text-sm font-medium text-blue-600">← Dashboard</a>
-        <h1 className="mt-6 text-3xl font-bold">Audit history</h1>
+        <h1 className="mt-6 text-2xl sm:text-3xl font-bold">Audit history</h1>
         <p className="mt-2 text-slate-500">Important changes made in this school deployment.</p>
         {error && <p className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <section className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm">
           {loading ? (
             <SkeletonRows rows={5} className="px-6 py-6" />
           ) : logs.length === 0 ? (
-            <div className="px-6 py-20 text-center text-sm text-slate-400">No audit activity yet.</div>
+            <div className="px-4 py-16 sm:px-6 sm:py-20 text-center text-sm text-slate-400">No audit activity yet.</div>
           ) : (
             <div className="divide-y divide-slate-100">
               {logs.map((log) => (

@@ -33,17 +33,17 @@ export default async function AdminStudentProfile({ params }: { params: Promise<
   const paidMonths = feeRows.filter((row) => row.status === "paid").length;
 
   return (
-    <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-900 sm:px-10">
+    <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-4xl">
         <div className="flex items-center justify-between"><Link href="/dashboard/students" className="text-sm font-medium text-blue-600">← Students</Link><Link href={`/dashboard/students/${String(student._id)}/edit`} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Edit profile</Link></div>
         <section className="mt-6 overflow-hidden rounded-3xl bg-white shadow-sm">
           <div className="bg-blue-700 p-8 text-white">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-200">Student profile</p>
             <div className="mt-5 flex items-center gap-5">
-              <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-2xl bg-white/15 text-3xl font-bold">
+              <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-2xl bg-white/15 text-2xl sm:text-3xl font-bold">
                 {student.profilePhotoUrl ? <img src={`/api/students/${String(student._id)}/photo`} alt="Student profile" className="h-full w-full object-cover" /> : student.fullName.charAt(0)}
               </div>
-              <div><h1 className="text-3xl font-bold">{student.fullName}</h1><p className="mt-2 text-blue-100">{student.studentId} · Class {student.class}-{student.section} · Roll {student.rollNumber}</p></div>
+              <div><h1 className="text-2xl sm:text-3xl font-bold">{student.fullName}</h1><p className="mt-2 text-blue-100">{student.studentId} · Class {student.class}-{student.section} · Roll {student.rollNumber}</p></div>
             </div>
           </div>
           <div className="grid gap-8 p-8 sm:grid-cols-2">
@@ -67,8 +67,8 @@ export default async function AdminStudentProfile({ params }: { params: Promise<
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-8 py-4">Month</th>
-                  <th className="px-6 py-4">Amount</th>
-                  <th className="px-6 py-4">Status</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4">Amount</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4">Status</th>
                   <th className="px-8 py-4 text-right">Action</th>
                 </tr>
               </thead>
@@ -78,8 +78,8 @@ export default async function AdminStudentProfile({ params }: { params: Promise<
                     <td className="px-8 py-4 font-medium">
                       {row.month} {row.year}
                     </td>
-                    <td className="px-6 py-4">{row.amount}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 sm:px-6 sm:py-4">{row.amount}</td>
+                    <td className="px-4 py-3 sm:px-6 sm:py-4">
                       <span
                         className={
                           row.status === "paid"
