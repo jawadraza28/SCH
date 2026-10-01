@@ -21,8 +21,14 @@ export const THEME_STORAGE_KEY = "school-theme";
 
 /**
  * Runs before first paint so the saved theme is applied without a flash.
+ *
+ * Storage only ever records the MODE ("midnight" or not); the light palette
+ * always comes from LIGHT_THEME above. That way a stale value left behind by an
+ * older config (or an unknown string) can never resurrect an old blue theme —
+ * the configured palette wins on every load.
+ *
  * Exported (not just inlined in the root layout) because `app/global-error.tsx`
  * replaces the root layout when the app crashes and must reapply the theme
  * itself — Next.js does not carry global styles or the layout's script over.
  */
-export const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||${JSON.stringify(LIGHT_THEME)};document.documentElement.setAttribute("data-theme",t);document.documentElement.setAttribute("data-accent",t===${JSON.stringify(DARK_THEME)}?${JSON.stringify(LIGHT_THEME)}:t);}catch(e){document.documentElement.setAttribute("data-theme",${JSON.stringify(LIGHT_THEME)});document.documentElement.setAttribute("data-accent",${JSON.stringify(LIGHT_THEME)});}})();`;
+export const THEME_BOOTSTRAP = `(function(){try{var stored=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var theme=stored===${JSON.stringify(DARK_THEME)}?${JSON.stringify(DARK_THEME)}:${JSON.stringify(LIGHT_THEME)};document.documentElement.setAttribute("data-theme",theme);document.documentElement.setAttribute("data-accent",theme===${JSON.stringify(DARK_THEME)}?${JSON.stringify(LIGHT_THEME)}:theme);}catch(e){document.documentElement.setAttribute("data-theme",${JSON.stringify(LIGHT_THEME)});document.documentElement.setAttribute("data-accent",${JSON.stringify(LIGHT_THEME)});}})();`;

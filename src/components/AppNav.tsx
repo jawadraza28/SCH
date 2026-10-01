@@ -60,8 +60,16 @@ function activeHref(pathname: string, items: NavItem[]) {
   return bestScore > -1 ? best : "";
 }
 
-const linkClass = (active: boolean) =>
-  `block truncate rounded-xl px-4 py-3 text-sm font-medium transition ${active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`;
+/**
+ * Nav link. On the desktop rail `fill` makes every tab stretch so the menu
+ * shares the rail's height evenly — the tabs fill the sidebar instead of being
+ * cramped at the top, and they shrink gracefully (never overflowing). The mobile
+ * drawer keeps natural-height tabs for comfortable tapping.
+ */
+const linkClass = (active: boolean, fill = false) =>
+  `relative flex items-center rounded-xl px-4 text-sm transition ${fill ? "min-h-10 max-h-16 flex-1" : "py-3"} ${
+    active ? "bg-blue-50 font-semibold text-blue-700" : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+  }`;
 
 export default function AppNav({ items, userName, roleLabel, schoolName = "School", homeHref }: Props) {
   const pathname = usePathname();
@@ -96,10 +104,10 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
   }, [drawerOpen]);
 
   const signedIn = (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Signed in as</p>
-      <p className="mt-2 break-words font-semibold text-slate-800">{userName}</p>
-      <p className="mt-1 text-sm capitalize text-slate-500">{roleLabel}</p>
+    <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Signed in as</p>
+      <p className="mt-1 break-words text-sm font-semibold leading-tight text-slate-800">{userName}</p>
+      <p className="mt-0.5 text-xs capitalize leading-tight text-slate-500">{roleLabel}</p>
     </div>
   );
 
@@ -112,15 +120,16 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
     );
   }
 
-  function links(onNavigate: () => void) {
+  function links(onNavigate: () => void, fill = false) {
     const current = activeHref(pathname, items);
     return (
-      <nav className="space-y-1" aria-label="Main navigation">
+      <nav className={fill ? "flex flex-1 flex-col gap-1" : "space-y-1"} aria-label="Main navigation">
         {items.map((item) => {
           const active = item.href === current;
           return (
-            <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={active ? "page" : undefined} className={linkClass(active)}>
-              {item.label}
+            <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={active ? "page" : undefined} className={linkClass(active, fill)}>
+              <span aria-hidden="true" className={`mr-3 h-1.5 w-1.5 shrink-0 rounded-full ${active ? "bg-blue-600" : "bg-slate-300"}`} />
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </Link>
           );
         })}
@@ -160,11 +169,11 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
       </header>
 
       {/* --- Desktop: fixed side rail --------------------------------------- */}
-      <aside className="print:hidden fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-slate-200 bg-white px-6 py-7 lg:flex">
+      <aside className="print:hidden fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 lg:flex">
         {brand(false)}
-        <div className="mt-10">{signedIn}</div>
-        <div className="mt-8 min-h-0 flex-1 overflow-y-auto pr-1">{links(() => undefined)}</div>
-        <div className="pt-6">{signOut(true)}</div>
+        <div className="mt-5">{signedIn}</div>
+        <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">{links(() => undefined, true)}</div>
+        <div className="pt-4">{signOut(true)}</div>
       </aside>
 
       {/* --- Drawer: mounted only while open, so it can never push layout ---- */}

@@ -43,18 +43,14 @@ export default function ThemeSwitcher() {
     const root = document.documentElement;
     const target = dark ? LIGHT_THEME : DARK_THEME;
 
-    if (!dark) {
-      const styles = getComputedStyle(root);
-      root.setAttribute("data-accent", theme);
-      for (const step of ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900", "950"]) {
-        root.style.setProperty(`--midnight-blue-${step}`, styles.getPropertyValue(`--color-blue-${step}`).trim());
-      }
-    }
-
     // Cross-fade the palette swap (the .theme-transition block in globals.css
     // briefly allows color transitions on every element, then removes itself).
     root.classList.add("theme-transition");
     root.setAttribute("data-theme", target);
+    // data-accent always carries the configured light palette. The
+    // [data-accent="…"] blocks in globals.css resolve it — in light AND dark —
+    // so midnight keeps its accent on every load with nothing to recompute.
+    root.setAttribute("data-accent", target === DARK_THEME ? LIGHT_THEME : target);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, target);
     } catch {

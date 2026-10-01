@@ -86,7 +86,24 @@ async function DashboardContent() {
             ))}
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Link href="/dashboard/students/new" className="rounded-2xl border border-dashed border-blue-300 bg-blue-50/60 p-4 text-sm font-semibold text-blue-700 transition hover:-translate-y-0.5 hover:bg-blue-50">+ Add student<span className="mt-1 block text-xs font-normal text-blue-600/70">Create a new school record</span></Link><Link href="/dashboard/teachers/new" className="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/60 p-4 text-sm font-semibold text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-50">+ Add teacher<span className="mt-1 block text-xs font-normal text-emerald-600/70">Create a faculty account</span></Link><Link href="/dashboard/classes/new" className="rounded-2xl border border-dashed border-violet-300 bg-violet-50/60 p-4 text-sm font-semibold text-violet-700 transition hover:-translate-y-0.5 hover:bg-violet-50">+ Add class<span className="mt-1 block text-xs font-normal text-violet-600/70">Open a new section</span></Link><Link href="/dashboard/notices" className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-sm font-semibold text-amber-700 transition hover:-translate-y-0.5 hover:bg-amber-50">+ Post notice<span className="mt-1 block text-xs font-normal text-amber-600/70">Share a school update</span></Link></div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Link href="/dashboard/students/new" className="qa-card qa-card--blue">
+              + Add student
+              <span className="qa-card__hint">Create a new school record</span>
+            </Link>
+            <Link href="/dashboard/teachers/new" className="qa-card qa-card--emerald">
+              + Add teacher
+              <span className="qa-card__hint">Create a faculty account</span>
+            </Link>
+            <Link href="/dashboard/classes/new" className="qa-card qa-card--violet">
+              + Add class
+              <span className="qa-card__hint">Open a new section</span>
+            </Link>
+            <Link href="/dashboard/notices" className="qa-card qa-card--amber">
+              + Post notice
+              <span className="qa-card__hint">Share a school update</span>
+            </Link>
+          </div>
 
           <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center justify-between">

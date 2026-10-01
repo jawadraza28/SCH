@@ -214,14 +214,14 @@ export default function FeesPage() {
           <div className="flex items-end gap-2">
             <button
               disabled={loading}
-              className="min-w-0 flex-1 whitespace-nowrap rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              className="min-w-0 flex-1 whitespace-nowrap rounded-xl bg-blue-600 px-3 py-3 text-xs font-semibold text-white disabled:opacity-60"
             >
               {loading ? "Loading..." : "Apply filters"}
             </button>
             <button
               type="button"
               onClick={() => void reset()}
-              className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600"
+              className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 px-3 py-3 text-xs font-semibold text-slate-600"
             >
               Reset
             </button>
