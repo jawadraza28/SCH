@@ -15,8 +15,8 @@ export default async function TeacherProfilePage() {
     Teacher.findOne({ cnic: session.user.cnic }).lean(),
     session.user.school ? SchoolConfiguration.findById(session.user.school).select("schoolName schoolAddress schoolPhone").lean() : null,
   ]);
-  const classes = Array.isArray(teacher?.assignedClasses) ? teacher.assignedClasses.map((item: unknown) => String(item).toUpperCase()) : [];
-  const initials = session.user.name.split(" ").map((part) => part.charAt(0)).slice(0, 2).join("").toUpperCase();
+  const classes: string[] = Array.isArray(teacher?.assignedClasses) ? teacher.assignedClasses.map((item: unknown) => String(item).toUpperCase()) : [];
+  const initials = session.user.name.split(" ").map((part: string) => part.charAt(0)).slice(0, 2).join("").toUpperCase();
 
   return (
     <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
