@@ -37,7 +37,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.replace(result.user?.role === "student" && result.user.firstLoginCompleted === false ? "/student/change-password" : result.user?.role === "teacher" ? "/teacher" : result.user?.role === "student" ? "/student" : "/dashboard");
+      router.replace(result.user?.role === "teacher" ? "/teacher" : result.user?.role === "student" ? "/student" : "/dashboard");
       router.refresh();
     } catch {
       setError("Unable to connect to the server. Please try again.");

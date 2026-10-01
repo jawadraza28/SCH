@@ -28,6 +28,7 @@ type Props = {
   items: NavItem[];
   userName: string;
   roleLabel: string;
+  schoolName?: string;
   /** Where the brand mark returns to (the role's overview page). */
   homeHref: string;
 };
@@ -40,7 +41,7 @@ function isActive(pathname: string, item: NavItem) {
 const linkClass = (active: boolean) =>
   `block truncate rounded-xl px-4 py-3 text-sm font-medium transition ${active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`;
 
-export default function AppNav({ items, userName, roleLabel, homeHref }: Props) {
+export default function AppNav({ items, userName, roleLabel, schoolName = "School", homeHref }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   /*
@@ -84,7 +85,7 @@ export default function AppNav({ items, userName, roleLabel, homeHref }: Props) 
     return (
       <Link href={homeHref} className="flex min-w-0 items-center gap-3 text-sm font-bold tracking-wide text-slate-800">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-lg text-white">S</span>
-        <span className={compact ? "" : "hidden lg:inline"}>SCHOOL OS</span>
+        <span className={compact ? "" : "hidden lg:inline"}>{schoolName}</span>
       </Link>
     );
   }
@@ -133,7 +134,6 @@ export default function AppNav({ items, userName, roleLabel, homeHref }: Props) 
           </svg>
         </button>
         {brand(true)}
-        <div className="ml-auto">{signOut(false)}</div>
       </header>
 
       {/* --- Desktop: fixed side rail --------------------------------------- */}

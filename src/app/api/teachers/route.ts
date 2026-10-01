@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, normalizeCNIC, hashPassword } from "@/lib/auth";
+import { DEFAULT_TEACHER_PASSWORD, getCurrentUser, normalizeCNIC, hashPassword } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ClassSection, Teacher, User } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const name = String(body.name ?? "").trim();
     const email = String(body.email ?? "").trim().toLowerCase();
     const cnic = normalizeCNIC(String(body.cnic ?? "").trim());
-    const password = String(body.password ?? process.env.TEACHER_DEFAULT_PASSWORD ?? "teacherofschool");
+    const password = DEFAULT_TEACHER_PASSWORD;
     if (!name || !email || !/^\d{5}-\d{7}-\d$/.test(cnic)) return NextResponse.json({ error: "Name, email, and valid CNIC are required" }, { status: 400 });
     if (password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
     await connectToDatabase();
@@ -80,11 +80,7 @@ export async function PATCH(request: Request) {
       await teacher.save();
       if (user) {
         user.name = name; user.email = email; user.cnic = cnic; user.isActive = accountStatus === "active";
-        if (String(body.password ?? "").trim()) {
-          const password = String(body.password);
-          if (password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
-          user.password = await hashPassword(password);
-        }
+        user.password = await hashPassword(DEFAULT_TEACHER_PASSWORD);
         await user.save();
       }
       return NextResponse.json({ success: true, teacher });

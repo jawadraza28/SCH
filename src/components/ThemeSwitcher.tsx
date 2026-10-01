@@ -43,6 +43,14 @@ export default function ThemeSwitcher() {
     const root = document.documentElement;
     const target = dark ? LIGHT_THEME : DARK_THEME;
 
+    if (!dark) {
+      const styles = getComputedStyle(root);
+      root.setAttribute("data-accent", theme);
+      for (const step of ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900", "950"]) {
+        root.style.setProperty(`--midnight-blue-${step}`, styles.getPropertyValue(`--color-blue-${step}`).trim());
+      }
+    }
+
     // Cross-fade the palette swap (the .theme-transition block in globals.css
     // briefly allows color transitions on every element, then removes itself).
     root.classList.add("theme-transition");

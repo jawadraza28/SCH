@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import AppNav, { type NavItem } from "@/components/AppNav";
+import { connectToDatabase } from "@/lib/mongodb";
+import { SchoolConfiguration } from "@/Models";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +29,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session.authenticated || !session.user) redirect("/login");
   if (session.user.role === "teacher") redirect("/teacher");
   if (session.user.role === "student") redirect("/student");
+  await connectToDatabase();
+  const school = session.user.school ? await SchoolConfiguration.findById(session.user.school).select("schoolName").lean() : null;
 
   return (
     <div className="app-shell min-h-screen bg-slate-100 text-slate-900">
-      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} homeHref="/dashboard" />
+      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} homeHref="/dashboard" />
       <div className="lg:pl-72 print:pl-0">{children}</div>
     </div>
   );

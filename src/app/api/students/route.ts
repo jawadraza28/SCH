@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, normalizeCNIC, hashPassword } from "@/lib/auth";
+import { DEFAULT_STUDENT_PASSWORD, getCurrentUser, normalizeCNIC, hashPassword } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
@@ -120,13 +120,10 @@ export async function PATCH(request: Request) {
     if (action === "deactivate") { student.accountStatus = "suspended"; await student.save(); return NextResponse.json({ success: true, status: student.accountStatus }); }
     student.accountStatus = "active";
     await student.save();
-    let temporaryPassword: string | undefined;
     const existingUser = await (await import("@/Models")).User.findOne({ cnic: student.cnic });
     if (!existingUser) {
-      temporaryPassword = process.env.STUDENT_DEFAULT_PASSWORD;
-      if (!temporaryPassword || temporaryPassword.length < 8) return NextResponse.json({ error: "STUDENT_DEFAULT_PASSWORD must be configured with at least 8 characters" }, { status: 500 });
-        await (await import("@/Models")).User.create({ name: student.fullName, email: `${student.studentId.toLowerCase()}@student.local`, cnic: student.cnic, role: "student", password: await hashPassword(temporaryPassword), firstLoginCompleted: false, isActive: true, school: access.user.school });
-    } else { existingUser.isActive = true; await existingUser.save(); }
-    return NextResponse.json({ success: true, status: student.accountStatus, temporaryPassword });
+      await (await import("@/Models")).User.create({ name: student.fullName, email: `${student.studentId.toLowerCase()}@student.local`, cnic: student.cnic, role: "student", password: await hashPassword(DEFAULT_STUDENT_PASSWORD), firstLoginCompleted: true, isActive: true, school: access.user.school });
+    } else { existingUser.password = await hashPassword(DEFAULT_STUDENT_PASSWORD); existingUser.firstLoginCompleted = true; existingUser.isActive = true; await existingUser.save(); }
+    return NextResponse.json({ success: true, status: student.accountStatus, defaultPassword: DEFAULT_STUDENT_PASSWORD });
   } catch (error) { console.error("Student approval error:", error); return NextResponse.json({ error: "Unable to update student status" }, { status: 500 }); }
 }

@@ -11,6 +11,9 @@ import { connectToDatabase } from "@/lib/mongodb";
 const loginAttempts = new Map();
 type Role = "admin" | "teacher" | "student";
 
+export const DEFAULT_STUDENT_PASSWORD = "studentof2026";
+export const DEFAULT_TEACHER_PASSWORD = "teacherof2026";
+
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET is not configured");

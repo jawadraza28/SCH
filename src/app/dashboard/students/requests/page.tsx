@@ -45,7 +45,7 @@ export default function StudentRequestsPage() {
     const response = await fetch("/api/students", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studentId, action: actionName }) });
     const result = await response.json();
     if (response.ok) {
-      setNotice(result.temporaryPassword ? `Approved. Temporary password: ${result.temporaryPassword}` : `Student ${actionName}d.`);
+      setNotice(result.defaultPassword ? `Approved. Default password: ${result.defaultPassword}` : `Student ${actionName}d.`);
       if (students.length === 1 && page > 1) {
         setLoading(true);
         setPage(page - 1);

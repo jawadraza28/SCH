@@ -1,16 +1,32 @@
-export default function Home() {
+import Link from "next/link";
+import { connectToDatabase } from "@/lib/mongodb";
+import { SchoolConfiguration } from "@/Models";
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  let school: { schoolName?: string; schoolDescription?: string; schoolAddress?: string; schoolPhone?: string } | null = null;
+  try {
+    await connectToDatabase();
+    school = await SchoolConfiguration.findOne().select("schoolName schoolDescription schoolAddress schoolPhone").lean();
+  } catch {
+    // The public page remains useful while first-time setup is being prepared.
+  }
+
+  const schoolName = school?.schoolName || "Your School";
+  const description = school?.schoolDescription || "One clear place for attendance, learning, communication, and progress.";
+
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 text-slate-100">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 sm:px-10">
-        <div className="flex items-center gap-3 text-sm font-bold tracking-wide"><span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500 text-lg">S</span>SCHOOL OS</div>
-        <div className="flex items-center gap-3"><a href="/setup" className="hidden px-4 py-2 text-sm font-medium text-slate-300 hover:text-white sm:block">Set up school</a><a href="/login" className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-blue-50">Sign in</a></div>
+    <main className="landing-page min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 sm:px-10">
+        <Link href="/" className="flex min-w-0 items-center gap-3 text-sm font-bold tracking-wide"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500 text-lg">{schoolName.charAt(0).toUpperCase()}</span><span className="truncate">{schoolName}</span></Link>
+        <div className="flex items-center gap-2 sm:gap-3"><Link href="/about-us" className="px-3 py-2 text-sm font-medium text-slate-300 hover:text-white">About us</Link><Link href="/setup" className="hidden px-3 py-2 text-sm font-medium text-slate-300 hover:text-white sm:block">Set up school</Link><Link href="/login" className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-blue-50">Sign in</Link></div>
       </nav>
       <section className="relative mx-auto grid max-w-7xl gap-12 px-6 pb-20 pt-16 sm:px-10 lg:grid-cols-[1fr_0.8fr] lg:items-center lg:pb-28 lg:pt-24">
-        <div className="absolute -left-40 top-10 h-80 w-80 rounded-full bg-blue-600/20 blur-3xl" />
-        <div className="relative"><p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-400">A calmer school day</p><h1 className="mt-6 max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">The school day, in one clear place.</h1><p className="mt-7 max-w-xl text-lg leading-8 text-slate-400">School OS helps administrators, teachers, and students stay aligned on the work that matters: people, classes, attendance, learning, and progress.</p><div className="mt-9 flex flex-col gap-3 sm:flex-row"><a href="/login" className="rounded-xl bg-blue-500 px-6 py-3.5 text-center font-semibold text-white hover:bg-blue-400">Open your workspace</a><a href="/setup" className="rounded-xl border border-white/15 px-6 py-3.5 text-center font-semibold text-slate-200 hover:bg-white/5">Create a school</a></div></div>
-        <div className="relative rounded-3xl border border-white/10 bg-white/[0.06] p-5 shadow-2xl shadow-blue-950/40"><div className="rounded-2xl bg-slate-900 p-5"><div className="flex items-center justify-between"><div><p className="text-xs uppercase tracking-widest text-slate-500">Today at school</p><p className="mt-2 text-xl font-semibold">A clear morning overview</p></div><span className="rounded-lg bg-blue-500/15 px-3 py-2 text-xs font-semibold text-blue-300">Live</span></div><div className="mt-7 grid grid-cols-2 gap-3"><div className="rounded-xl bg-white/5 p-4"><p className="text-xs text-slate-500">Attendance</p><p className="mt-2 text-2xl font-bold">94.8%</p><p className="mt-1 text-xs text-emerald-400">+2.4% this week</p></div><div className="rounded-xl bg-white/5 p-4"><p className="text-xs text-slate-500">Classes today</p><p className="mt-2 text-2xl font-bold">24</p><p className="mt-1 text-xs text-slate-500">Across 8 sections</p></div></div><div className="mt-3 rounded-xl bg-blue-500 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-blue-100">Next up</p><p className="mt-2 font-semibold">Mathematics · Class 7-A</p><p className="mt-1 text-sm text-blue-100">Attendance is ready to mark</p></div></div></div>
+        <div className="relative z-10"><p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-400">Welcome to {schoolName}</p><h1 className="mt-6 max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">{schoolName}, in one clear place.</h1><p className="mt-7 max-w-xl text-lg leading-8 text-slate-400">{description}</p><div className="mt-9 flex flex-col gap-3 sm:flex-row"><Link href="/login" className="rounded-xl bg-blue-500 px-6 py-3.5 text-center font-semibold text-white hover:bg-blue-400">Open your workspace</Link><Link href="/about-us" className="rounded-xl border border-white/15 px-6 py-3.5 text-center font-semibold text-slate-200 hover:bg-white/5">Discover our school</Link></div></div>
+        <div className="book-scene" aria-hidden="true"><div className="scene-orbit scene-orbit-one" /><div className="scene-orbit scene-orbit-two" /><div className="book book-one"><span /></div><div className="book book-two"><span /></div><div className="book book-three"><span /></div><div className="scene-pencil"><i /><b /></div><div className="scene-floor" /></div>
       </section>
-      <section className="border-t border-white/10 bg-slate-900/70"><div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 sm:grid-cols-3 sm:px-10"><div><p className="text-sm font-semibold text-white">For administrators</p><p className="mt-2 text-sm leading-6 text-slate-400">See the whole school, make decisions faster, and keep records organized.</p></div><div><p className="text-sm font-semibold text-white">For teachers</p><p className="mt-2 text-sm leading-6 text-slate-400">Spend less time on paperwork and more time with your classes.</p></div><div><p className="text-sm font-semibold text-white">For students</p><p className="mt-2 text-sm leading-6 text-slate-400">Keep attendance, homework, results, notices, and fees close at hand.</p></div></div></section>
+      <section className="border-t border-white/10 bg-slate-900/70"><div className="mx-auto max-w-7xl px-6 py-12 sm:px-10"><div className="grid gap-4 sm:grid-cols-3"><Link href="/login" className="landing-feature"><span className="landing-feature-number">01</span><p className="text-sm font-semibold text-white">For administrators</p><p className="mt-2 text-sm leading-6 text-slate-400">See the whole school, make decisions faster, and keep records organized.</p><span className="mt-5 block text-xs font-semibold text-blue-300">Open workspace →</span></Link><Link href="/login" className="landing-feature"><span className="landing-feature-number">02</span><p className="text-sm font-semibold text-white">For teachers</p><p className="mt-2 text-sm leading-6 text-slate-400">Spend less time on paperwork and more time with your classes.</p><span className="mt-5 block text-xs font-semibold text-emerald-300">Open workspace →</span></Link><Link href="/login" className="landing-feature"><span className="landing-feature-number">03</span><p className="text-sm font-semibold text-white">For students</p><p className="mt-2 text-sm leading-6 text-slate-400">Keep attendance, homework, results, notices, and fees close at hand.</p><span className="mt-5 block text-xs font-semibold text-amber-300">Open workspace →</span></Link></div></div></section>
     </main>
   );
 }
