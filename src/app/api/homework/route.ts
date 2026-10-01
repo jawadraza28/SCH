@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Homework, Student, Teacher } from "@/Models";
+import { pruneExpiredHomework } from "@/lib/retention";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 
 async function sessionAccess() {
@@ -15,6 +16,7 @@ export async function GET(request: Request) {
   if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
   try {
     await connectToDatabase();
+    await pruneExpiredHomework();
     const params = new URL(request.url).searchParams;
     const limit = parsePageSize(params.get("limit"), 20);
     let query: Record<string, unknown>;
@@ -46,14 +48,15 @@ export async function POST(request: Request) {
   if (access.user.role !== "teacher") return NextResponse.json({ error: "Only teachers can create homework" }, { status: 403 });
   try {
     const body = await request.json();
-    const title = String(body.title ?? "").trim(); const subject = String(body.subject ?? "").trim(); const description = String(body.description ?? "").trim(); const assignedToClass = String(body.className ?? "").trim(); const assignedToSection = String(body.section ?? "").trim().toUpperCase(); const dueDate = String(body.dueDate ?? "").trim();
+    const title = String(body.title ?? "").trim(); const subject = String(body.subject ?? "").trim(); const description = String(body.description ?? "").trim(); const assignedToClass = String(body.className ?? "").trim(); const assignedToSection = String(body.section ?? "").trim().toUpperCase(); const dueDate = String(body.dueDate ?? "").trim(); const expiryDate = String(body.expiryDate ?? "").trim();
     if (!title || !subject || !description || !assignedToClass || !assignedToSection || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return NextResponse.json({ error: "Subject, class, section, title, description, and due date are required" }, { status: 400 });
+    if (expiryDate && !/^\d{4}-\d{2}-\d{2}$/.test(expiryDate)) return NextResponse.json({ error: "Expiry date must be a valid date" }, { status: 400 });
     await connectToDatabase();
     const teacher = await Teacher.findOne({ cnic: access.user.cnic }).lean();
     if (!teacher) return NextResponse.json({ error: "Teacher profile not found" }, { status: 404 });
     const assigned = (teacher.assignedClasses ?? []).map((item: unknown) => String(item));
     if (!assigned.includes(`${assignedToClass}-${assignedToSection}`)) return NextResponse.json({ error: "You are not assigned to this class" }, { status: 403 });
-    const homework = await Homework.create({ title, description, subject, classSection: `${assignedToClass}-${assignedToSection}`, assignedBy: teacher._id, assignedToClass, assignedToSection, dueDate: new Date(`${dueDate}T23:59:59.999Z`) });
+    const homework = await Homework.create({ title, description, subject, classSection: `${assignedToClass}-${assignedToSection}`, assignedBy: teacher._id, assignedToClass, assignedToSection, dueDate: new Date(`${dueDate}T23:59:59.999Z`), expiryDate: expiryDate ? new Date(`${expiryDate}T23:59:59.999Z`) : undefined });
     return NextResponse.json({ success: true, homework }, { status: 201 });
   } catch (error) {
     console.error("Homework creation error:", error);

@@ -461,6 +461,9 @@ const homeworkSchema = new Schema({
     type: Date,
     required: true,
   },
+  expiryDate: {
+    type: Date,
+  },
   assignedAt: {
     type: Date,
     default: Date.now,
@@ -474,6 +477,7 @@ const homeworkSchema = new Schema({
 // Index for homework queries
 homeworkSchema.index({ classSection: 1, dueDate: 1 });
 homeworkSchema.index({ assignedBy: 1 });
+homeworkSchema.index({ expiryDate: 1 });
 
 export const Homework = mongoose.models.Homework || mongoose.model("Homework", homeworkSchema);
 

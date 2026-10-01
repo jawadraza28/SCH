@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, normalizeCNIC } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher, User } from "@/Models";
+import { fullClassMessage, seatAvailability } from "@/lib/seats";
 
 async function canAccessStudent(id: string) {
   const session = await getCurrentUser();
@@ -53,6 +54,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (duplicateCnic) return NextResponse.json({ error: "Another student already uses this CNIC" }, { status: 409 });
     const duplicateRoll = await Student.findOne({ _id: { $ne: id }, class: className, section, rollNumber }).select("_id").lean();
     if (duplicateRoll) return NextResponse.json({ error: `Roll number ${rollNumber} is already used in class ${className}-${section}.` }, { status: 409 });
+    // Moving a student into a different class must respect that class's seats.
+    const movingClass = `${access.student.class}-${access.student.section}`.toUpperCase() !== `${className}-${section}`.toUpperCase();
+    if (movingClass) {
+      const seats = await seatAvailability(className, section, id);
+      if (seats.full) return NextResponse.json({ error: fullClassMessage(className, section, seats) }, { status: 409 });
+    }
     const previousCNIC = student.cnic;
     student.fullName = fullName; student.cnic = cnic; student.class = className; student.section = section; student.rollNumber = rollNumber; student.gender = gender;
     student.fatherName = String(body.fatherName ?? "").trim(); student.fatherPhone = String(body.fatherPhone ?? "").trim(); student.homeAddress = String(body.homeAddress ?? "").trim();

@@ -3,6 +3,7 @@ import { DEFAULT_STUDENT_PASSWORD, getCurrentUser, normalizeCNIC, hashPassword }
 import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
+import { fullClassMessage, seatAvailability } from "@/lib/seats";
 
 const cnicPattern = /^\d{5}-\d{7}-\d$/;
 
@@ -88,6 +89,11 @@ export async function POST(request: Request) {
     const existingRoll = await Student.findOne({ class: normalizedClass, section: normalizedSection, rollNumber: normalizedRoll }).select("_id").lean();
     if (existingRoll) return NextResponse.json({ error: `Roll number ${normalizedRoll} is already used in class ${normalizedClass}-${normalizedSection}. Choose a different roll number.` }, { status: 409 });
 
+    // Seats are enforced here because a teacher request is the only way a new
+    // student enters a class. Nothing is added once the class is full.
+    const seats = await seatAvailability(normalizedClass, normalizedSection);
+    if (seats.full) return NextResponse.json({ error: fullClassMessage(normalizedClass, normalizedSection, seats) }, { status: 409 });
+
     const count = await Student.countDocuments();
     const student = await Student.create({
       studentId: `STU-${String(count + 1).padStart(6, "0")}`,
@@ -118,6 +124,8 @@ export async function PATCH(request: Request) {
     if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
     if (action === "reject") { student.accountStatus = "rejected"; await student.save(); return NextResponse.json({ success: true, status: student.accountStatus }); }
     if (action === "deactivate") { student.accountStatus = "suspended"; await student.save(); return NextResponse.json({ success: true, status: student.accountStatus }); }
+    const approvalSeats = await seatAvailability(student.class, student.section, String(student._id));
+    if (approvalSeats.full) return NextResponse.json({ error: fullClassMessage(student.class, student.section, approvalSeats) }, { status: 409 });
     student.accountStatus = "active";
     await student.save();
     const existingUser = await (await import("@/Models")).User.findOne({ cnic: student.cnic });

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Homework, Notice, Student, Teacher } from "@/Models";
+import { pruneExpiredHomework } from "@/lib/retention";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function TeacherPage() {
   if (!session.authenticated || !session.user) redirect("/login");
   if (session.user.role !== "teacher") redirect("/dashboard");
   await connectToDatabase();
+  await pruneExpiredHomework();
   const teacher = await Teacher.findOne({ cnic: session.user.cnic }).lean();
   const classes: string[] = Array.isArray(teacher?.assignedClasses) ? teacher.assignedClasses.map((item: unknown) => String(item)) : [];
   const assignedClasses = classes.map((item) => item.toUpperCase());

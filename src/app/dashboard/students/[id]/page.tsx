@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Fee, SchoolConfiguration, Student } from "@/Models";
+import { Attendance, Fee, SchoolConfiguration, Student } from "@/Models";
 import { lastTwelveMonthsNewestFirst } from "@/lib/fees";
 import FeeActions from "@/components/FeeActions";
 
@@ -16,7 +16,10 @@ export default async function AdminStudentProfile({ params }: { params: Promise<
   if (!student) notFound();
 
   const studentId = String(student._id);
-  const fees = await Fee.find({ student: student._id }).lean();
+  const [fees, attendance] = await Promise.all([
+    Fee.find({ student: student._id }).lean(),
+    Attendance.find({ student: student._id }).sort({ date: -1 }).limit(365).lean(),
+  ]);
   const school = session.user.school ? await SchoolConfiguration.findById(session.user.school).lean() : null;
   const monthlyFee = Number(school?.monthlyFee ?? 0);
   const feeByMonth = new Map(fees.map((fee) => [`${fee.month}-${fee.year}`, fee]));
@@ -100,6 +103,10 @@ export default async function AdminStudentProfile({ params }: { params: Promise<
             </table>
           </div>
         </section>
+        <details className="group mt-6 overflow-hidden rounded-3xl bg-white shadow-sm">
+          <summary className="cursor-pointer list-none px-8 py-5 font-semibold">Attendance history <span className="float-right text-sm font-normal text-slate-400 group-open:hidden">View details +</span><span className="float-right hidden text-sm font-normal text-slate-400 group-open:inline">Hide details -</span></summary>
+          <div className="overflow-x-auto border-t border-slate-100 px-8 py-4"><table className="w-full min-w-[560px] text-left text-sm"><thead className="text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3">Date</th><th className="py-3">Class</th><th className="py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{attendance.map((record) => <tr key={String(record._id)}><td className="py-3">{new Date(record.date).toLocaleDateString()}</td><td className="py-3">{record.classSection}</td><td className="py-3 capitalize">{record.status}</td></tr>)}</tbody></table>{attendance.length === 0 && <p className="py-6 text-sm text-slate-400">No attendance records available.</p>}</div>
+        </details>
       </div>
     </main>
   );

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { ClassSection } from "@/Models";
+import { ClassSection, Student } from "@/Models";
 
 async function adminAccess() {
   const session = await getCurrentUser();
@@ -16,7 +16,16 @@ export async function GET() {
   try {
     await connectToDatabase();
     const classes = await ClassSection.find({ isActive: true }).sort({ className: 1, sectionName: 1 }).lean();
-    return NextResponse.json({ classes });
+    // Live seat usage, so callers can show "occupied/capacity" without a stale counter.
+    const roster = await Student.find({ accountStatus: { $in: ["active", "pending"] } }).select("class section").lean();
+    const occupiedByClass = new Map<string, number>();
+    for (const student of roster) {
+      const key = `${student.class}-${student.section}`.toUpperCase();
+      occupiedByClass.set(key, (occupiedByClass.get(key) ?? 0) + 1);
+    }
+    return NextResponse.json({
+      classes: classes.map((item) => ({ ...item, occupied: occupiedByClass.get(`${item.className}-${item.sectionName}`.toUpperCase()) ?? 0 })),
+    });
   } catch (error) {
     console.error("Class list error:", error);
     return NextResponse.json({ error: "Unable to load classes" }, { status: 500 });

@@ -33,9 +33,31 @@ type Props = {
   homeHref: string;
 };
 
-function isActive(pathname: string, item: NavItem) {
-  if (item.exact) return pathname === item.href;
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+/**
+ * How well an item matches the current pathname: the href length, or -1 for no
+ * match. Longer href = more specific.
+ */
+function matchScore(pathname: string, item: NavItem) {
+  if (item.exact) return pathname === item.href ? item.href.length : -1;
+  return pathname === item.href || pathname.startsWith(`${item.href}/`) ? item.href.length : -1;
+}
+
+/**
+ * Only the most specific item may be active. Without this, parent/child pairs
+ * such as "/dashboard/teachers" and "/dashboard/teachers/assign" light up
+ * together (the short href is a prefix of the long one).
+ */
+function activeHref(pathname: string, items: NavItem[]) {
+  let best = "";
+  let bestScore = -1;
+  for (const item of items) {
+    const score = matchScore(pathname, item);
+    if (score > bestScore) {
+      bestScore = score;
+      best = item.href;
+    }
+  }
+  return bestScore > -1 ? best : "";
 }
 
 const linkClass = (active: boolean) =>
@@ -91,10 +113,11 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
   }
 
   function links(onNavigate: () => void) {
+    const current = activeHref(pathname, items);
     return (
       <nav className="space-y-1" aria-label="Main navigation">
         {items.map((item) => {
-          const active = isActive(pathname, item);
+          const active = item.href === current;
           return (
             <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={active ? "page" : undefined} className={linkClass(active)}>
               {item.label}

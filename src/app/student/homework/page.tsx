@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Homework, Student } from "@/Models";
 import Pagination from "@/components/Pagination";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
+import { pruneExpiredHomework } from "@/lib/retention";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ export default async function StudentHomeworkPage({ searchParams }: { searchPara
   if (!session.authenticated || !session.user) redirect("/login");
   if (session.user.role !== "student") redirect("/dashboard");
   await connectToDatabase();
+  await pruneExpiredHomework();
   const student = await Student.findOne({ cnic: session.user.cnic }).lean();
   const query = student ? { assignedToClass: student.class, assignedToSection: student.section, isActive: true } : null;
   const limit = DEFAULT_PAGE_SIZE;

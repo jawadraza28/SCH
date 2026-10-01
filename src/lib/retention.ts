@@ -1,6 +1,6 @@
 "use strict";
 
-import { Attendance, Fee } from "@/Models";
+import { Attendance, Fee, Homework } from "@/Models";
 
 export const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -8,11 +8,11 @@ export const monthNames = [
 ];
 
 /**
- * The oldest date that is still kept: the current month plus the previous eleven
- * calendar months, which is exactly one year of history.
+ * The oldest date that is still kept: the current month plus the previous
+ * thirteen calendar months, which is approximately 1.2 years of history.
  */
 export function retentionCutoff(now: Date = new Date()) {
-  return new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  return new Date(now.getFullYear(), now.getMonth() - 13, 1);
 }
 
 /**
@@ -29,15 +29,20 @@ export function feeRetentionFilter(now: Date = new Date()) {
   return { $or: conditions };
 }
 
-/** Deletes attendance records older than one year and returns the deleted count. */
+/** Deletes attendance records older than the configured 14-month window. */
 export async function pruneAttendance(now: Date = new Date()) {
   const result = await Attendance.deleteMany({ date: { $lt: retentionCutoff(now) } });
   return result.deletedCount ?? 0;
 }
 
-/** Deletes fee records older than one year and returns the deleted count. */
+/** Deletes fee records older than the configured 14-month window. */
 export async function pruneFees(now: Date = new Date()) {
   const result = await Fee.deleteMany(feeRetentionFilter(now));
+  return result.deletedCount ?? 0;
+}
+
+export async function pruneExpiredHomework(now: Date = new Date()) {
+  const result = await Homework.deleteMany({ expiryDate: { $lt: now } });
   return result.deletedCount ?? 0;
 }
 
@@ -45,7 +50,7 @@ let lastPrunedAt = 0;
 const pruneIntervalMs = 60 * 60 * 1000;
 
 /**
- * Keeps MongoDB at exactly one year of attendance and fee history even when no
+ * Keeps MongoDB at approximately 1.2 years of attendance and fee history even when no
  * cron job has been configured. Runs at most once per hour per server instance.
  */
 export async function pruneRetentionIfDue(now: Date = new Date()) {

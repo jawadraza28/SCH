@@ -35,11 +35,12 @@ async function DashboardContent() {
   const todayKey = `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, "0")}-${String(startOfDay.getDate()).padStart(2, "0")}`;
   const todayLabel = startOfDay.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const [studentCount, teacherCount, classCount, presentToday, pendingCount, unpaidFees] = await Promise.all([
+  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees] = await Promise.all([
     Student.countDocuments(),
     Teacher.countDocuments(),
     ClassSection.countDocuments({ isActive: true }),
     Attendance.countDocuments({ status: "present", date: { $gte: startOfDay, $lt: endOfDay } }),
+    Attendance.countDocuments({ status: "absent", date: { $gte: startOfDay, $lt: endOfDay } }),
     Student.countDocuments({ accountStatus: "pending" }),
     Fee.countDocuments({ status: "unpaid" }),
   ]);
@@ -49,6 +50,7 @@ async function DashboardContent() {
     { label: "Total teachers", value: teacherCount, hint: "Staff records and class assignments", href: "/dashboard/teachers", accent: "bg-indigo-50 text-indigo-600" },
     { label: "Active classes", value: classCount, hint: "Sections that are currently running", href: "/dashboard/classes", accent: "bg-violet-50 text-violet-600" },
     { label: "Present today", value: presentToday, hint: `Students marked present on ${todayKey}`, href: `/dashboard/students?presentOn=${todayKey}`, accent: "bg-emerald-50 text-emerald-600" },
+    { label: "Absent today", value: absentToday, hint: `Students marked absent on ${todayKey}`, href: "/dashboard/attendance", accent: "bg-rose-50 text-rose-600" },
     { label: "Pending requests", value: pendingCount, hint: "Student requests waiting for a decision", href: "/dashboard/students/requests", accent: "bg-amber-50 text-amber-600" },
     { label: "Unpaid fees", value: unpaidFees, hint: "Fee records still waiting for payment", href: "/dashboard/fees", accent: "bg-rose-50 text-rose-600" },
   ];

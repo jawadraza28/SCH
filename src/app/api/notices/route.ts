@@ -9,6 +9,7 @@ export async function GET(request: Request) {
   if (!session.authenticated || !session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     await connectToDatabase();
+    await Notice.deleteMany({ expiryDate: { $lt: new Date() } });
     const params = new URL(request.url).searchParams;
     const limit = parsePageSize(params.get("limit"), 20);
     const query = { published: true, $or: [{ expiryDate: { $exists: false } }, { expiryDate: null }, { expiryDate: { $gte: new Date() } }] };
@@ -33,4 +34,18 @@ export async function POST(request: Request) {
     const notice = await Notice.create({ title, description, type, published: body.published !== false, expiryDate: body.expiryDate ? new Date(body.expiryDate) : undefined, createdBy: session.user.id, school: session.user.school });
     return NextResponse.json({ success: true, notice }, { status: 201 });
   } catch (error) { console.error("Notice creation error:", error); return NextResponse.json({ error: "Unable to create notice" }, { status: 500 }); }
+}
+
+export async function DELETE(request: Request) {
+  const session = await getCurrentUser();
+  if (!session.authenticated || !session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "admin") return NextResponse.json({ error: "Only administrators can delete notices" }, { status: 403 });
+  const id = new URL(request.url).searchParams.get("id")?.trim() ?? "";
+  if (!/^[0-9a-fA-F]{24}$/.test(id)) return NextResponse.json({ error: "A valid notice id is required" }, { status: 400 });
+  try {
+    await connectToDatabase();
+    const deleted = await Notice.findByIdAndDelete(id).lean();
+    if (!deleted) return NextResponse.json({ error: "Notice not found" }, { status: 404 });
+    return NextResponse.json({ success: true, id });
+  } catch (error) { console.error("Notice deletion error:", error); return NextResponse.json({ error: "Unable to delete notice" }, { status: 500 }); }
 }

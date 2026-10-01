@@ -7,6 +7,14 @@
     {
       "path": "/api/maintenance/fees",
       "schedule": "5 0 1 * *"
+    },
+    {
+      "path": "/api/maintenance/notices",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/maintenance/homework",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

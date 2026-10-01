@@ -172,7 +172,7 @@ export default async function TeacherStudentsPage({
                   {students.map((student) => (
                     <tr key={String(student._id)}>
                       <td className="px-4 py-3 sm:px-6 sm:py-4 font-semibold">
-                        {student.fullName}
+                        <Link href={`/teacher/students/${String(student._id)}`} className="text-blue-700 hover:underline">{student.fullName}</Link>
                         <p className="mt-1 text-xs font-normal text-slate-400">Roll {student.rollNumber}</p>
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">{student.studentId}</td>
