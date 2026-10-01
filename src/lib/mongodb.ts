@@ -20,15 +20,11 @@ function retryDelayMs(attempt: number) {
   return backoff + Math.floor(Math.random() * 250);
 }
 
-async function waitForConnection() {
-  if (mongoose.connection.readyState === 1) return mongoose;
-  await mongoose.connection.asPromise();
-  return mongoose;
-}
-
 export const connectToDatabase = async () => {
   if (mongoose.connection.readyState === 1) return mongoose;
-  if (mongoose.connection.readyState === 2) return waitForConnection();
+  // Join any in-flight attempt before starting another one. The promise lives on
+  // globalThis, so every compiled copy of this module in the server bundle
+  // cooperates instead of racing duplicate mongoose.connect() calls.
   if (mongoCache.connectionPromise) return mongoCache.connectionPromise;
 
   const mongoUri = process.env.MONGODB_URI;
@@ -38,16 +34,24 @@ export const connectToDatabase = async () => {
     let lastError: unknown;
     for (let attempt = 1; attempt <= MAX_CONNECT_ATTEMPTS; attempt += 1) {
       try {
-        await mongoose.connect(mongoUri, {
-          dbName: "school-management",
-          maxPoolSize: 10,
-          minPoolSize: 0,
-          serverSelectionTimeoutMS: 15000,
-          connectTimeoutMS: 15000,
-          heartbeatFrequencyMS: 10000,
-          retryWrites: true,
-        });
-        await waitForConnection();
+        if (mongoose.connection.readyState === 2) {
+          // An open started elsewhere is already in flight — wait for it rather
+          // than calling connect() again. A second connect() while the state is
+          // "connecting" can resolve before the socket is usable, which is what
+          // used to surface as an instant failure on concurrent cold starts.
+          await mongoose.connection.asPromise();
+        } else if (mongoose.connection.readyState !== 1) {
+          await mongoose.connect(mongoUri, {
+            dbName: "school-management",
+            maxPoolSize: 10,
+            minPoolSize: 0,
+            serverSelectionTimeoutMS: 15000,
+            connectTimeoutMS: 15000,
+            heartbeatFrequencyMS: 10000,
+            retryWrites: true,
+          });
+        }
+        if (mongoose.connection.readyState !== 1) throw new Error("MongoDB connection is not ready");
         console.log("✅ MongoDB Connected Successfully");
         return mongoose;
       } catch (error) {
