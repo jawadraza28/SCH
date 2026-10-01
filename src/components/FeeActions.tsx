@@ -44,7 +44,7 @@ export default function FeeActions({ studentId, month, year, status, onUpdated }
           type="button"
           disabled={saving || status === "paid"}
           onClick={() => update("paid")}
-          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+          className="min-w-[5.75rem] whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
         >
           Mark paid
         </button>
@@ -52,7 +52,7 @@ export default function FeeActions({ studentId, month, year, status, onUpdated }
           type="button"
           disabled={saving || status === "unpaid"}
           onClick={() => update("unpaid")}
-          className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-40"
+          className="min-w-[5.75rem] whitespace-nowrap rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-40"
         >
           Mark unpaid
         </button>
