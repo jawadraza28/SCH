@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher } from "@/Models";
 import Pagination from "@/components/Pagination";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
+import PhotoUpload from "./PhotoUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -163,6 +164,7 @@ export default async function TeacherStudentsPage({
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Class</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Gender</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Status</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Photo</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Action</th>
                   </tr>
                 </thead>
@@ -179,6 +181,7 @@ export default async function TeacherStudentsPage({
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.gender ?? "-"}</td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.accountStatus}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4"><PhotoUpload studentId={String(student._id)} /></td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <Link
                           href={`/teacher/students/${String(student._id)}/edit`}
