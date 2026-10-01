@@ -1,41 +1,51 @@
 import mongoose from "mongoose";
 
-let isConnected = false;
+let connectionPromise: Promise<typeof mongoose> | null = null;
 
 export const connectToDatabase = async () => {
-  if (isConnected && mongoose.connection.readyState === 1) {
-    return;
-  }
+  if (mongoose.connection.readyState === 1) return mongoose;
+  if (connectionPromise) return connectionPromise;
 
-  isConnected = false;
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) throw new Error("MONGODB_URI not defined");
 
-  try {
-    const mongoUri = process.env.MONGODB_URI;
-    if (!mongoUri) {
-      console.error("❌ MONGODB_URI not defined in environment variables");
-      throw new Error("MONGODB_URI not defined");
+  connectionPromise = (async () => {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        if (mongoose.connection.readyState !== 1) {
+          await mongoose.connect(mongoUri, {
+            dbName: "school-management",
+            maxPoolSize: 10,
+            serverSelectionTimeoutMS: 12000,
+            connectTimeoutMS: 12000,
+            heartbeatFrequencyMS: 10000,
+          });
+        }
+        if (mongoose.connection.readyState === 1) {
+          console.log("✅ MongoDB Connected Successfully");
+          return mongoose;
+        }
+        throw new Error("MongoDB connection did not become ready");
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250));
+      }
     }
-
-    await mongoose.connect(mongoUri, {
-      dbName: "school-management",
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
-    });
-
-    isConnected = mongoose.connection.readyState === 1;
-    if (!isConnected) throw new Error("MongoDB connection did not become ready");
-    console.log("✅ MongoDB Connected Successfully");
-  } catch (error) {
-    isConnected = false;
+    throw lastError instanceof Error ? lastError : new Error("MongoDB connection failed");
+  })().catch((error) => {
+    connectionPromise = null;
     console.error("❌ MongoDB Connection Failed:", error);
     throw error;
-  }
+  });
+
+  return connectionPromise;
 };
 
 export const disconnectDatabase = async () => {
   try {
     await mongoose.disconnect();
-    isConnected = false;
+    connectionPromise = null;
     console.log("👋 MongoDB Disconnected");
   } catch (error) {
     console.error("❌ MongoDB Disconnection Error:", error);
