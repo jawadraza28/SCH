@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Attendance, ClassSection, Fee, Student, Teacher } from "@/Models";
+import { signedR2Url } from "@/lib/object-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ type StatCard = {
   hint: string;
   href: string;
   accent: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  fallback?: string;
 };
 
 export default function DashboardPage() {
@@ -35,7 +39,7 @@ async function DashboardContent() {
   const todayKey = `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, "0")}-${String(startOfDay.getDate()).padStart(2, "0")}`;
   const todayLabel = startOfDay.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees] = await Promise.all([
+  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees, latestStudent, latestTeacher] = await Promise.all([
     Student.countDocuments(),
     Teacher.countDocuments(),
     ClassSection.countDocuments({ isActive: true }),
@@ -43,11 +47,26 @@ async function DashboardContent() {
     Attendance.countDocuments({ status: "absent", date: { $gte: startOfDay, $lt: endOfDay } }),
     Student.countDocuments({ accountStatus: "pending" }),
     Fee.countDocuments({ status: "unpaid" }),
+    Student.findOne({ accountStatus: "active" }).sort({ createdAt: -1 }).select("fullName profilePhotoUrl").lean(),
+    Teacher.findOne({ accountStatus: "active" }).sort({ createdAt: -1 }).select("name profilePhotoUrl").lean(),
+  ]);
+  async function signedPhoto(reference?: string) {
+    if (!reference?.startsWith("r2://")) return "";
+    try {
+      return await signedR2Url(reference);
+    } catch (error) {
+      console.error("Unable to create dashboard photo URL:", error);
+      return "";
+    }
+  }
+  const [studentPhotoUrl, teacherPhotoUrl] = await Promise.all([
+    signedPhoto(latestStudent?.profilePhotoUrl),
+    signedPhoto(latestTeacher?.profilePhotoUrl),
   ]);
 
   const cards: StatCard[] = [
-    { label: "Total students", value: studentCount, hint: "Search, filter and manage every student", href: "/dashboard/students", accent: "bg-blue-50 text-blue-600" },
-    { label: "Total teachers", value: teacherCount, hint: "Staff records and class assignments", href: "/dashboard/teachers", accent: "bg-indigo-50 text-indigo-600" },
+    { label: "Total students", value: studentCount, hint: "Search, filter and manage every student", href: "/dashboard/students", accent: "bg-blue-50 text-blue-600", imageUrl: studentPhotoUrl, imageAlt: latestStudent?.fullName, fallback: latestStudent?.fullName?.charAt(0).toUpperCase() },
+    { label: "Total teachers", value: teacherCount, hint: "Staff records and class assignments", href: "/dashboard/teachers", accent: "bg-indigo-50 text-indigo-600", imageUrl: teacherPhotoUrl, imageAlt: latestTeacher?.name, fallback: latestTeacher?.name?.charAt(0).toUpperCase() },
     { label: "Active classes", value: classCount, hint: "Sections that are currently running", href: "/dashboard/classes", accent: "bg-violet-50 text-violet-600" },
     { label: "Present today", value: presentToday, hint: `Students marked present on ${todayKey}`, href: `/dashboard/students?presentOn=${todayKey}`, accent: "bg-emerald-50 text-emerald-600" },
     { label: "Absent today", value: absentToday, hint: `Students marked absent on ${todayKey}`, href: "/dashboard/attendance", accent: "bg-rose-50 text-rose-600" },
@@ -76,7 +95,10 @@ async function DashboardContent() {
             {cards.map((card) => (
               <Link key={card.label} href={card.href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm text-slate-500">{card.label}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {card.imageUrl || card.fallback ? <span className={`grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full text-sm font-bold ${card.accent}`}>{card.imageUrl ? <img src={card.imageUrl} alt={card.imageAlt ? `${card.imageAlt} profile` : card.label} className="h-full w-full object-cover" /> : card.fallback}</span> : null}
+                    <p className="text-sm text-slate-500">{card.label}</p>
+                  </div>
                   <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-base font-bold ${card.accent}`}>→</span>
                 </div>
                 <p className="mt-3 text-2xl sm:text-3xl font-bold text-slate-900">{card.value}</p>
