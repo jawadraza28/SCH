@@ -20,7 +20,7 @@ export default async function AboutUsPage() {
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
         <Link href="/" className="flex items-center gap-3 text-sm font-bold tracking-wide"><span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500 text-lg">{schoolName.charAt(0).toUpperCase()}</span>{schoolName}</Link>
-        <Link href="/login" className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-blue-50">Sign in</Link>
+        <div className="flex items-center gap-2"><Link href="/contact" className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-white">Contact</Link><Link href="/login" className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-blue-50">Sign in</Link></div>
       </nav>
       <section className="mx-auto max-w-6xl px-6 pb-16 pt-14 sm:px-10 sm:pt-24">
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-400">About our school</p>

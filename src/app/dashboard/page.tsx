@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Attendance, ClassSection, Fee, Student, Teacher } from "@/Models";
+import { Attendance, ClassSection, Fee, Notice, Student, Teacher } from "@/Models";
 import { signedR2Url } from "@/lib/object-storage";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ async function DashboardContent() {
   const todayKey = `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, "0")}-${String(startOfDay.getDate()).padStart(2, "0")}`;
   const todayLabel = startOfDay.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees, latestStudent, latestTeacher] = await Promise.all([
+  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees, latestStudent, latestTeacher, notices] = await Promise.all([
     Student.countDocuments(),
     Teacher.countDocuments(),
     ClassSection.countDocuments({ isActive: true }),
@@ -49,6 +49,7 @@ async function DashboardContent() {
     Fee.countDocuments({ status: "unpaid" }),
     Student.findOne({ accountStatus: "active" }).sort({ createdAt: -1 }).select("fullName profilePhotoUrl").lean(),
     Teacher.findOne({ accountStatus: "active" }).sort({ createdAt: -1 }).select("name profilePhotoUrl").lean(),
+    Notice.find({ published: true, $or: [{ expiryDate: { $exists: false } }, { expiryDate: null }, { expiryDate: { $gte: new Date() } }] }).sort({ publishDate: -1 }).limit(4).select("title description type publishDate").lean(),
   ]);
   async function signedPhoto(reference?: string) {
     if (!reference?.startsWith("r2://")) return "";
@@ -127,16 +128,13 @@ async function DashboardContent() {
             </Link>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Recent activity</h3>
-              <span className="text-sm text-slate-400">This week</span>
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">School updates</p><h3 className="mt-1 font-semibold">Notices you published</h3></div>
+              <Link href="/dashboard/notices" className="text-sm font-semibold text-blue-600 hover:underline">Manage notices →</Link>
             </div>
-            <div className="mt-10 text-center sm:mt-12">
-              <p className="font-medium text-slate-700">Your activity feed will appear here</p>
-              <p className="mt-1 text-sm text-slate-400">Start by adding your first school records.</p>
-            </div>
-          </div>
+            {notices.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2">{notices.map((notice) => <article key={String(notice._id)} className="rounded-xl border border-slate-100 bg-slate-50 p-4"><div className="flex items-center justify-between gap-2"><span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold capitalize text-blue-700">{notice.type}</span><time className="text-xs text-slate-400">{new Date(notice.publishDate).toLocaleDateString()}</time></div><h4 className="mt-3 font-semibold text-slate-800">{notice.title}</h4><p className="mt-1 line-clamp-2 text-sm text-slate-500">{notice.description}</p></article>)}</div> : <p className="mt-6 rounded-xl bg-slate-50 p-5 text-sm text-slate-500">No notices published yet. Create your first school update.</p>}
+          </section>
         </section>
       </div>
     </div>

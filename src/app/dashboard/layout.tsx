@@ -22,7 +22,7 @@ const navigation: NavItem[] = [
   { label: "Fees", href: "/dashboard/fees" },
   { label: "Notices", href: "/dashboard/notices" },
   { label: "Student requests", href: "/dashboard/students/requests", exact: true },
-  { label: "Audit history", href: "/dashboard/audit" },
+  { label: "School settings", href: "/dashboard/school-settings", exact: true },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

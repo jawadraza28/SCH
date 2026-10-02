@@ -2,6 +2,7 @@ type StudentIdCardProps = {
   schoolName: string;
   schoolAddress: string;
   schoolPhone: string;
+  schoolIcon?: string;
   student: {
     _id: unknown;
     fullName: string;
@@ -17,11 +18,11 @@ type StudentIdCardProps = {
   };
 };
 
-export default function StudentIdCard({ schoolName, schoolAddress, schoolPhone, student }: StudentIdCardProps) {
+export default function StudentIdCard({ schoolName, schoolAddress, schoolPhone, schoolIcon, student }: StudentIdCardProps) {
   return (
     <section className="student-id-card" aria-label="Printable student identification card">
       <div className="student-id-card-topline">
-        <div className="student-id-mark">{schoolName.charAt(0).toUpperCase()}</div>
+        <div className="student-id-mark">{schoolIcon ? <img src={schoolIcon} alt="" /> : schoolName.charAt(0).toUpperCase()}</div>
         <div>
           <p className="student-id-school">{schoolName}</p>
           <p className="student-id-subtitle">Student identification card</p>

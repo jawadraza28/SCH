@@ -65,6 +65,18 @@ const schoolConfigurationSchema = new Schema({
     type: String,
     default: "",
   },
+  coverImage: {
+    type: String,
+    default: "",
+  },
+  schoolIcon: {
+    type: String,
+    default: "",
+  },
+  subscriptionPlan: {
+    type: String,
+    default: "standard",
+  },
 }, { timestamps: true });
 
 export const SchoolConfiguration = mongoose.models.SchoolConfiguration || mongoose.model("SchoolConfiguration", schoolConfigurationSchema);
