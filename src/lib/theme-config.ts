@@ -15,7 +15,7 @@
  * Dark mode is always "midnight". The palettes themselves live in
  * src/app/globals.css as the [data-theme="..."] blocks.
  */
-export const LIGHT_THEME = "emerald";
+export const LIGHT_THEME = "teal";
 export const DARK_THEME = "midnight";
 export const THEME_STORAGE_KEY = "school-theme";
 
