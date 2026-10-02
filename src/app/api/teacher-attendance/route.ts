@@ -16,8 +16,13 @@ export async function GET(request: Request) {
     await connectToDatabase();
     const params = new URL(request.url).searchParams;
     const date = params.get("date")?.trim();
+    const status = params.get("status")?.trim();
     const teacherId = params.get("teacherId")?.trim();
-    const teacherQuery = { ...(teacherId ? { _id: teacherId } : {}) };
+    const teacherQuery: Record<string, unknown> = { ...(teacherId ? { _id: teacherId } : {}) };
+    if (status && ["present", "absent", "late", "leave"].includes(status) && date) {
+      const marked = await TeacherAttendance.find({ date: day(date), status }).distinct("teacher");
+      teacherQuery._id = { $in: marked };
+    }
     const paginated = params.has("page");
     const limit = paginated ? parsePageSize(params.get("limit"), 20) : 200;
     const total = await Teacher.countDocuments(teacherQuery);
