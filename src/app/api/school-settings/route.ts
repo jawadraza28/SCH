@@ -3,9 +3,19 @@ import sharp from "sharp";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { SchoolConfiguration } from "@/Models";
-import { deleteFromR2, r2Configured, uploadToR2 } from "@/lib/object-storage";
+import { deleteFromR2, r2Configured, signedR2Url, uploadToR2 } from "@/lib/object-storage";
 
 const imageFields = ["logo", "schoolIcon", "coverImage"] as const;
+
+async function withSignedImages<T extends Record<string, unknown> | null>(school: T) {
+  if (!school) return null;
+  const result = { ...school };
+  for (const field of imageFields) {
+    const value = result[field];
+    if (typeof value === "string" && value.startsWith("r2://")) result[field] = await signedR2Url(value);
+  }
+  return result;
+}
 
 async function uploadImage(file: FormDataEntryValue, key: string) {
   if (!(file instanceof File) || !file.size) return "";
@@ -23,7 +33,7 @@ export async function GET() {
   if (!session.authenticated || session.user?.role !== "admin") return NextResponse.json({ error: "Administrator access required" }, { status: 403 });
   await connectToDatabase();
   const school = await SchoolConfiguration.findById(session.user.school).lean();
-  return NextResponse.json({ school });
+  return NextResponse.json({ school: await withSignedImages(school) });
 }
 
 export async function PATCH(request: Request) {
@@ -52,7 +62,7 @@ export async function PATCH(request: Request) {
       }
     }
     await school.save();
-    return NextResponse.json({ success: true, school });
+    return NextResponse.json({ success: true, school: await withSignedImages(school.toObject()) });
   } catch (error) {
     console.error("School settings update error:", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to update school settings" }, { status: 500 });

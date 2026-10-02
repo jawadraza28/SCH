@@ -49,3 +49,22 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true, id });
   } catch (error) { console.error("Notice deletion error:", error); return NextResponse.json({ error: "Unable to delete notice" }, { status: 500 }); }
 }
+
+export async function PATCH(request: Request) {
+  const session = await getCurrentUser();
+  if (!session.authenticated || session.user?.role !== "admin") return NextResponse.json({ error: "Only administrators can edit notices" }, { status: 403 });
+  try {
+    const body = await request.json();
+    const id = String(body.id ?? "");
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) return NextResponse.json({ error: "A valid notice id is required" }, { status: 400 });
+    const title = String(body.title ?? "").trim();
+    const description = String(body.description ?? "").trim();
+    const type = String(body.type ?? "general");
+    if (!title || !description) return NextResponse.json({ error: "Title and description are required" }, { status: 400 });
+    if (!["general", "exam", "holiday", "event", "important", "fee", "result"].includes(type)) return NextResponse.json({ error: "Invalid notice type" }, { status: 400 });
+    await connectToDatabase();
+    const notice = await Notice.findOneAndUpdate({ _id: id, school: session.user.school }, { title, description, type, published: body.published !== false, expiryDate: body.expiryDate ? new Date(body.expiryDate) : undefined }, { new: true, runValidators: true }).lean();
+    if (!notice) return NextResponse.json({ error: "Notice not found" }, { status: 404 });
+    return NextResponse.json({ success: true, notice });
+  } catch (error) { console.error("Notice update error:", error); return NextResponse.json({ error: "Unable to update notice" }, { status: 500 }); }
+}

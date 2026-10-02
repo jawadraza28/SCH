@@ -86,10 +86,11 @@ async function DashboardContent() {
         </header>
 
         <section className="mt-5 sm:mt-7">
-          <div className="rounded-3xl bg-blue-700 p-6 text-white shadow-lg shadow-blue-900/10 sm:p-9">
+          <div className="relative overflow-hidden rounded-3xl bg-blue-700 p-6 text-white shadow-lg shadow-blue-900/10 sm:p-9">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200 sm:text-sm">School overview</p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Everything important, at a glance.</h2>
             <p className="mt-2 max-w-xl text-sm text-blue-100 sm:text-base">Choose any card below to jump straight to that part of the school record.</p>
+            <div className="pointer-events-none absolute -bottom-24 -right-12 w-[22rem] scale-75 opacity-70 sm:right-0 sm:top-0 sm:scale-50"><div className="book-scene"><div className="scene-orbit scene-orbit-one" /><div className="scene-orbit scene-orbit-two" /><div className="book book-one"><span /></div><div className="book book-two"><span /></div><div className="book book-three"><span /></div><div className="scene-pencil"><i /><b /></div><div className="scene-floor" /></div></div>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

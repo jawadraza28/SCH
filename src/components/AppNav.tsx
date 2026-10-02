@@ -29,6 +29,7 @@ type Props = {
   userName: string;
   roleLabel: string;
   schoolName?: string;
+  schoolLogo?: string;
   /** Where the brand mark returns to (the role's overview page). */
   homeHref: string;
 };
@@ -71,7 +72,12 @@ const linkClass = (active: boolean, fill = false) =>
     active ? "bg-blue-50 font-semibold text-blue-700" : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
   }`;
 
-export default function AppNav({ items, userName, roleLabel, schoolName = "School", homeHref }: Props) {
+function NavIcon({ label }: { label: string }) {
+  const glyph = label.toLowerCase().includes("student") ? "M4 6h16v12H4zM8 10h8M8 14h5" : label.toLowerCase().includes("teacher") ? "M12 4l8 4-8 4-8-4 8-4Zm-5 7v4c3 2 7 2 10 0v-4" : label.toLowerCase().includes("attendance") ? "M7 3v4M17 3v4M4 9h16M6 13l2 2 4-4" : label.toLowerCase().includes("fee") ? "M6 4h12v16H6zM9 8h6M9 12h6M9 16h4" : label.toLowerCase().includes("setting") ? "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" : label.toLowerCase().includes("notice") ? "M5 5h14v14H5zM8 9h8M8 13h6" : label.toLowerCase().includes("class") ? "M4 5h16v14H4zM8 9h8M8 13h5" : "M4 12h16M12 4v16";
+  return <svg viewBox="0 0 24 24" className="mr-3 h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={glyph} /></svg>;
+}
+
+export default function AppNav({ items, userName, roleLabel, schoolName = "School", schoolLogo, homeHref }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   /*
@@ -114,7 +120,7 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
   function brand(compact: boolean) {
     return (
       <Link href={homeHref} className="flex min-w-0 items-center gap-3 text-sm font-bold tracking-wide text-slate-800">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-lg text-white">S</span>
+        <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-600 text-lg text-white">{schoolLogo ? <img src={schoolLogo} alt="" className="h-full w-full object-cover" /> : schoolName.charAt(0).toUpperCase()}</span>
         <span className={compact ? "" : "hidden lg:inline"}>{schoolName}</span>
       </Link>
     );
@@ -128,7 +134,7 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
           const active = item.href === current;
           return (
             <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={active ? "page" : undefined} className={linkClass(active, fill)}>
-              <span aria-hidden="true" className={`mr-3 h-1.5 w-1.5 shrink-0 rounded-full ${active ? "bg-blue-600" : "bg-slate-300"}`} />
+              <NavIcon label={item.label} />
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </Link>
           );

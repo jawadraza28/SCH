@@ -8,6 +8,7 @@ export default function SetupPage() {
   const [step, setStep] = useState("school-config");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   const [schoolData, setSchoolData] = useState({
     schoolName: "",
@@ -201,8 +202,8 @@ export default function SetupPage() {
                 required
                 className={fieldClass}
               />
-              <input
-                type="password"
+              <span className="relative block"><input
+                type={showAdminPassword ? "text" : "password"}
                 value={adminData.adminPassword}
                 onChange={(e) =>
                   setAdminData((prev) => ({ ...prev, adminPassword: e.target.value }))
@@ -210,8 +211,8 @@ export default function SetupPage() {
                 placeholder="Admin Password"
                 required
                 minLength={8}
-                className={fieldClass}
-              />
+                className={`${fieldClass} pr-12`}
+              /><button type="button" onClick={() => setShowAdminPassword((current) => !current)} className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label={showAdminPassword ? "Hide password" : "Show password"}>{showAdminPassword ? "◉" : "◌"}</button></span>
             </div>
           )}
 

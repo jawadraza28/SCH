@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { connectToDatabase } from "@/lib/mongodb";
 import { SchoolConfiguration } from "@/Models";
+import { signedR2Url } from "@/lib/object-storage";
 
 export const dynamic = "force-dynamic";
 
 export default async function AboutUsPage() {
-  let school: { schoolName?: string; schoolDescription?: string; schoolAddress?: string; schoolPhone?: string; schoolEmail?: string; academicYear?: string } | null = null;
+  let school: { schoolName?: string; schoolDescription?: string; schoolAddress?: string; schoolPhone?: string; schoolEmail?: string; academicYear?: string; schoolIcon?: string } | null = null;
   try {
     await connectToDatabase();
     school = await SchoolConfiguration.findOne().select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear").lean();
@@ -15,11 +16,15 @@ export default async function AboutUsPage() {
 
   const schoolName = school?.schoolName || "Your School";
   const description = school?.schoolDescription || "A connected school community built around clear communication, thoughtful teaching, and confident learning.";
+  let schoolIcon = "";
+  if (school?.schoolIcon?.startsWith("r2://")) {
+    try { schoolIcon = await signedR2Url(school.schoolIcon); } catch (error) { console.error("About page icon URL error:", error); }
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
-        <Link href="/" className="flex items-center gap-3 text-sm font-bold tracking-wide"><span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500 text-lg">{schoolName.charAt(0).toUpperCase()}</span>{schoolName}</Link>
+        <Link href="/" className="flex min-w-0 items-center gap-3 text-sm font-bold tracking-wide"><span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-500 text-lg">{schoolIcon ? <img src={schoolIcon} alt="" className="h-full w-full object-cover" /> : schoolName.charAt(0).toUpperCase()}</span><span className="truncate">{schoolName}</span></Link>
         <div className="flex items-center gap-2"><Link href="/contact" className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-white">Contact</Link><Link href="/login" className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-blue-50">Sign in</Link></div>
       </nav>
       <section className="mx-auto max-w-6xl px-6 pb-16 pt-14 sm:px-10 sm:pt-24">
