@@ -10,11 +10,11 @@
     },
     {
       "path": "/api/maintenance/notices",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 3 * * *"
     },
     {
       "path": "/api/maintenance/homework",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }
