@@ -131,11 +131,11 @@ export default async function TeacherStudentsPage({
               ))}
             </select>
           </label>
-          <div className="flex min-w-max items-end gap-2">
-            <button className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white">Apply</button>
+          <div className="flex flex-wrap items-end gap-2">
+            <button className="flex-1 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white sm:flex-none">Apply</button>
             <Link
               href="/teacher/students"
-              className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600"
+              className="flex-1 rounded-xl border border-slate-200 px-5 py-3 text-center text-sm font-semibold text-slate-600 sm:flex-none"
             >
               Reset
             </Link>

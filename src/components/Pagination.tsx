@@ -12,7 +12,7 @@ type Props = {
   className?: string;
 };
 
-const base = "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition-colors";
+const base = "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-2.5 text-sm font-semibold transition-colors sm:px-3";
 const idle = "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700";
 const current = "border-blue-600 bg-blue-600 text-white";
 const off = "border-slate-100 bg-white text-slate-300";
@@ -38,7 +38,7 @@ export default function Pagination({ page, pages, onPageChange, hrefFor, classNa
   }
 
   return (
-    <nav aria-label="Pagination" className={`flex flex-wrap items-center justify-end gap-2 ${className}`}>
+    <nav aria-label="Pagination" className={`flex flex-wrap items-center justify-center gap-2 sm:justify-end ${className}`}>
       {control(page - 1, "Prev", { disabled: page <= 1, label: "Previous page" })}
       {items.map((item, index) =>
         item === "gap" ? (

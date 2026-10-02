@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Teacher, TeacherAttendance } from "@/Models";
 import { pruneTeacherAttendanceIfDue } from "@/lib/retention";
+import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 
 function day(value: string) {
   return new Date(`${value}T00:00:00.000Z`);
@@ -16,12 +17,18 @@ export async function GET(request: Request) {
     const params = new URL(request.url).searchParams;
     const date = params.get("date")?.trim();
     const teacherId = params.get("teacherId")?.trim();
-    const teachers = await Teacher.find({ ...(teacherId ? { _id: teacherId } : {}) }).sort({ name: 1 }).lean();
+    const teacherQuery = { ...(teacherId ? { _id: teacherId } : {}) };
+    const paginated = params.has("page");
+    const limit = paginated ? parsePageSize(params.get("limit"), 20) : 200;
+    const total = await Teacher.countDocuments(teacherQuery);
+    const pages = countPages(total, limit);
+    const page = paginated ? clampPage(parsePageNumber(params.get("page")), pages) : 1;
+    const teachers = await Teacher.find(teacherQuery).sort({ name: 1 }).skip((page - 1) * limit).limit(limit).lean();
     const query: Record<string, unknown> = {};
     if (teacherId) query.teacher = teacherId;
     if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) query.date = day(date);
     const records = await TeacherAttendance.find(query).sort({ date: -1 }).lean();
-    return NextResponse.json({ teachers, records });
+    return NextResponse.json({ teachers, records, pagination: { page, pages, total, limit } });
   } catch (error) {
     console.error("Teacher attendance load error:", error);
     return NextResponse.json({ error: "Unable to load teacher attendance" }, { status: 500 });

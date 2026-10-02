@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Attendance, Student, Teacher } from "@/Models";
 import { pruneRetentionIfDue } from "@/lib/retention";
+import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 
 async function accessFor(classSection: string) {
   const session = await getCurrentUser();
@@ -26,10 +27,16 @@ export async function GET(request: Request) {
     const classSection = `${className}-${section}`;
     const access = await accessFor(classSection);
     if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
-    const students = await Student.find({ class: className, section, accountStatus: { $in: ["active", "pending"] } }).sort({ rollNumber: 1 }).lean();
+    const studentQuery = { class: className, section, accountStatus: { $in: ["active", "pending"] } };
+    const paginated = params.has("page");
+    const limit = paginated ? parsePageSize(params.get("limit"), 20) : 200;
+    const total = await Student.countDocuments(studentQuery);
+    const pages = countPages(total, limit);
+    const page = paginated ? clampPage(parsePageNumber(params.get("page")), pages) : 1;
+    const students = await Student.find(studentQuery).sort({ rollNumber: 1 }).skip((page - 1) * limit).limit(limit).lean();
     const records = await Attendance.find({ classSection, date: { $gte: new Date(`${date}T00:00:00.000Z`), $lt: new Date(`${date}T23:59:59.999Z`) } }).lean();
     const statusByStudent = new Map(records.map((record) => [String(record.student), record.status]));
-      return NextResponse.json({ students: students.map((student) => ({ id: String(student._id), name: student.fullName, rollNumber: student.rollNumber, status: statusByStudent.get(String(student._id)) ?? "unmarked" })) });
+      return NextResponse.json({ students: students.map((student) => ({ id: String(student._id), name: student.fullName, rollNumber: student.rollNumber, status: statusByStudent.get(String(student._id)) ?? "unmarked" })), pagination: { page, pages, total, limit } });
   } catch (error) {
     console.error("Attendance load error:", error);
     return NextResponse.json({ error: "Unable to load attendance" }, { status: 500 });
