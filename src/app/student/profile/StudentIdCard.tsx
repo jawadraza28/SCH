@@ -22,7 +22,7 @@ export default function StudentIdCard({ schoolName, schoolAddress, schoolPhone, 
   return (
     <section className="student-id-card" aria-label="Printable student identification card">
       <div className="student-id-card-topline">
-        <div className="student-id-mark">{schoolIcon ? <img src={schoolIcon} alt="" /> : schoolName.charAt(0).toUpperCase()}</div>
+        <div className="student-id-mark">{schoolIcon ? <img src={schoolIcon} alt="" /> : <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="School"><path d="m3 10 9-5 9 5-9 5-9-5Z" /><path d="M6 12v5c3 2 9 2 12 0v-5M21 10v6" /></svg>}</div>
         <div>
           <p className="student-id-school">{schoolName}</p>
           <p className="student-id-subtitle">Student identification card</p>

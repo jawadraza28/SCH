@@ -54,6 +54,11 @@ export async function PATCH(request: Request) {
     const hasImage = imageFields.some((field) => form.get(field) instanceof File);
     if (hasImage && !r2Configured()) return NextResponse.json({ error: "Cloudflare R2 photo storage is not configured" }, { status: 500 });
     for (const field of imageFields) {
+      if (form.get(`remove${field.charAt(0).toUpperCase()}${field.slice(1)}`) === "true") {
+        const previous = school[field];
+        school[field] = "";
+        if (previous?.startsWith("r2://")) await deleteFromR2(previous).catch((error) => console.warn(`Previous school ${field} cleanup failed:`, error));
+      }
       const uploaded = await uploadImage(form.get(field)!, field);
       if (uploaded) {
         const previous = school[field];

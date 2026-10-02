@@ -27,6 +27,16 @@ export async function GET(request: Request) {
     const classSection = `${className}-${section}`;
     const access = await accessFor(classSection);
     if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+    if (params.get("export") === "csv") {
+      if (access.user.role !== "admin") return NextResponse.json({ error: "Only administrators can export attendance" }, { status: 403 });
+      const records = await Attendance.find({ classSection, date: { $gte: new Date(`${date}T00:00:00.000Z`), $lt: new Date(`${date}T23:59:59.999Z`) } }).populate("student", "fullName studentId rollNumber").lean();
+      const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, "\"\"")}"`;
+      const rows = ["Student,Student ID,Roll number,Class section,Date,Status", ...records.map((record) => {
+        const student = record.student as { fullName?: string; studentId?: string; rollNumber?: string } | null;
+        return [student?.fullName, student?.studentId, student?.rollNumber, record.classSection, date, record.status].map(escape).join(",");
+      })];
+      return new Response(rows.join("\n"), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="attendance-${classSection}-${date}.csv"` } });
+    }
     const studentQuery = { class: className, section, accountStatus: { $in: ["active", "pending"] } };
     const paginated = params.has("page");
     const limit = paginated ? parsePageSize(params.get("limit"), 20) : 200;

@@ -33,6 +33,12 @@ export async function GET(request: Request) {
     if (teacherId) query.teacher = teacherId;
     if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) query.date = day(date);
     const records = await TeacherAttendance.find(query).sort({ date: -1 }).lean();
+    if (params.get("export") === "csv") {
+      const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, "\"\"")}"`;
+      const teachersById = new Map(teachers.map((teacher) => [String(teacher._id), teacher.name]));
+      const rows = ["Teacher,Date,Status", ...records.map((record) => [teachersById.get(String(record.teacher)) ?? String(record.teacher), new Date(record.date).toISOString().slice(0, 10), record.status].map(escape).join(","))];
+      return new Response(rows.join("\n"), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="teacher-attendance-${date ?? "report"}.csv"` } });
+    }
     return NextResponse.json({ teachers, records, pagination: { page, pages, total, limit } });
   } catch (error) {
     console.error("Teacher attendance load error:", error);

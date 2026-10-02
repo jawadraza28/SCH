@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function SetupPage() {
@@ -9,6 +9,7 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
 
   const [schoolData, setSchoolData] = useState({
     schoolName: "",
@@ -28,6 +29,19 @@ export default function SetupPage() {
     adminCNIC: "",
     adminPassword: "",
   });
+
+  useEffect(() => {
+    fetch("/api/setup")
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.setupAvailable === false) {
+          setError("School setup is already complete. Please sign in as an administrator.");
+          setTimeout(() => router.replace("/login"), 1200);
+        }
+      })
+      .catch(() => setError("Unable to verify setup status."))
+      .finally(() => setCheckingSetup(false));
+  }, [router]);
 
   const switchStep = (newStep: string) => setStep(newStep);
 
@@ -72,6 +86,7 @@ export default function SetupPage() {
     }
   };
 
+  if (checkingSetup) return <main className="grid min-h-screen place-items-center bg-slate-950 text-slate-100"><p className="text-sm text-slate-400">Checking setup status…</p></main>;
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100 sm:px-6">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl lg:grid-cols-[0.85fr_1.15fr]">

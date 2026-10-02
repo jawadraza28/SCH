@@ -67,11 +67,9 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // Check if admin already exists
-    const existingAdmin = await User.findOne({
-      $or: [{ email: normalizedEmail }, { cnic: normalizedCNIC }],
-      role: "admin",
-    }).lean();
+    // Setup is only for an empty installation. Existing deployments must use
+    // the normal admin settings and password-reset flows.
+    const existingAdmin = await User.findOne({ role: "admin" }).lean();
 
     if (existingAdmin) {
       return NextResponse.json(
@@ -180,3 +178,14 @@ export const POST = async (request: Request) => {
     );
   }
 };
+
+export async function GET() {
+  try {
+    await connectToDatabase();
+    const setupAvailable = !(await User.exists({ role: "admin" }));
+    return NextResponse.json({ setupAvailable });
+  } catch (error) {
+    console.error("Setup availability check error:", error);
+    return NextResponse.json({ error: "Unable to check setup status" }, { status: 500 });
+  }
+}
