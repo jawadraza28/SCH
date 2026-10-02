@@ -7,16 +7,18 @@ import { deleteFromR2, r2Configured, signedR2Url, uploadToR2 } from "@/lib/objec
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await getCurrentUser();
-  if (!session.authenticated || !session.user || session.user.role !== "teacher") return NextResponse.json({ error: "Teacher access required" }, { status: 403 });
+  if (!session.authenticated || !session.user || !["admin", "teacher"].includes(session.user.role)) return NextResponse.json({ error: "Administrator or teacher access required" }, { status: 403 });
   try {
     const { id } = await context.params;
     await connectToDatabase();
     const student = await Student.findById(id);
     if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
-    const teacher = await Teacher.findOne({ cnic: session.user.cnic }).select("assignedClasses").lean();
-    const assignedClasses = Array.isArray(teacher?.assignedClasses) ? teacher.assignedClasses.map((item: unknown) => String(item).trim().toUpperCase()) : [];
-    const studentClass = `${student.class}-${student.section}`.trim().toUpperCase();
-    if (!assignedClasses.includes(studentClass)) return NextResponse.json({ error: "You can only upload photos for students in your assigned classes" }, { status: 403 });
+    if (session.user.role === "teacher") {
+      const teacher = await Teacher.findOne({ cnic: session.user.cnic }).select("assignedClasses").lean();
+      const assignedClasses = Array.isArray(teacher?.assignedClasses) ? teacher.assignedClasses.map((item: unknown) => String(item).trim().toUpperCase()) : [];
+      const studentClass = `${student.class}-${student.section}`.trim().toUpperCase();
+      if (!assignedClasses.includes(studentClass)) return NextResponse.json({ error: "You can only upload photos for students in your assigned classes" }, { status: 403 });
+    }
     const formData = await request.formData();
     const file = formData.get("photo");
     if (!(file instanceof File)) return NextResponse.json({ error: "A photo is required" }, { status: 400 });

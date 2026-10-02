@@ -1,6 +1,6 @@
 "use strict";
 
-import { Attendance, Fee, Homework } from "@/Models";
+import { Attendance, Fee, Homework, TeacherAttendance } from "@/Models";
 
 export const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -8,11 +8,10 @@ export const monthNames = [
 ];
 
 /**
- * The oldest date that is still kept: the current month plus the previous
- * thirteen calendar months, which is approximately 1.2 years of history.
+ * The oldest date that is still kept is exactly one year before now.
  */
 export function retentionCutoff(now: Date = new Date()) {
-  return new Date(now.getFullYear(), now.getMonth() - 13, 1);
+  return new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
 }
 
 /**
@@ -29,13 +28,13 @@ export function feeRetentionFilter(now: Date = new Date()) {
   return { $or: conditions };
 }
 
-/** Deletes attendance records older than the configured 14-month window. */
+/** Deletes attendance records older than one year. */
 export async function pruneAttendance(now: Date = new Date()) {
   const result = await Attendance.deleteMany({ date: { $lt: retentionCutoff(now) } });
   return result.deletedCount ?? 0;
 }
 
-/** Deletes fee records older than the configured 14-month window. */
+/** Deletes fee records older than one year. */
 export async function pruneFees(now: Date = new Date()) {
   const result = await Fee.deleteMany(feeRetentionFilter(now));
   return result.deletedCount ?? 0;
@@ -46,11 +45,16 @@ export async function pruneExpiredHomework(now: Date = new Date()) {
   return result.deletedCount ?? 0;
 }
 
+export async function pruneTeacherAttendance(now: Date = new Date()) {
+  const result = await TeacherAttendance.deleteMany({ date: { $lt: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()) } });
+  return result.deletedCount ?? 0;
+}
+
 let lastPrunedAt = 0;
 const pruneIntervalMs = 60 * 60 * 1000;
 
 /**
- * Keeps MongoDB at approximately 1.2 years of attendance and fee history even when no
+ * Keeps MongoDB at one year of attendance and fee history even when no
  * cron job has been configured. Runs at most once per hour per server instance.
  */
 export async function pruneRetentionIfDue(now: Date = new Date()) {
@@ -61,5 +65,17 @@ export async function pruneRetentionIfDue(now: Date = new Date()) {
   } catch (error) {
     // Retention must never break the write that triggered it.
     console.error("Retention cleanup error:", error);
+  }
+
+}
+
+let lastTeacherAttendancePrunedAt = 0;
+export async function pruneTeacherAttendanceIfDue(now: Date = new Date()) {
+  if (Date.now() - lastTeacherAttendancePrunedAt < pruneIntervalMs) return;
+  lastTeacherAttendancePrunedAt = Date.now();
+  try {
+    await pruneTeacherAttendance(now);
+  } catch (error) {
+    console.error("Teacher attendance retention cleanup error:", error);
   }
 }

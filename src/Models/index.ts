@@ -311,6 +311,10 @@ const teacherSchema = new Schema({
     type: String,
     trim: true,
   },
+  gender: {
+    type: String,
+    enum: ["male", "female", "other"],
+  },
   profilePhotoUrl: {
     type: String,
     default: "",
@@ -340,6 +344,37 @@ teacherSchema.index({ assignedClasses: 1 });
 teacherSchema.index({ assignedSections: 1 });
 
 export const Teacher = mongoose.models.Teacher || mongoose.model("Teacher", teacherSchema);
+
+const teacherAttendanceSchema = new Schema({
+  teacher: {
+    type: Schema.Types.ObjectId,
+    ref: "Teacher",
+    required: true,
+  },
+  date: {
+    type: Date,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["present", "absent", "late", "leave", "unmarked"],
+    required: true,
+  },
+  markedBy: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  markedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+teacherAttendanceSchema.index({ teacher: 1, date: 1 }, { unique: true });
+teacherAttendanceSchema.index({ date: 1, status: 1 });
+
+export const TeacherAttendance = mongoose.models.TeacherAttendance || mongoose.model("TeacherAttendance", teacherAttendanceSchema);
 
 // ==========================================
 // Class/Section Schema

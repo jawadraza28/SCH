@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getCurrentUser();
   if (!session.authenticated || !session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "teacher") return NextResponse.json({ error: "Only teachers can submit student requests" }, { status: 403 });
+  if (!["admin", "teacher"].includes(session.user.role)) return NextResponse.json({ error: "Only administrators and teachers can add students" }, { status: 403 });
 
   try {
     const body = await request.json();
@@ -89,19 +89,32 @@ export async function POST(request: Request) {
     const existingRoll = await Student.findOne({ class: normalizedClass, section: normalizedSection, rollNumber: normalizedRoll }).select("_id").lean();
     if (existingRoll) return NextResponse.json({ error: `Roll number ${normalizedRoll} is already used in class ${normalizedClass}-${normalizedSection}. Choose a different roll number.` }, { status: 409 });
 
-    // Seats are enforced here because a teacher request is the only way a new
-    // student enters a class. Nothing is added once the class is full.
+    // Both direct admissions and teacher requests must respect class capacity.
     const seats = await seatAvailability(normalizedClass, normalizedSection);
     if (seats.full) return NextResponse.json({ error: fullClassMessage(normalizedClass, normalizedSection, seats) }, { status: 409 });
 
     const count = await Student.countDocuments();
+    const isAdminAdmission = session.user.role === "admin";
     const student = await Student.create({
       studentId: `STU-${String(count + 1).padStart(6, "0")}`,
       fullName: String(fullName).trim(), cnic: normalizedCNIC, dateOfBirth: dateOfBirth || undefined,
       gender: gender || undefined, class: normalizedClass, section: normalizedSection,
-      rollNumber: normalizedRoll, fatherName, fatherPhone, homeAddress, accountStatus: "pending",
+      rollNumber:       normalizedRoll, fatherName, fatherPhone, homeAddress,
+      accountStatus: isAdminAdmission ? "active" : "pending",
     });
-    return NextResponse.json({ success: true, student: { id: student._id, studentId: student.studentId, fullName: student.fullName } }, { status: 201 });
+    if (isAdminAdmission) {
+      await (await import("@/Models")).User.create({
+        name: student.fullName,
+        email: `${student.studentId.toLowerCase()}@student.local`,
+        cnic: student.cnic,
+        role: "student",
+        password: await hashPassword(DEFAULT_STUDENT_PASSWORD),
+        firstLoginCompleted: true,
+        isActive: true,
+        school: session.user.school,
+      });
+    }
+    return NextResponse.json({ success: true, student: { id: student._id, studentId: student.studentId, fullName: student.fullName, accountStatus: student.accountStatus } }, { status: 201 });
   } catch (error) {
     if ((error as { code?: number }).code === 11000) {
       return NextResponse.json({ error: "Another student already uses this CNIC or this roll number in the same class." }, { status: 409 });

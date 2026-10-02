@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, normalizeCNIC } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher, User } from "@/Models";
+import { Attendance, Fee, Result } from "@/Models";
+import { deleteFromR2 } from "@/lib/object-storage";
 import { fullClassMessage, seatAvailability } from "@/lib/seats";
 
 async function canAccessStudent(id: string) {
@@ -15,6 +17,29 @@ async function canAccessStudent(id: string) {
   const assigned = (teacher?.assignedClasses ?? []).map((item: unknown) => String(item).toUpperCase());
   const classSection = `${student.class}-${student.section}`.toUpperCase();
   return assigned.includes(classSection) ? { session: session.user, student } : null;
+}
+
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const access = await canAccessStudent((await context.params).id);
+    if (!access) return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    if (!access.student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    const student = access.student;
+    await Promise.all([
+      Attendance.deleteMany({ student: student._id }),
+      Fee.deleteMany({ student: student._id }),
+      Result.deleteMany({ student: student._id }),
+      User.deleteMany({ role: "student", cnic: student.cnic }),
+    ]);
+    if (student.profilePhotoUrl?.startsWith("r2://")) {
+      await deleteFromR2(student.profilePhotoUrl).catch((error) => console.warn("Student photo cleanup failed:", error));
+    }
+    await Student.deleteOne({ _id: student._id });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Student deletion error:", error);
+    return NextResponse.json({ error: "Unable to delete student and related records" }, { status: 500 });
+  }
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -49,6 +74,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       const assigned = (teacher?.assignedClasses ?? []).map((item: unknown) => String(item).toUpperCase());
       if (!assigned.includes(`${className}-${section}`.toUpperCase())) return NextResponse.json({ error: "You can only move students within your assigned classes" }, { status: 403 });
     }
+
     const student = access.student;
     const duplicateCnic = await Student.findOne({ _id: { $ne: id }, cnic }).select("_id").lean();
     if (duplicateCnic) return NextResponse.json({ error: "Another student already uses this CNIC" }, { status: 409 });
@@ -60,6 +86,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       const seats = await seatAvailability(className, section, id);
       if (seats.full) return NextResponse.json({ error: fullClassMessage(className, section, seats) }, { status: 409 });
     }
+
     const previousCNIC = student.cnic;
     student.fullName = fullName; student.cnic = cnic; student.class = className; student.section = section; student.rollNumber = rollNumber; student.gender = gender;
     student.fatherName = String(body.fatherName ?? "").trim(); student.fatherPhone = String(body.fatherPhone ?? "").trim(); student.homeAddress = String(body.homeAddress ?? "").trim();

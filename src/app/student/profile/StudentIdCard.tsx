@@ -26,15 +26,16 @@ export default function StudentIdCard({ schoolName, schoolAddress, schoolPhone, 
           <p className="student-id-school">{schoolName}</p>
           <p className="student-id-subtitle">Student identification card</p>
         </div>
-        <span className="student-id-year">2026</span>
+        <span className="student-id-year">Student ID</span>
       </div>
       <div className="student-id-card-body">
         <div className="student-id-photo">
-          {student.profilePhotoUrl ? <img src={`/api/students/${String(student._id)}/photo`} alt="Student" /> : <span>{student.fullName.charAt(0).toUpperCase()}</span>}
+          {student.profilePhotoUrl ? <img src={`/api/students/${String(student._id)}/photo?card=1`} alt="Student" /> : <span>{student.fullName.charAt(0).toUpperCase()}</span>}
         </div>
         <div className="student-id-details">
           <h1>{student.fullName}</h1>
           <div className="student-id-grid">
+            <span>Student ID</span><strong>{String(student._id).slice(-8).toUpperCase()}</strong>
             <span>Phone</span><strong>{student.fatherPhone || student.motherPhone || student.emergencyContact || "-"}</strong>
             <span>Class</span><strong>{student.class}-{student.section}</strong>
             <span>Roll number</span><strong>{student.rollNumber}</strong>

@@ -6,6 +6,7 @@ import { Student, Teacher } from "@/Models";
 import Pagination from "@/components/Pagination";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
 import PhotoUpload from "./PhotoUpload";
+import DeleteButton from "@/components/DeleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +106,7 @@ export default async function TeacherStudentsPage({
           </Link>
         </div>
 
-        <form method="get" className="mt-8 grid gap-3 rounded-2xl bg-white p-5 shadow-sm sm:grid-cols-[1fr_1fr_auto]">
+        <form method="get" className="mt-8 grid gap-3 rounded-2xl bg-white p-5 shadow-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
           <label className="text-sm font-medium">
             Search
             <input
@@ -130,8 +131,8 @@ export default async function TeacherStudentsPage({
               ))}
             </select>
           </label>
-          <div className="flex items-end gap-2">
-            <button className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white">Apply</button>
+          <div className="flex min-w-max items-end gap-2">
+            <button className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white">Apply</button>
             <Link
               href="/teacher/students"
               className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600"
@@ -188,7 +189,7 @@ export default async function TeacherStudentsPage({
                           className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700"
                         >
                           Edit
-                        </Link>
+                        </Link>{" "}<DeleteButton endpoint={`/api/students/${String(student._id)}`} />
                       </td>
                     </tr>
                   ))}
