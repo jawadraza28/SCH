@@ -4,6 +4,8 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ExamTerm, Result, Student, Teacher } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 
+type SubjectInput = { subject?: unknown; totalMarks?: unknown; passingMarks?: unknown; obtainedMarks?: unknown };
+
 async function getAccess() {
   const session = await getCurrentUser();
   if (!session.authenticated || !session.user) return { error: "Unauthorized", status: 401 };
@@ -49,17 +51,44 @@ export async function POST(request: Request) {
   if (access.user.role !== "teacher" && access.user.role !== "admin") return NextResponse.json({ error: "Only teachers and administrators can create results" }, { status: 403 });
   try {
     const body = await request.json();
-    const studentId = String(body.studentId ?? ""); const title = String(body.examTitle ?? "").trim(); const subject = String(body.subject ?? "").trim(); const totalMarks = Number(body.totalMarks); const passingMarks = Number(body.passingMarks); const obtainedMarks = Number(body.obtainedMarks);
-    if (!studentId || !title || !subject || !Number.isFinite(totalMarks) || !Number.isFinite(passingMarks) || !Number.isFinite(obtainedMarks)) return NextResponse.json({ error: "Student, exam title, subject, and marks are required" }, { status: 400 });
-    if (totalMarks <= 0 || passingMarks < 0 || obtainedMarks < 0 || passingMarks > totalMarks || obtainedMarks > totalMarks) return NextResponse.json({ error: "Marks must be valid and cannot exceed total marks" }, { status: 400 });
+    const studentId = String(body.studentId ?? "");
+    const title = String(body.examTitle ?? "").trim();
+    const submittedSubjects: SubjectInput[] = Array.isArray(body.subjects) ? body.subjects as SubjectInput[] : [{
+      subject: body.subject,
+      totalMarks: body.totalMarks,
+      passingMarks: body.passingMarks,
+      obtainedMarks: body.obtainedMarks,
+    }];
+    const subjects = submittedSubjects.map((item) => ({
+      subject: String(item.subject ?? "").trim(),
+      totalMarks: Number(item.totalMarks),
+      passingMarks: Number(item.passingMarks),
+      obtainedMarks: Number(item.obtainedMarks),
+    }));
+    if (!studentId || !title || subjects.length === 0 || subjects.some((item) => !item.subject || !Number.isFinite(item.totalMarks) || !Number.isFinite(item.passingMarks) || !Number.isFinite(item.obtainedMarks))) {
+      return NextResponse.json({ error: "Student, exam title, and every subject mark are required" }, { status: 400 });
+    }
+    if (subjects.some((item) => item.totalMarks <= 0 || item.passingMarks < 0 || item.obtainedMarks < 0 || item.passingMarks > item.totalMarks || item.obtainedMarks > item.totalMarks)) {
+      return NextResponse.json({ error: "Marks must be valid and obtained marks cannot exceed total marks" }, { status: 400 });
+    }
+    if (new Set(subjects.map((item) => item.subject.toLowerCase())).size !== subjects.length) {
+      return NextResponse.json({ error: "Each subject can only be added once for a term" }, { status: 400 });
+    }
     await connectToDatabase();
     const student = await Student.findById(studentId).lean();
     if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
     if (access.user.role === "teacher") { const teacher = await Teacher.findOne({ cnic: access.user.cnic }).lean(); const assigned = (teacher?.assignedClasses ?? []).map((item: unknown) => String(item)); if (!assigned.includes(`${student.class}-${student.section}`)) return NextResponse.json({ error: "You are not assigned to this student" }, { status: 403 }); }
     let term = await ExamTerm.findOne({ title, academicYear: "2026-2027" });
     if (!term) term = await ExamTerm.create({ title, academicYear: "2026-2027", school: access.user.school });
-    const result = await Result.create({ student: student._id, examTerm: term._id, subject, totalMarks, passingMarks, obtainedMarks });
-    return NextResponse.json({ success: true, result }, { status: 201 });
+    const records = subjects.map((item) => ({
+      student: student._id,
+      examTerm: term._id,
+      ...item,
+      percentage: Math.round((item.obtainedMarks / item.totalMarks) * 100),
+      result: item.obtainedMarks >= item.passingMarks ? "pass" : "fail",
+    }));
+    const results = await Result.insertMany(records);
+    return NextResponse.json({ success: true, results, count: results.length }, { status: 201 });
   } catch (error) {
     console.error("Result creation error:", error);
     return NextResponse.json({ error: "Unable to create result" }, { status: 500 });

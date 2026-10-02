@@ -5,10 +5,13 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Attendance, Fee, SchoolConfiguration, Student } from "@/Models";
 import { lastTwelveMonthsNewestFirst } from "@/lib/fees";
 import FeeActions from "@/components/FeeActions";
+import AttendanceHistory from "@/components/AttendanceHistory";
+import { buildAttendanceDateFilter } from "@/lib/attendance";
+import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminStudentProfile({ params }: { params: Promise<{ id: string }> }) {
+export default async function AdminStudentProfile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ month?: string; from?: string; to?: string; page?: string }> }) {
   const session = await getCurrentUser();
   if (!session.authenticated || session.user?.role !== "admin") redirect("/dashboard");
   await connectToDatabase();
@@ -16,10 +19,27 @@ export default async function AdminStudentProfile({ params }: { params: Promise<
   if (!student) notFound();
 
   const studentId = String(student._id);
-  const [fees, attendance] = await Promise.all([
+  const queryParams = await searchParams;
+  const filters = buildAttendanceDateFilter(queryParams);
+  const attendanceQuery = { student: student._id, ...(filters.date ? { date: filters.date } : {}) };
+  const [fees, attendanceTotal, attendanceStats] = await Promise.all([
     Fee.find({ student: student._id }).lean(),
-    Attendance.find({ student: student._id }).sort({ date: -1 }).limit(365).lean(),
+    Attendance.countDocuments(attendanceQuery),
+    Attendance.aggregate([{ $match: attendanceQuery }, { $group: { _id: "$status", count: { $sum: 1 } } }]),
   ]);
+  const pages = countPages(attendanceTotal, DEFAULT_PAGE_SIZE);
+  const page = clampPage(parsePageNumber(queryParams.page), pages);
+  const attendance = await Attendance.find(attendanceQuery).sort({ date: -1 }).skip((page - 1) * DEFAULT_PAGE_SIZE).limit(DEFAULT_PAGE_SIZE).lean();
+  const countOf = (status: string) => Number(attendanceStats.find((item) => item._id === status)?.count ?? 0);
+  const attendanceHref = (target: number) => {
+    const query = new URLSearchParams();
+    if (filters.month) query.set("month", filters.month);
+    if (filters.from) query.set("from", filters.from);
+    if (filters.to) query.set("to", filters.to);
+    if (target > 1) query.set("page", String(target));
+    const suffix = query.toString();
+    return suffix ? `?${suffix}` : ".";
+  };
   const school = session.user.school ? await SchoolConfiguration.findById(session.user.school).lean() : null;
   const monthlyFee = Number(school?.monthlyFee ?? 0);
   const feeByMonth = new Map(fees.map((fee) => [`${fee.month}-${fee.year}`, fee]));
@@ -103,10 +123,7 @@ export default async function AdminStudentProfile({ params }: { params: Promise<
             </table>
           </div>
         </section>
-        <details className="group mt-6 overflow-hidden rounded-3xl bg-white shadow-sm">
-          <summary className="cursor-pointer list-none px-8 py-5 font-semibold">Attendance history <span className="float-right text-sm font-normal text-slate-400 group-open:hidden">View details +</span><span className="float-right hidden text-sm font-normal text-slate-400 group-open:inline">Hide details -</span></summary>
-          <div className="overflow-x-auto border-t border-slate-100 px-8 py-4"><table className="w-full min-w-[560px] text-left text-sm"><thead className="text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3">Date</th><th className="py-3">Class</th><th className="py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{attendance.map((record) => <tr key={String(record._id)}><td className="py-3">{new Date(record.date).toLocaleDateString()}</td><td className="py-3">{record.classSection}</td><td className="py-3 capitalize">{record.status}</td></tr>)}</tbody></table>{attendance.length === 0 && <p className="py-6 text-sm text-slate-400">No attendance records available.</p>}</div>
-        </details>
+        <AttendanceHistory records={attendance} page={page} pages={pages} month={filters.month} from={filters.from} to={filters.to} present={countOf("present")} late={countOf("late")} absent={countOf("absent")} leave={countOf("leave")} holidays={countOf("holiday")} hrefFor={attendanceHref} />
       </div>
     </main>
   );

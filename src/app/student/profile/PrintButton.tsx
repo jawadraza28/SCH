@@ -1,6 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
+
 export default function PrintButton() {
+	useEffect(() => {
+		const clearOrientation = () => document.documentElement.removeAttribute("data-print-orientation");
+		window.addEventListener("afterprint", clearOrientation);
+		return () => window.removeEventListener("afterprint", clearOrientation);
+	}, []);
+
 	function printCard() {
 		document.documentElement.setAttribute("data-print-orientation", "landscape");
 		window.print();

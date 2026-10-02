@@ -25,12 +25,12 @@ Required:
 
 Optional student photos:
 
-- `GOOGLE_CLOUD_PROJECT_ID`
-- `GOOGLE_CLOUD_STORAGE_BUCKET`
-- `GOOGLE_CLOUD_CLIENT_EMAIL`
-- `GOOGLE_CLOUD_PRIVATE_KEY`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET_NAME`
 
-Photos are accepted only as JPG, PNG, or WebP, compressed server-side, and stored in a private bucket. The Gmail address used to create the Google Cloud project is not itself a storage credential.
+Photos are accepted only as JPG, PNG, or WebP, compressed server-side, and stored in a private Cloudflare R2 bucket. The browser receives a short-lived signed URL, so the bucket does not need to be public.
 
 ## Roles
 
@@ -47,7 +47,7 @@ Photos are accepted only as JPG, PNG, or WebP, compressed server-side, and store
 5. Deploy and open `/setup` once to create the administrator.
 6. Create classes and teachers, then assign teachers to classes.
 7. Add or approve students.
-8. Configure a private Google Cloud Storage bucket only if photos are needed.
+8. Configure a private Cloudflare R2 bucket and API token if photos are needed.
 9. Attach the school domain in Vercel.
 
 Vercel Cron calls attendance cleanup daily and fee generation monthly. Configure `CRON_SECRET` in Vercel; never expose it as a `NEXT_PUBLIC_` variable.

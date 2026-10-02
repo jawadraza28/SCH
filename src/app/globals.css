@@ -1087,23 +1087,17 @@ main .shadow-sm {
 
 @media print {
   @page {
-    size: portrait;
-    margin: 0;
-  }
-  @page student-card-landscape {
     size: landscape;
     margin: 0;
-  }
-  html[data-print-orientation="landscape"] {
-    page: student-card-landscape;
   }
   body {
     background: white !important;
   }
   .student-id-card {
     display: block;
-    width: min(86mm, 92vw);
-    margin: 18mm auto;
+    width: 148mm;
+    min-height: 95mm;
+    margin: 12mm auto;
     overflow: hidden;
     border: 1px solid #cbd5e1;
     border-radius: 5mm;
@@ -1114,6 +1108,12 @@ main .shadow-sm {
   html[data-print-orientation="landscape"] .student-id-card {
     width: 148mm;
     margin: 12mm auto;
+  }
+  .student-id-card-topline,
+  .student-id-card-body,
+  .student-id-card-footer {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
   .student-id-card-topline {
     print-color-adjust: exact;
@@ -1217,4 +1217,3 @@ body:has(.app-bottom-nav) .theme-fab {
     transform: none;
   }
 }
-
