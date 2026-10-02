@@ -35,7 +35,16 @@ export async function GET(request: Request) {
     const pages = countPages(total, limit);
     const page = clampPage(parsePageNumber(params.get("page")), pages);
     const homework = await Homework.find(query).sort({ dueDate: 1 }).skip((page - 1) * limit).limit(limit).lean();
-    return NextResponse.json({ homework, pagination: { page, pages, total, limit } });
+    const availableClasses = access.user.role === "teacher"
+      ? ((await Teacher.findOne({ cnic: access.user.cnic }).select("assignedClasses").lean())?.assignedClasses ?? [])
+        .map((value: unknown) => String(value).trim())
+        .filter(Boolean)
+        .map((value: string) => {
+          const separator = value.indexOf("-");
+          return { value, className: separator > 0 ? value.slice(0, separator) : value, sectionName: separator > 0 ? value.slice(separator + 1) : "" };
+        })
+      : [];
+    return NextResponse.json({ homework, availableClasses, pagination: { page, pages, total, limit } });
   } catch (error) {
     console.error("Homework load error:", error);
     return NextResponse.json({ error: "Unable to load homework" }, { status: 500 });
@@ -54,12 +63,31 @@ export async function POST(request: Request) {
     await connectToDatabase();
     const teacher = await Teacher.findOne({ cnic: access.user.cnic }).lean();
     if (!teacher) return NextResponse.json({ error: "Teacher profile not found" }, { status: 404 });
-    const assigned = (teacher.assignedClasses ?? []).map((item: unknown) => String(item));
-    if (!assigned.includes(`${assignedToClass}-${assignedToSection}`)) return NextResponse.json({ error: "You are not assigned to this class" }, { status: 403 });
+    const assigned = (teacher.assignedClasses ?? []).map((item: unknown) => String(item).trim().toUpperCase());
+    if (!assigned.includes(`${assignedToClass}-${assignedToSection}`.toUpperCase())) return NextResponse.json({ error: "You are not assigned to this class" }, { status: 403 });
     const homework = await Homework.create({ title, description, subject, classSection: `${assignedToClass}-${assignedToSection}`, assignedBy: teacher._id, assignedToClass, assignedToSection, dueDate: new Date(`${dueDate}T23:59:59.999Z`), expiryDate: expiryDate ? new Date(`${expiryDate}T23:59:59.999Z`) : undefined });
     return NextResponse.json({ success: true, homework }, { status: 201 });
   } catch (error) {
     console.error("Homework creation error:", error);
     return NextResponse.json({ error: "Unable to create homework" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const access = await sessionAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+  if (access.user.role !== "teacher") return NextResponse.json({ error: "Only teachers can delete homework" }, { status: 403 });
+  try {
+    const id = new URL(request.url).searchParams.get("id")?.trim();
+    if (!id) return NextResponse.json({ error: "Homework id is required" }, { status: 400 });
+    await connectToDatabase();
+    const teacher = await Teacher.findOne({ cnic: access.user.cnic }).select("_id").lean();
+    if (!teacher) return NextResponse.json({ error: "Teacher profile not found" }, { status: 404 });
+    const deleted = await Homework.deleteOne({ _id: id, assignedBy: teacher._id });
+    if (!deleted.deletedCount) return NextResponse.json({ error: "Homework not found or not owned by you" }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Homework deletion error:", error);
+    return NextResponse.json({ error: "Unable to delete homework" }, { status: 500 });
   }
 }
