@@ -60,9 +60,9 @@ export default function LoginPage() {
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
           <div className="relative">
             <div className="mb-10 text-blue-100"><SchoolBrandMark compact /></div>
-            <p className="max-w-md text-sm font-semibold uppercase tracking-[0.24em] text-blue-200">One clear place for every school day</p>
-            <h1 className="mt-5 max-w-lg text-5xl font-bold leading-tight tracking-tight text-white">Run your school with confidence.</h1>
-            <p className="mt-6 max-w-md text-lg leading-8 text-blue-100">Attendance, results, fees, classes, and communication in one calm workspace.</p>
+            <p className="max-w-md text-sm font-semibold uppercase tracking-[0.24em] text-blue-200">Everything your school needs, together</p>
+            <h1 className="mt-5 max-w-lg text-5xl font-bold leading-tight tracking-tight text-white">Make every school day simpler.</h1>
+            <p className="mt-6 max-w-md text-lg leading-8 text-blue-100">Manage attendance, classes, fees, results, and school communication from one simple workspace.</p>
           </div>
           <p className="relative text-sm text-blue-200">Secure, focused, and ready for your school.</p>
         </section>
