@@ -50,12 +50,12 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-5 text-slate-100 sm:px-6 lg:px-8">
+    <main className="flex min-h-[100dvh] flex-col bg-slate-950 px-4 py-5 text-slate-100 sm:px-6 lg:px-8">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-1 py-2 sm:px-2">
         <Link href="/" className="text-white"><SchoolBrandMark compact /></Link>
         <div className="flex items-center gap-1 sm:gap-2"><Link prefetch href="/" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Home</Link><Link prefetch href="/about-us" className="hidden rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white sm:block">About us</Link><Link prefetch href="/contact" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Contact</Link></div>
       </nav>
-      <div className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="mx-auto grid w-full flex-1 max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
         <section className="relative hidden overflow-hidden bg-blue-700 p-12 lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
           <div className="relative">

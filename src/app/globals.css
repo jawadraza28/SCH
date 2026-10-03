@@ -1013,6 +1013,39 @@ main .shadow-sm {
     linear-gradient(140deg, rgb(255 255 255 / 0.07), rgb(2 6 23 / 0.24));
 }
 
+/* --- Landing hero cover ---------------------------------------------------
+   The cover is a wide 16:9 photo (1672×941). On phones the hero is tall and
+   narrow, so covering the whole section crops it into a heavy zoom. Below
+   640px we pin the cover to a short banner at the top of the hero (the full
+   height of the photo is kept, only the sides crop) and fade its lower edge
+   into the page so it never looks stretched or over-zoomed. */
+.landing-cover {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.landing-cover-fade {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  display: none;
+  height: 16rem;
+  background-image: linear-gradient(to bottom, transparent, rgb(2 6 23));
+  pointer-events: none;
+}
+@media (max-width: 639px) {
+  .landing-cover {
+    inset: 0 auto auto 0;
+    height: 16rem;
+  }
+  .landing-cover-fade {
+    display: block;
+  }
+}
+
 .landing-feature { position: relative; display: block; min-height: 12rem; border: 1px solid rgb(255 255 255 / 0.08); border-radius: 1rem; padding: 1.35rem; transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease; }
 .landing-feature:hover { border-color: rgb(125 211 252 / 0.35); background: rgb(255 255 255 / 0.04); transform: translateY(-0.25rem); }
 .landing-feature-number { display: block; margin-bottom: 1.75rem; color: rgb(148 163 184 / 0.55); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em; }
