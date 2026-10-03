@@ -107,7 +107,6 @@ async function DashboardContent() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200 sm:text-sm">School overview</p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Everything important, at a glance.</h2>
             <p className="mt-2 max-w-xl text-sm text-blue-100 sm:text-base">Choose any card below to jump straight to that part of the school record.</p>
-            <div className="dashboard-overview-illustration pointer-events-none absolute -bottom-8 right-4 w-[19rem] opacity-80 sm:right-8 sm:top-0"><div className="school-illustration"><div className="illustration-glow" /><div className="illustration-board"><span className="illustration-board-dot" /><span className="illustration-board-line illustration-board-line-one" /><span className="illustration-board-line illustration-board-line-two" /><span className="illustration-board-check">✓</span></div><div className="illustration-card illustration-card-one"><span>Attendance</span><b>92%</b></div><div className="illustration-card illustration-card-two"><span>Learning</span><b>+24%</b></div><div className="illustration-pencil" /></div></div>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

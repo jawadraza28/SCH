@@ -1048,8 +1048,6 @@ main .shadow-sm {
 .scene-pencil i { position: absolute; right: -0.45rem; top: 0; width: 0; height: 0; border-top: 0.325rem solid transparent; border-bottom: 0.325rem solid transparent; border-left: 0.55rem solid #e2e8f0; }
 .scene-pencil b { position: absolute; left: 0.25rem; top: 0.08rem; height: 0.5rem; width: 0.1rem; background: rgb(120 53 15 / 0.45); }
 .scene-floor { position: absolute; left: 8%; top: 64%; width: 78%; height: 5rem; border-radius: 50%; background: radial-gradient(ellipse, rgb(56 189 248 / 0.2), transparent 68%); transform: rotateX(68deg); filter: blur(0.2rem); z-index: -1; }
-.school-illustration { position: relative; min-height: 18rem; isolation: isolate; }
-.illustration-glow { position: absolute; inset: 20% 8% 4%; border-radius: 50%; background: radial-gradient(ellipse, rgb(45 212 191 / 0.28), transparent 68%); filter: blur(1rem); }
 .campus-scene { position: absolute; inset: 8% 4% 4%; filter: drop-shadow(0 1.5rem 1rem rgb(2 6 23 / .35)); transform: perspective(36rem) rotateY(-8deg) rotateX(4deg); }
 .campus-shadow { position: absolute; left: 8%; right: 2%; bottom: 4%; height: 3rem; border-radius: 50%; background: rgb(2 6 23 / .5); filter: blur(.8rem); }
 .campus-building { position: absolute; right: 13%; top: 14%; width: 14rem; height: 11rem; border: 1px solid rgb(186 230 253 / .5); border-radius: .4rem .4rem .7rem .7rem; background: linear-gradient(145deg, rgb(56 189 248 / .58), rgb(30 64 175 / .85)); box-shadow: inset 1.2rem 0 2rem rgb(255 255 255 / .12), 0 1.5rem 2rem rgb(2 6 23 / .3); }
@@ -1108,29 +1106,6 @@ main .shadow-sm {
   background: #eff6ff;
 }
 @media (min-width: 640px) { .public-card, .public-detail { padding: 1.5rem; } }
-@media (max-width: 640px) { .book-scene { min-height: 16rem; } .book { transform: rotateX(62deg) rotateZ(-18deg) scale(0.75); } .book-two { transform: rotateX(62deg) rotateZ(-18deg) scale(0.66); } .book-three { transform: rotateX(62deg) rotateZ(-18deg) scale(0.56); } .scene-orbit { left: 8%; transform: rotateX(68deg) rotateZ(-18deg) scale(0.72); } .scene-orbit-two { left: 20%; transform: rotateX(68deg) rotateZ(42deg) scale(0.72); } .scene-pencil { right: 5%; top: 14%; scale: 0.8; } }
-@media (max-width: 640px) {
-  .landing-page .school-illustration,
-  .dashboard-overview-illustration {
-    display: none;
-  }
-
-  .dashboard-overview-hero {
-    min-height: 0;
-  }
-
-  .school-illustration {
-    min-height: 12rem;
-    margin: -0.5rem -1rem 0;
-    transform: scale(0.78);
-    transform-origin: center top;
-  }
-  .illustration-board { right: 10%; }
-  .illustration-card { min-width: 7.2rem; padding: 0.6rem 0.7rem; }
-  .illustration-card-one { left: 4%; }
-  .illustration-card-two { right: 0; }
-  .illustration-pencil { left: 18%; }
-}
 @media (prefers-reduced-motion: reduce) { .book, .scene-orbit, .scene-pencil { animation: none; } .landing-feature:hover { transform: none; } }
 
 /* --- Horizontal chip scrollers (class pickers, quick filters) ------------- */
