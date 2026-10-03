@@ -26,8 +26,15 @@ export async function GET(request: Request) {
       target = student ? `${student.class}-${student.section}`.toUpperCase() : "";
     } else if (result.user.role === "teacher") {
       const teacher = await Teacher.findOne({ cnic: result.user.cnic }).select("_id").lean();
-      scope = "teacher";
-      target = teacher ? String(teacher._id) : "";
+      if (scope === "class") {
+        const assignedClasses = await Teacher.findOne({ cnic: result.user.cnic }).select("assignedClasses").lean();
+        const assigned = (assignedClasses?.assignedClasses ?? []).map((item: unknown) => String(item).trim().toUpperCase());
+        target = target.toUpperCase();
+        if (!assigned.includes(target)) return NextResponse.json({ error: "You can only view timetables for your assigned classes" }, { status: 403 });
+      } else {
+        scope = "teacher";
+        target = teacher ? String(teacher._id) : "";
+      }
     }
     if (!scope || !target || !["class", "teacher"].includes(scope)) return NextResponse.json({ error: "Timetable scope and target are required" }, { status: 400 });
     const timetable = await Timetable.findOne({ scope, target, academicYear }).lean();
