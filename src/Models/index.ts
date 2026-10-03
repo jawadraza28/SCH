@@ -377,7 +377,7 @@ const teacherAttendanceSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ["present", "absent", "late", "leave", "unmarked"],
+    enum: ["present", "absent", "late", "leave", "holiday", "unmarked"],
     required: true,
   },
   markedBy: {
@@ -436,6 +436,26 @@ const classSectionSchema = new Schema({
 classSectionSchema.index({ className: 1, sectionName: 1 }, { unique: true });
 
 export const ClassSection = mongoose.models.ClassSection || mongoose.model("ClassSection", classSectionSchema);
+
+const timetableEntrySchema = new Schema({
+  day: { type: String, enum: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"], required: true },
+  period: { type: Number, required: true, min: 1, max: 12 },
+  subject: { type: String, required: true, trim: true },
+  room: { type: String, trim: true, default: "" },
+  teacher: { type: String, trim: true, default: "" },
+  classSection: { type: String, trim: true, default: "" },
+}, { _id: false });
+
+const timetableSchema = new Schema({
+  scope: { type: String, enum: ["class", "teacher"], required: true },
+  target: { type: String, required: true, trim: true },
+  classSection: { type: String, trim: true, default: "" },
+  academicYear: { type: String, required: true, trim: true },
+  entries: { type: [timetableEntrySchema], default: [] },
+  updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+}, { timestamps: true });
+timetableSchema.index({ scope: 1, target: 1, academicYear: 1 }, { unique: true });
+export const Timetable = mongoose.models.Timetable || mongoose.model("Timetable", timetableSchema);
 
 // ==========================================
 // Attendance Schema

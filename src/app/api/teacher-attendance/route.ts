@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const status = params.get("status")?.trim();
     const teacherId = params.get("teacherId")?.trim();
     const teacherQuery: Record<string, unknown> = { ...(teacherId ? { _id: teacherId } : {}) };
-    if (status && ["present", "absent", "late", "leave"].includes(status) && date) {
+    if (status && ["present", "absent", "late", "leave", "holiday"].includes(status) && date) {
       const marked = await TeacherAttendance.find({ date: day(date), status }).distinct("teacher");
       teacherQuery._id = { $in: marked };
     }
@@ -56,10 +56,12 @@ export async function POST(request: Request) {
     const date = String(body.date ?? "").trim();
     const entries = Array.isArray(body.entries) ? body.entries : [];
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !entries.length) return NextResponse.json({ error: "Date and attendance entries are required" }, { status: 400 });
-    const allowed = new Set(["present", "absent", "late", "leave"]);
+    const allowed = new Set(["present", "absent", "late", "leave", "holiday"]);
     const teacherIds = entries.map((entry: { teacherId: string }) => entry.teacherId);
     const valid = new Set((await Teacher.find({ _id: { $in: teacherIds } }).select("_id").lean()).map((teacher) => String(teacher._id)));
-    await Promise.all(entries.filter((entry: { teacherId: string; status: string }) => valid.has(entry.teacherId) && allowed.has(entry.status)).map((entry: { teacherId: string; status: string }) => TeacherAttendance.findOneAndUpdate({ teacher: entry.teacherId, date: day(date) }, { teacher: entry.teacherId, date: day(date), status: entry.status, markedBy: adminUser.id }, { upsert: true, new: true })));
+    await Promise.all(entries.filter((entry: { teacherId: string; status: string }) => valid.has(entry.teacherId) && (allowed.has(entry.status) || entry.status === "unmarked")).map((entry: { teacherId: string; status: string }) => entry.status === "unmarked"
+      ? TeacherAttendance.deleteOne({ teacher: entry.teacherId, date: day(date) })
+      : TeacherAttendance.findOneAndUpdate({ teacher: entry.teacherId, date: day(date) }, { teacher: entry.teacherId, date: day(date), status: entry.status, markedBy: adminUser.id }, { upsert: true, new: true })));
     await pruneTeacherAttendanceIfDue();
     return NextResponse.json({ success: true });
   } catch (error) {

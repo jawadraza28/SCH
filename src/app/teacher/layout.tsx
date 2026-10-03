@@ -12,6 +12,7 @@ const navigation: NavItem[] = [
   { label: "My profile", href: "/teacher/profile", exact: true },
   { label: "My students", href: "/teacher/students" },
   { label: "Mark attendance", href: "/teacher/attendance", exact: true },
+  { label: "My timetable", href: "/teacher/timetable", exact: true },
   { label: "Homework", href: "/teacher/homework", exact: true },
   { label: "Results", href: "/teacher/results", exact: true },
   { label: "Notices", href: "/teacher/notices", exact: true },
