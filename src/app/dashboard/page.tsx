@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Attendance, ClassSection, Fee, Notice, Student, Teacher, TeacherAttendance } from "@/Models";
-import { signedR2Url } from "@/lib/object-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +12,6 @@ type StatCard = {
   hint: string;
   href: string;
   accent: string;
-  imageUrl?: string;
-  imageAlt?: string;
   icon: "students" | "teachers" | "classes" | "present" | "absent" | "requests" | "fees";
 };
 
@@ -52,7 +49,7 @@ async function DashboardContent() {
   const todayKey = `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, "0")}-${String(startOfDay.getDate()).padStart(2, "0")}`;
   const todayLabel = startOfDay.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees, teacherPresentToday, teacherAbsentToday, latestStudent, latestTeacher, notices] = await Promise.all([
+  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees, teacherPresentToday, teacherAbsentToday, notices] = await Promise.all([
     Student.countDocuments(),
     Teacher.countDocuments(),
     ClassSection.countDocuments({ isActive: true }),
@@ -62,26 +59,12 @@ async function DashboardContent() {
     Fee.countDocuments({ status: "unpaid" }),
     TeacherAttendance.countDocuments({ date: { $gte: startOfDay, $lt: endOfDay }, status: "present" }),
     TeacherAttendance.countDocuments({ date: { $gte: startOfDay, $lt: endOfDay }, status: "absent" }),
-    Student.findOne({ accountStatus: "active" }).sort({ createdAt: -1 }).select("fullName profilePhotoUrl").lean(),
-    Teacher.findOne({ accountStatus: "active" }).sort({ createdAt: -1 }).select("name profilePhotoUrl").lean(),
     Notice.find({ published: true, $or: [{ expiryDate: { $exists: false } }, { expiryDate: null }, { expiryDate: { $gte: new Date() } }] }).sort({ publishDate: -1 }).limit(4).select("title description type publishDate").lean(),
   ]);
-  async function photoUrl(reference?: string) {
-    if (reference?.startsWith("http")) return reference;
-    if (reference?.startsWith("r2://")) {
-      try {
-        return await signedR2Url(reference);
-      } catch (error) {
-        console.error("Unable to create legacy dashboard photo URL:", error);
-      }
-    }
-    return "";
-  }
-  const [studentPhotoUrl, teacherPhotoUrl] = await Promise.all([photoUrl(latestStudent?.profilePhotoUrl), photoUrl(latestTeacher?.profilePhotoUrl)]);
 
   const cards: StatCard[] = [
-    { label: "Total students", value: studentCount, hint: "Search, filter and manage every student", href: "/dashboard/students", accent: "bg-blue-50 text-blue-600", imageUrl: studentPhotoUrl, imageAlt: latestStudent?.fullName, icon: "students" },
-    { label: "Total teachers", value: teacherCount, hint: "Staff records and class assignments", href: "/dashboard/teachers", accent: "bg-indigo-50 text-indigo-600", imageUrl: teacherPhotoUrl, imageAlt: latestTeacher?.name, icon: "teachers" },
+    { label: "Total students", value: studentCount, hint: "Search, filter and manage every student", href: "/dashboard/students", accent: "bg-blue-50 text-blue-600", icon: "students" },
+    { label: "Total teachers", value: teacherCount, hint: "Staff records and class assignments", href: "/dashboard/teachers", accent: "bg-indigo-50 text-indigo-600", icon: "teachers" },
     { label: "Active classes", value: classCount, hint: "Sections that are currently running", href: "/dashboard/classes", accent: "bg-violet-50 text-violet-600", icon: "classes" },
     { label: "Present today", value: presentToday, hint: `Students marked present on ${todayKey}`, href: `/dashboard/students?presentOn=${todayKey}`, accent: "bg-emerald-50 text-emerald-600", icon: "present" },
     { label: "Absent today", value: absentToday, hint: `Students marked absent on ${todayKey}`, href: "/dashboard/attendance", accent: "bg-rose-50 text-rose-600", icon: "absent" },
@@ -113,7 +96,7 @@ async function DashboardContent() {
               <Link key={card.label} href={card.href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className={`grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full ${card.accent}`}>{card.imageUrl ? <img src={card.imageUrl} alt={card.imageAlt ? `${card.imageAlt} profile` : card.label} className="h-full w-full object-cover" /> : <CardIcon type={card.icon} />}</span>
+                    <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${card.accent}`}><CardIcon type={card.icon} /></span>
                     <p className="text-sm text-slate-500">{card.label}</p>
                   </div>
                   <span aria-hidden className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-base font-bold ${card.accent}`}>→</span>
