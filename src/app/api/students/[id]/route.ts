@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher, User } from "@/Models";
 import { Attendance, Fee, Result } from "@/Models";
 import { deleteFromR2 } from "@/lib/object-storage";
+import { deleteCloudinaryPhoto } from "@/lib/cloudinary";
 import { fullClassMessage, seatAvailability } from "@/lib/seats";
 
 async function canAccessStudent(id: string) {
@@ -34,6 +35,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     if (student.profilePhotoUrl?.startsWith("r2://")) {
       await deleteFromR2(student.profilePhotoUrl).catch((error) => console.warn("Student photo cleanup failed:", error));
     }
+    if (student.profilePhotoPublicId) await deleteCloudinaryPhoto(student.profilePhotoPublicId).catch((error) => console.warn("Student Cloudinary photo cleanup failed:", error));
     await Student.deleteOne({ _id: student._id });
     return NextResponse.json({ success: true });
   } catch (error) {

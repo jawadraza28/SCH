@@ -5,8 +5,8 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Teacher, TeacherAttendance, User } from "@/Models";
 import Pagination from "@/components/Pagination";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
-import { signedR2Url } from "@/lib/object-storage";
 import AdminPasswordResetButton from "@/components/AdminPasswordResetButton";
+import { signedR2Url } from "@/lib/object-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +19,12 @@ export default async function AdminTeacherProfile({ params, searchParams }: { pa
   if (!teacher) notFound();
   const user = await User.findOne({ role: "teacher", cnic: teacher.cnic }).select("email").lean();
   let teacherPhotoUrl = "";
+  if (teacher.profilePhotoUrl?.startsWith("http")) teacherPhotoUrl = teacher.profilePhotoUrl;
   if (teacher.profilePhotoUrl?.startsWith("r2://")) {
     try {
       teacherPhotoUrl = await signedR2Url(teacher.profilePhotoUrl);
     } catch (error) {
-      console.error("Unable to create teacher profile photo URL:", error);
+      console.error("Unable to create legacy teacher profile photo URL:", error);
     }
   }
   const filters = await searchParams;

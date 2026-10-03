@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Teacher, User } from "@/Models";
 import { ClassSection, Homework } from "@/Models";
 import { deleteFromR2 } from "@/lib/object-storage";
+import { deleteCloudinaryPhoto } from "@/lib/cloudinary";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await getCurrentUser();
@@ -36,6 +37,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     if (teacher.profilePhotoUrl?.startsWith("r2://")) {
       await deleteFromR2(teacher.profilePhotoUrl).catch((error) => console.warn("Teacher photo cleanup failed:", error));
     }
+    if (teacher.profilePhotoPublicId) await deleteCloudinaryPhoto(teacher.profilePhotoPublicId).catch((error) => console.warn("Teacher Cloudinary photo cleanup failed:", error));
     await Teacher.deleteOne({ _id: teacher._id });
     return NextResponse.json({ success: true });
   } catch (error) {

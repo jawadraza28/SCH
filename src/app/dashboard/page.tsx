@@ -66,19 +66,18 @@ async function DashboardContent() {
     Teacher.findOne({ accountStatus: "active" }).sort({ createdAt: -1 }).select("name profilePhotoUrl").lean(),
     Notice.find({ published: true, $or: [{ expiryDate: { $exists: false } }, { expiryDate: null }, { expiryDate: { $gte: new Date() } }] }).sort({ publishDate: -1 }).limit(4).select("title description type publishDate").lean(),
   ]);
-  async function signedPhoto(reference?: string) {
-    if (!reference?.startsWith("r2://")) return "";
-    try {
-      return await signedR2Url(reference);
-    } catch (error) {
-      console.error("Unable to create dashboard photo URL:", error);
-      return "";
+  async function photoUrl(reference?: string) {
+    if (reference?.startsWith("http")) return reference;
+    if (reference?.startsWith("r2://")) {
+      try {
+        return await signedR2Url(reference);
+      } catch (error) {
+        console.error("Unable to create legacy dashboard photo URL:", error);
+      }
     }
+    return "";
   }
-  const [studentPhotoUrl, teacherPhotoUrl] = await Promise.all([
-    signedPhoto(latestStudent?.profilePhotoUrl),
-    signedPhoto(latestTeacher?.profilePhotoUrl),
-  ]);
+  const [studentPhotoUrl, teacherPhotoUrl] = await Promise.all([photoUrl(latestStudent?.profilePhotoUrl), photoUrl(latestTeacher?.profilePhotoUrl)]);
 
   const cards: StatCard[] = [
     { label: "Total students", value: studentCount, hint: "Search, filter and manage every student", href: "/dashboard/students", accent: "bg-blue-50 text-blue-600", imageUrl: studentPhotoUrl, imageAlt: latestStudent?.fullName, icon: "students" },

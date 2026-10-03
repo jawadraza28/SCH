@@ -271,6 +271,10 @@ const studentSchema = new Schema({
     type: String,
     default: "",
   },
+  profilePhotoPublicId: {
+    type: String,
+    default: "",
+  },
   temporaryPassword: {
     type: String,
   },
@@ -328,6 +332,10 @@ const teacherSchema = new Schema({
     enum: ["male", "female", "other"],
   },
   profilePhotoUrl: {
+    type: String,
+    default: "",
+  },
+  profilePhotoPublicId: {
     type: String,
     default: "",
   },
