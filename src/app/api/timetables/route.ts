@@ -32,9 +32,22 @@ export async function GET(request: Request) {
     if (!scope || !target || !["class", "teacher"].includes(scope)) return NextResponse.json({ error: "Timetable scope and target are required" }, { status: 400 });
     const timetable = await Timetable.findOne({ scope, target, academicYear }).lean();
     const teachers = scope === "class"
-      ? await Teacher.find({ accountStatus: { $in: ["active", "pending"] } }).select("_id name").sort({ name: 1 }).lean()
+      ? await Teacher.find({}).select("_id name accountStatus").sort({ name: 1 }).lean()
       : [];
-    return NextResponse.json({ timetable: timetable ?? { scope, target, academicYear, classSection: "", entries: [] }, teachers });
+    const teacherPeriodCounts: Record<string, Record<string, number>> = {};
+    if (scope === "class") {
+      const classTimetables = await Timetable.find({ scope: "class", academicYear }).select("entries").lean();
+      for (const classTimetable of classTimetables) {
+        for (const entry of classTimetable.entries ?? []) {
+          const teacherName = String(entry.teacher ?? "").trim();
+          const day = String(entry.day ?? "").toLowerCase();
+          if (!teacherName || !day) continue;
+          teacherPeriodCounts[teacherName] ??= {};
+          teacherPeriodCounts[teacherName][day] = (teacherPeriodCounts[teacherName][day] ?? 0) + 1;
+        }
+      }
+    }
+    return NextResponse.json({ timetable: timetable ?? { scope, target, academicYear, classSection: "", entries: [] }, teachers, teacherPeriodCounts });
   } catch (error) {
     console.error("Timetable load error:", error);
     return NextResponse.json({ error: "Unable to load timetable" }, { status: 500 });

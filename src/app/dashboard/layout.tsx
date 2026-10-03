@@ -17,7 +17,7 @@ const navigation: NavItem[] = [
   { label: "Students", href: "/dashboard/students" },
   { label: "Teachers", href: "/dashboard/teachers" },
   { label: "Teacher attendance", href: "/dashboard/teacher-attendance", exact: true },
-  { label: "Timetables", href: "/dashboard/timetable", exact: true },
+  { label: "Timetable", href: "/dashboard/timetable", exact: true },
   { label: "Attendance reports", href: "/dashboard/reports/attendance", exact: true },
   { label: "Assign classes", href: "/dashboard/teachers/assign", exact: true },
   { label: "Classes & sections", href: "/dashboard/classes" },
