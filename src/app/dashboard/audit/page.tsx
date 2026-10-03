@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { SkeletonRows } from "@/components/Loaders";
 import Pagination from "@/components/Pagination";
+import BackLink from "@/components/BackLink";
 
 type Log = { _id: string; action: string; targetType: string; details?: string; timestamp: string; user?: { name?: string } };
 
@@ -41,7 +42,7 @@ export default function AuditPage() {
   return (
     <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-7xl">
-        <a href="/dashboard" className="text-sm font-medium text-blue-600">← Dashboard</a>
+        <BackLink />
         <h1 className="mt-6 text-2xl sm:text-3xl font-bold">Audit history</h1>
         <p className="mt-2 text-slate-500">Important changes made in this school deployment.</p>
         {error && <p className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -74,4 +75,3 @@ export default function AuditPage() {
     </main>
   );
 }
-

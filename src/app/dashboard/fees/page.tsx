@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import FeeActions from "@/components/FeeActions";
 import { SkeletonRows } from "@/components/Loaders";
 import Pagination from "@/components/Pagination";
+import BackLink from "@/components/BackLink";
 
 type Row = {
   id: string;
@@ -129,9 +130,7 @@ export default function FeesPage() {
   return (
     <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-7xl">
-        <Link href="/dashboard" className="text-sm font-medium text-blue-600">
-          ← Dashboard
-        </Link>
+        <BackLink />
         <h1 className="mt-6 text-2xl sm:text-3xl font-bold">Fee management</h1>
         <p className="mt-2 text-slate-500">
           Every student in the school is listed with the fee status for the selected month. Search or filter by class,
