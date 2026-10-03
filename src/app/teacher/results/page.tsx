@@ -89,38 +89,39 @@ export default function TeacherResultsPage() {
         return;
       }
 
-      async function updatePreviousResult(id: string) {
-        setError("");
-        setMessage("");
-        const response = await fetch(`/api/results/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-          ...editValues,
-          totalMarks: Number(editValues.totalMarks),
-          passingMarks: Number(editValues.passingMarks),
-          obtainedMarks: Number(editValues.obtainedMarks),
-        }) });
-        const result = await response.json();
-        if (!response.ok) { setError(result.error ?? "Unable to update result"); return; }
-        setPreviousResults((current) => current.map((item) => item._id === id ? result.result : item));
-        setEditingResult(null);
-        setMessage("Previous result updated successfully.");
-      }
-
-      async function deletePreviousResult(id: string) {
-        if (!window.confirm("Delete this previous result?")) return;
-        setError("");
-        setMessage("");
-        const response = await fetch(`/api/results/${id}`, { method: "DELETE" });
-        const result = await response.json();
-        if (!response.ok) { setError(result.error ?? "Unable to delete result"); return; }
-        setPreviousResults((current) => current.filter((item) => item._id !== id));
-        setMessage("Previous result deleted successfully.");
-      }
       setMessage(`${result.count} subject results saved successfully.`);
     } catch {
       setError("Unable to save results");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function updatePreviousResult(id: string) {
+    setError("");
+    setMessage("");
+    const response = await fetch(`/api/results/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      ...editValues,
+      totalMarks: Number(editValues.totalMarks),
+      passingMarks: Number(editValues.passingMarks),
+      obtainedMarks: Number(editValues.obtainedMarks),
+    }) });
+    const result = await response.json();
+    if (!response.ok) { setError(result.error ?? "Unable to update result"); return; }
+    setPreviousResults((current) => current.map((item) => item._id === id ? result.result : item));
+    setEditingResult(null);
+    setMessage("Previous result updated successfully.");
+  }
+
+  async function deletePreviousResult(id: string) {
+    if (!window.confirm("Delete this previous result?")) return;
+    setError("");
+    setMessage("");
+    const response = await fetch(`/api/results/${id}`, { method: "DELETE" });
+    const result = await response.json();
+    if (!response.ok) { setError(result.error ?? "Unable to delete result"); return; }
+    setPreviousResults((current) => current.filter((item) => item._id !== id));
+    setMessage("Previous result deleted successfully.");
   }
 
   return (

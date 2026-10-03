@@ -34,7 +34,17 @@ export async function GET(request: Request) {
     const params = new URL(request.url).searchParams;
     const requestedStudent = params.get("studentId")?.trim();
     if (requestedStudent) {
-      const allowed = await Student.exists({ _id: requestedStudent, ...(access.user.role === "teacher" ? query : {}) });
+      let allowed = false;
+      if (access.user.role === "teacher") {
+        const [student, teacher] = await Promise.all([
+          Student.findById(requestedStudent).select("class section").lean(),
+          Teacher.findOne({ cnic: access.user.cnic }).select("assignedClasses").lean(),
+        ]);
+        const assigned = (teacher?.assignedClasses ?? []).map((item: unknown) => String(item).trim().toUpperCase());
+        allowed = Boolean(student && assigned.includes(`${student.class}-${student.section}`.toUpperCase()));
+      } else {
+        allowed = Boolean(await Student.exists({ _id: requestedStudent }));
+      }
       if (!allowed) return NextResponse.json({ error: "You are not allowed to view this student's results" }, { status: 403 });
       query = { student: requestedStudent };
     }
