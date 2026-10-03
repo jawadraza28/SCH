@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connectToDatabase } from "@/lib/mongodb";
-import { SchoolConfiguration, User } from "@/Models";
+import { SchoolConfiguration } from "@/Models";
 import { signedR2Url } from "@/lib/object-storage";
 import LandingNav from "@/components/LandingNav";
 
@@ -10,10 +10,10 @@ export default async function Home() {
   let school: { schoolName?: string; schoolDescription?: string; schoolAddress?: string; schoolPhone?: string; coverImage?: string; schoolIcon?: string } | null = null;
   try {
     await connectToDatabase();
-    const administrator = await User.findOne({ role: "admin" }).select("school").lean();
-    school = administrator?.school
-      ? await SchoolConfiguration.findById(administrator.school).select("schoolName schoolDescription schoolAddress schoolPhone coverImage schoolIcon").lean()
-      : await SchoolConfiguration.findOne().select("schoolName schoolDescription schoolAddress schoolPhone coverImage schoolIcon").lean();
+    school = await SchoolConfiguration.findOne()
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .select("schoolName schoolDescription schoolAddress schoolPhone coverImage schoolIcon")
+      .lean();
   } catch {
     // The public page remains useful while first-time setup is being prepared.
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import { SchoolConfiguration, User } from "@/Models";
+import { SchoolConfiguration } from "@/Models";
 import { signedR2Url } from "@/lib/object-storage";
 
 export const dynamic = "force-dynamic";
@@ -8,10 +8,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await connectToDatabase();
-    const administrator = await User.findOne({ role: "admin" }).select("school").lean();
-    const school = (administrator?.school
-      ? await SchoolConfiguration.findById(administrator.school)
-      : await SchoolConfiguration.findOne())
+    const school = await SchoolConfiguration.findOne()
+      .sort({ updatedAt: -1, createdAt: -1 })
       .select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear logo schoolIcon coverImage")
       .lean();
     if (!school) return NextResponse.json({ school: null });

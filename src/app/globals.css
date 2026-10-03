@@ -945,6 +945,11 @@ main .shadow-sm {
 }
 
 @media (min-width: 641px) and (max-width: 1023px) {
+  .landing-page .school-illustration,
+  .dashboard-overview-illustration {
+    display: none;
+  }
+
   .app-page {
     min-height: calc(100vh - 3.5rem);
   }
@@ -1086,6 +1091,15 @@ main .shadow-sm {
 @media (min-width: 640px) { .public-card, .public-detail { padding: 1.5rem; } }
 @media (max-width: 640px) { .book-scene { min-height: 16rem; } .book { transform: rotateX(62deg) rotateZ(-18deg) scale(0.75); } .book-two { transform: rotateX(62deg) rotateZ(-18deg) scale(0.66); } .book-three { transform: rotateX(62deg) rotateZ(-18deg) scale(0.56); } .scene-orbit { left: 8%; transform: rotateX(68deg) rotateZ(-18deg) scale(0.72); } .scene-orbit-two { left: 20%; transform: rotateX(68deg) rotateZ(42deg) scale(0.72); } .scene-pencil { right: 5%; top: 14%; scale: 0.8; } }
 @media (max-width: 640px) {
+  .landing-page .school-illustration,
+  .dashboard-overview-illustration {
+    display: none;
+  }
+
+  .dashboard-overview-hero {
+    min-height: 0;
+  }
+
   .school-illustration {
     min-height: 12rem;
     margin: -0.5rem -1rem 0;

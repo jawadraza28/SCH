@@ -9,7 +9,7 @@ export default async function ContactPage() {
   let school: { schoolName?: string; schoolAddress?: string; schoolPhone?: string; schoolEmail?: string; schoolIcon?: string } | null = null;
   try {
     await connectToDatabase();
-    school = await SchoolConfiguration.findOne().select("schoolName schoolAddress schoolPhone schoolEmail schoolIcon").lean();
+    school = await SchoolConfiguration.findOne().sort({ updatedAt: -1, createdAt: -1 }).select("schoolName schoolAddress schoolPhone schoolEmail schoolIcon").lean();
   } catch {
     // Keep the contact page available before setup is complete.
   }

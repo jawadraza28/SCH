@@ -10,7 +10,7 @@ export default async function AboutUsPage() {
   let school: { schoolName?: string; schoolDescription?: string; schoolAddress?: string; schoolPhone?: string; schoolEmail?: string; academicYear?: string; schoolIcon?: string } | null = null;
   try {
     await connectToDatabase();
-    school = await SchoolConfiguration.findOne().select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear schoolIcon").lean();
+    school = await SchoolConfiguration.findOne().sort({ updatedAt: -1, createdAt: -1 }).select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear schoolIcon").lean();
   } catch {
     // The page can still explain the product before setup is complete.
   }
