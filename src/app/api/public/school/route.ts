@@ -21,7 +21,9 @@ export async function GET() {
       const reference = school[field];
       if (reference?.startsWith("r2://")) result[field] = await signedR2Url(reference);
     }
-    return NextResponse.json({ school: result });
+    return NextResponse.json({ school: result }, {
+      headers: { "Cache-Control": "no-store, max-age=0" },
+    });
   } catch (error) {
     console.error("Public school details error:", error);
     return NextResponse.json({ error: "Unable to load school details" }, { status: 500 });
