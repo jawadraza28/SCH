@@ -41,20 +41,7 @@ export async function GET(request: Request) {
     const teachers = scope === "class"
       ? await Teacher.find({}).select("_id name accountStatus").sort({ name: 1 }).lean()
       : [];
-    const teacherPeriodCounts: Record<string, Record<string, number>> = {};
-    if (scope === "class") {
-      const classTimetables = await Timetable.find({ scope: "class", academicYear }).select("entries").lean();
-      for (const classTimetable of classTimetables) {
-        for (const entry of classTimetable.entries ?? []) {
-          const teacherName = String(entry.teacher ?? "").trim();
-          const day = String(entry.day ?? "").toLowerCase();
-          if (!teacherName || !day) continue;
-          teacherPeriodCounts[teacherName] ??= {};
-          teacherPeriodCounts[teacherName][day] = (teacherPeriodCounts[teacherName][day] ?? 0) + 1;
-        }
-      }
-    }
-    return NextResponse.json({ timetable: timetable ?? { scope, target, academicYear, classSection: "", entries: [] }, teachers, teacherPeriodCounts });
+    return NextResponse.json({ timetable: timetable ?? { scope, target, academicYear, classSection: "", entries: [] }, teachers });
   } catch (error) {
     console.error("Timetable load error:", error);
     return NextResponse.json({ error: "Unable to load timetable" }, { status: 500 });
@@ -64,7 +51,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const result = await access();
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
-  if (!["admin", "teacher"].includes(result.user.role)) return NextResponse.json({ error: "Administrator or teacher access required" }, { status: 403 });
+  if (result.user.role !== "admin") return NextResponse.json({ error: "Only administrators can edit timetables" }, { status: 403 });
   try {
     const body = await request.json();
     const scope = String(body.scope ?? "").trim();
@@ -78,15 +65,7 @@ export async function POST(request: Request) {
       const [className, section] = classSection.split("-");
       const exists = await ClassSection.findOne({ className, sectionName: section, isActive: true }).lean();
       if (!exists) return NextResponse.json({ error: "Class and section not found" }, { status: 404 });
-      if (result.user.role === "teacher") {
-        const teacher = await Teacher.findOne({ cnic: result.user.cnic }).lean();
-        const assigned = (teacher?.assignedClasses ?? []).map((item: unknown) => String(item).toUpperCase());
-        if (!assigned.includes(classSection)) return NextResponse.json({ error: "You are not assigned to this class" }, { status: 403 });
-      }
     } else {
-      if (result.user.role === "teacher") {
-        return NextResponse.json({ error: "Only administrators can edit teacher timetables" }, { status: 403 });
-      }
       if (!await Teacher.exists({ _id: target })) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
     }
     const normalized = entries.map((entry: Record<string, unknown>) => ({

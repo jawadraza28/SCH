@@ -10,6 +10,8 @@ const starterSubjects = (): SubjectMark[] => Array.from({ length: 7 }, () => ({ 
 
 export default function TeacherResultsPage() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<string[]>([]);
+  const [selectedClass, setSelectedClass] = useState("");
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ studentId: "", examTitle: "First Term" });
   const [subjects, setSubjects] = useState<SubjectMark[]>(starterSubjects);
@@ -18,10 +20,26 @@ export default function TeacherResultsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/students").then((response) => response.json()).then((result) => {
-      if (Array.isArray(result.students)) setStudents(result.students);
-    }).catch(() => setError("Unable to load students")).finally(() => setLoading(false));
+    fetch("/api/teachers/me/classes").then(async (response) => {
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setClasses(result.assignedClasses ?? []);
+    }).catch(() => setError("Unable to load assigned classes")).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setForm((current) => ({ ...current, studentId: "" }));
+    if (!selectedClass) {
+      setStudents([]);
+      return;
+    }
+    setLoading(true);
+    fetch(`/api/students?classSection=${encodeURIComponent(selectedClass)}`).then(async (response) => {
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setStudents(Array.isArray(result.students) ? result.students : []);
+    }).catch(() => setError("Unable to load students for this class")).finally(() => setLoading(false));
+  }, [selectedClass]);
 
   const totals = useMemo(() => {
     const total = subjects.reduce((sum, item) => sum + (Number(item.totalMarks) || 0), 0);
@@ -69,9 +87,15 @@ export default function TeacherResultsPage() {
         <p className="mt-2 text-slate-500">Add all papers for one term together. First Term starts with seven subject rows.</p>
         <form onSubmit={submit} className="mt-8 rounded-2xl bg-white p-5 shadow-sm sm:p-7">
           <div className="grid gap-5 sm:grid-cols-2">
+            <label className="text-sm font-medium">Class
+              <select required value={selectedClass} onChange={(event) => setSelectedClass(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3">
+                <option value="">{loading ? "Loading classes…" : "Select class"}</option>
+                {classes.map((classSection) => <option key={classSection} value={classSection}>{classSection}</option>)}
+              </select>
+            </label>
             <label className="text-sm font-medium">Student
-              <select required value={form.studentId} onChange={(event) => setForm((current) => ({ ...current, studentId: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3">
-                <option value="">{loading ? "Loading students…" : "Select student"}</option>
+              <select required value={form.studentId} onChange={(event) => setForm((current) => ({ ...current, studentId: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" disabled={!selectedClass || loading}>
+                <option value="">{!selectedClass ? "Select a class first" : loading ? "Loading students…" : "Select student"}</option>
                 {students.map((student) => <option key={student._id} value={student._id}>{student.fullName} · {student.class}-{student.section}</option>)}
               </select>
             </label>

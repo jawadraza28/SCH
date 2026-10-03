@@ -24,12 +24,14 @@ export async function GET(request: Request) {
     const params = new URL(request.url).searchParams;
     const search = params.get("search")?.trim() ?? "";
     const status = params.get("status")?.trim() ?? "";
+    const classSection = params.get("classSection")?.trim().toUpperCase() ?? "";
     const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const conditions: Record<string, unknown>[] = [];
     if (["active", "pending", "rejected", "suspended"].includes(status)) conditions.push({ accountStatus: status });
     if (safeSearch) {
       conditions.push({ $or: [{ fullName: { $regex: safeSearch, $options: "i" } }, { studentId: { $regex: safeSearch, $options: "i" } }, { cnic: { $regex: safeSearch, $options: "i" } }, { rollNumber: { $regex: safeSearch, $options: "i" } }] });
     }
+    if (classSection) conditions.push({ $expr: { $eq: [{ $toUpper: { $concat: [{ $ifNull: ["$class", ""] }, "-", { $ifNull: ["$section", ""] }] } }, classSection] } });
     if (session.user.role === "teacher") {
       const teacher = await Teacher.findOne({ cnic: session.user.cnic }).lean();
       const assigned = (teacher?.assignedClasses ?? []).map((item: unknown) => String(item).trim().toUpperCase());
