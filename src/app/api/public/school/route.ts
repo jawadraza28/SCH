@@ -14,7 +14,7 @@ export async function GET() {
     if (!school) return NextResponse.json({ school: null });
 
     return NextResponse.json({ school }, {
-      headers: { "Cache-Control": "no-store, max-age=0" },
+      headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" },
     });
   } catch (error) {
     console.error("Public school details error:", error);

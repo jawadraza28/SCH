@@ -11,8 +11,8 @@ export default function LandingNav({ schoolName }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="landing-nav relative z-20 mx-auto max-w-7xl px-4 py-4 sm:px-10 sm:py-6">
-      <div className="flex items-center justify-between gap-4">
+    <nav className="landing-nav relative z-20 w-full border-b border-white/10 px-4 py-3 sm:px-8 sm:py-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
         <Link href="/" className="flex min-w-0 items-center gap-3 text-sm font-bold tracking-wide">
           <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-500 text-lg">
             <img src="/logo.png" alt="" className="h-full w-full object-cover" />

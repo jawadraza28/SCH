@@ -16,7 +16,7 @@ export default function SchoolBrandMark({ compact = false }: { compact?: boolean
     } catch {
       // Ignore an unavailable or malformed browser cache and use the API.
     }
-    schoolRequest ??= fetch("/api/public/school", { cache: "no-store" })
+    schoolRequest ??= fetch("/api/public/school")
       .then((response) => (response.ok ? response.json() : null))
       .then((result) => result?.school ?? null);
     schoolRequest

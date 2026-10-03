@@ -53,7 +53,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-slate-950 px-4 py-5 text-slate-100 sm:px-6 lg:px-8">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-1 py-2 sm:px-2">
         <Link href="/" className="text-white"><SchoolBrandMark compact /></Link>
-        <div className="flex items-center gap-1 sm:gap-2"><Link href="/" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Home</Link><Link href="/about-us" className="hidden rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white sm:block">About us</Link><Link href="/contact" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Contact</Link></div>
+        <div className="flex items-center gap-1 sm:gap-2"><Link prefetch href="/" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Home</Link><Link prefetch href="/about-us" className="hidden rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white sm:block">About us</Link><Link prefetch href="/contact" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Contact</Link></div>
       </nav>
       <div className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
         <section className="relative hidden overflow-hidden bg-blue-700 p-12 lg:flex lg:flex-col lg:justify-between">
@@ -75,6 +75,10 @@ export default function LoginPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">Welcome back</p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Sign in to your school</h2>
             <p className="mt-2 text-slate-400">Choose your account type to continue.</p>
+            <Link href="/" prefetch className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-white/25 hover:bg-white/5 hover:text-white">
+              <span aria-hidden="true">←</span>
+              Back to home
+            </Link>
 
             <div className="mt-8 grid gap-2 sm:grid-cols-3">
               {roles.map((item) => (
