@@ -4,8 +4,6 @@ import { User } from "@/Models";
 import { SchoolConfiguration } from "@/Models";
 import { connectToDatabase } from "@/lib/mongodb";
 import jwt from "jsonwebtoken";
-import sharp from "sharp";
-import { r2Configured, uploadToR2 } from "@/lib/object-storage";
 
 export const POST = async (request: Request) => {
   try {
@@ -31,9 +29,6 @@ export const POST = async (request: Request) => {
       adminEmail,
       adminCNIC,
       adminPassword,
-      logo,
-      schoolIcon,
-      coverImage,
     } = body;
 
     // Validate required fields
@@ -96,20 +91,6 @@ export const POST = async (request: Request) => {
         schoolPrimaryColor: "#3b82f6",
         schoolSecondaryColor: "#1e293b",
       });
-      if ([logo, schoolIcon, coverImage].some((item) => item instanceof File)) {
-        if (!r2Configured()) return NextResponse.json({ error: "Cloudflare R2 photo storage is not configured" }, { status: 500 });
-        const uploads: Record<string, string> = {};
-        for (const [field, file] of [["logo", logo], ["schoolIcon", schoolIcon], ["coverImage", coverImage] ] as const) {
-          if (!(file instanceof File) || !file.size) continue;
-          if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return NextResponse.json({ error: "School images must be JPG, PNG, or WebP" }, { status: 400 });
-          const buffer = await sharp(Buffer.from(await file.arrayBuffer())).rotate().resize({ width: field === "coverImage" ? 1600 : 800, height: field === "coverImage" ? 700 : 800, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 84 }).toBuffer();
-          const objectName = `school/${field}-${Date.now()}.jpg`;
-          await uploadToR2(objectName, buffer, "image/jpeg");
-          uploads[field] = `r2://${process.env.R2_BUCKET_NAME}/${objectName}`;
-        }
-        Object.assign(schoolConfig, uploads);
-        await schoolConfig.save();
-      }
       createdSchool = true;
     }
 

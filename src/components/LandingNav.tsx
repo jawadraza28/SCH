@@ -5,10 +5,9 @@ import { useState } from "react";
 
 type Props = {
   schoolName: string;
-  schoolIcon?: string;
 };
 
-export default function LandingNav({ schoolName, schoolIcon }: Props) {
+export default function LandingNav({ schoolName }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -16,7 +15,7 @@ export default function LandingNav({ schoolName, schoolIcon }: Props) {
       <div className="flex items-center justify-between gap-4">
         <Link href="/" className="flex min-w-0 items-center gap-3 text-sm font-bold tracking-wide">
           <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-500 text-lg">
-            {schoolIcon ? <img src={schoolIcon} alt="" className="h-full w-full object-cover" /> : schoolName.charAt(0).toUpperCase()}
+            <img src="/logo.png" alt="" className="h-full w-full object-cover" />
           </span>
           <span className="truncate">{schoolName}</span>
         </Link>

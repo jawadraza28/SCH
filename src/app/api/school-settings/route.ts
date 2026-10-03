@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { SchoolConfiguration, User } from "@/Models";
-import { deleteFromR2, r2Configured, signedR2Url, uploadToR2 } from "@/lib/object-storage";
+import { signedR2Url } from "@/lib/object-storage";
 
 const imageFields = ["logo", "schoolIcon", "coverImage"] as const;
 
@@ -15,17 +14,6 @@ async function withSignedImages<T extends Record<string, unknown> | null>(school
     if (typeof value === "string" && value.startsWith("r2://")) result[field] = await signedR2Url(value);
   }
   return result;
-}
-
-async function uploadImage(file: FormDataEntryValue, key: string) {
-  if (!(file instanceof File) || !file.size) return "";
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("Only JPG, PNG, and WebP images are allowed");
-  const original = Buffer.from(await file.arrayBuffer());
-  const isCover = key === "coverImage";
-  const compressed = await sharp(original).rotate().resize({ width: isCover ? 1600 : 800, height: isCover ? 700 : 800, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 84, mozjpeg: true }).toBuffer();
-  const objectName = `school/${key}-${Date.now()}.jpg`;
-  await uploadToR2(objectName, compressed, "image/jpeg");
-  return `r2://${process.env.R2_BUCKET_NAME}/${objectName}`;
 }
 
 export async function GET() {
@@ -77,21 +65,6 @@ export async function PATCH(request: Request) {
         if (existing) return NextResponse.json({ error: "That administrator CNIC is already in use" }, { status: 409 });
       }
       administrator.cnic = value;
-    }
-    const hasImage = imageFields.some((field) => form.get(field) instanceof File);
-    if (hasImage && !r2Configured()) return NextResponse.json({ error: "Cloudflare R2 photo storage is not configured" }, { status: 500 });
-    for (const field of imageFields) {
-      if (form.get(`remove${field.charAt(0).toUpperCase()}${field.slice(1)}`) === "true") {
-        const previous = school[field];
-        school[field] = "";
-        if (previous?.startsWith("r2://")) await deleteFromR2(previous).catch((error) => console.warn(`Previous school ${field} cleanup failed:`, error));
-      }
-      const uploaded = await uploadImage(form.get(field)!, field);
-      if (uploaded) {
-        const previous = school[field];
-        school[field] = uploaded;
-        if (previous?.startsWith("r2://")) await deleteFromR2(previous).catch((error) => console.warn(`Previous school ${field} cleanup failed:`, error));
-      }
     }
     await school.save();
     await administrator.save();

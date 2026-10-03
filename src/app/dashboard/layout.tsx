@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/auth";
 import AppNav, { type NavItem } from "@/components/AppNav";
 import { connectToDatabase } from "@/lib/mongodb";
 import { SchoolConfiguration } from "@/Models";
-import { signedR2Url } from "@/lib/object-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -34,11 +33,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (session.user.role === "student") redirect("/student");
   await connectToDatabase();
   const school = session.user.school ? await SchoolConfiguration.findById(session.user.school).select("schoolName logo").lean() : null;
-  const schoolLogo = school?.logo?.startsWith("r2://") ? await signedR2Url(school.logo) : "";
 
   return (
     <div className="app-shell min-h-screen bg-slate-100 text-slate-900">
-      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} schoolLogo={schoolLogo} homeHref="/dashboard" />
+      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} schoolLogo="/logo.png" homeHref="/dashboard" />
       <div className="lg:pl-72 print:pl-0">{children}</div>
     </div>
   );

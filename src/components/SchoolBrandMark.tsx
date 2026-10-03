@@ -2,24 +2,38 @@
 
 import { useEffect, useState } from "react";
 
-type School = { schoolName?: string; schoolIcon?: string; logo?: string };
+type School = { schoolName?: string };
+
+let schoolRequest: Promise<School | null> | null = null;
 
 export default function SchoolBrandMark({ compact = false }: { compact?: boolean }) {
   const [school, setSchool] = useState<School>({});
 
   useEffect(() => {
-    fetch("/api/public/school", { cache: "no-store" })
+    try {
+      const cached = JSON.parse(localStorage.getItem("public-school-branding") || "{}");
+      if (cached.schoolName) setSchool(cached);
+    } catch {
+      // Ignore an unavailable or malformed browser cache and use the API.
+    }
+    schoolRequest ??= fetch("/api/public/school", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((result) => { if (result?.school) setSchool(result.school); })
+      .then((result) => result?.school ?? null);
+    schoolRequest
+      .then((result) => {
+        if (result?.schoolName) {
+          setSchool(result);
+          localStorage.setItem("public-school-branding", JSON.stringify(result));
+        }
+      })
       .catch((error) => console.error("Unable to load public school branding:", error));
   }, []);
 
   const name = school.schoolName || "Your School";
-  const image = school.schoolIcon || school.logo;
   return (
     <span className={`flex min-w-0 items-center gap-3 ${compact ? "text-sm" : ""}`}>
       <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-500 text-lg font-black text-white">
-        {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : name.charAt(0).toUpperCase()}
+        <img src="/logo.png" alt="" className="h-full w-full object-cover" />
       </span>
       <span className="truncate">{name}</span>
     </span>

@@ -1,30 +1,24 @@
 import Link from "next/link";
 import { connectToDatabase } from "@/lib/mongodb";
 import { SchoolConfiguration } from "@/Models";
-import { signedR2Url } from "@/lib/object-storage";
 import LandingNav from "@/components/LandingNav";
 
 export const dynamic = "force-dynamic";
 
 export default async function AboutUsPage() {
-  let school: { schoolName?: string; schoolDescription?: string; schoolAddress?: string; schoolPhone?: string; schoolEmail?: string; academicYear?: string; schoolIcon?: string } | null = null;
+  let school: { schoolName?: string; schoolDescription?: string; schoolAddress?: string; schoolPhone?: string; schoolEmail?: string; academicYear?: string } | null = null;
   try {
     await connectToDatabase();
-    school = await SchoolConfiguration.findOne().sort({ updatedAt: -1, createdAt: -1 }).select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear schoolIcon").lean();
+    school = await SchoolConfiguration.findOne().sort({ updatedAt: -1, createdAt: -1 }).select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear").lean();
   } catch {
     // The page can still explain the product before setup is complete.
   }
 
   const schoolName = school?.schoolName || "Your School";
   const description = school?.schoolDescription || "A connected school community built around clear communication, thoughtful teaching, and confident learning.";
-  let schoolIcon = "";
-  if (school?.schoolIcon?.startsWith("r2://")) {
-    try { schoolIcon = await signedR2Url(school.schoolIcon); } catch (error) { console.error("About page icon URL error:", error); }
-  }
-
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
-      <LandingNav schoolName={schoolName} schoolIcon={schoolIcon} />
+      <LandingNav schoolName={schoolName} />
       <section className="public-page mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-10 sm:pb-24 sm:pt-20">
         <div className="max-w-3xl"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400 sm:text-sm sm:tracking-[0.22em]">About our school</p><h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight sm:mt-5 sm:text-7xl">{schoolName}</h1><p className="mt-5 text-base leading-7 text-slate-400 sm:mt-7 sm:text-lg sm:leading-8">{description}</p></div>
         <div className="mt-10 grid gap-4 sm:mt-14 sm:grid-cols-3 sm:gap-5">

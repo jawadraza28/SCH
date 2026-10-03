@@ -18,9 +18,6 @@ export default function SetupPage() {
     schoolEmail: "",
     schoolDescription: "",
     monthlyFee: "",
-    logo: null as File | null,
-    schoolIcon: null as File | null,
-    coverImage: null as File | null,
   });
 
   const [adminData, setAdminData] = useState({
@@ -68,7 +65,7 @@ export default function SetupPage() {
     setLoading(true);
     try {
       const payload = new FormData();
-      Object.entries({ ...schoolData, ...adminData }).forEach(([key, value]) => { if (value instanceof File) payload.append(key, value); else if (value !== null) payload.append(key, String(value)); });
+      Object.entries({ ...schoolData, ...adminData }).forEach(([key, value]) => { if (value !== null) payload.append(key, String(value)); });
       const response = await fetch("/api/setup", {
         method: "POST",
         body: payload,
@@ -160,15 +157,6 @@ export default function SetupPage() {
                 placeholder="School Description"
                 className={fieldClass}
               />
-              <div className="grid gap-3 sm:grid-cols-3">
-                {(["logo", "schoolIcon", "coverImage"] as const).map((field) => (
-                  <label key={field} className="text-sm font-medium text-slate-300">
-                    {field === "schoolIcon" ? "School icon" : field === "coverImage" ? "Landing cover image" : "School logo"}
-                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setSchoolData((prev) => ({ ...prev, [field]: e.target.files?.[0] ?? null }))} className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-slate-300" />
-                  </label>
-                ))}
-              </div>
-
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-300">Monthly Fee (optional)</label>
                 <input
