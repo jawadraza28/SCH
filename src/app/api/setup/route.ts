@@ -78,9 +78,10 @@ export const POST = async (request: Request) => {
       );
     }
 
-    // A school may have been created by an earlier failed setup attempt.
-    // Reuse it when it has no administrator so setup can be safely retried.
-    let schoolConfig = await SchoolConfiguration.findOne({ schoolName: String(schoolName).trim() });
+    // Setup is a singleton installation. A previous failed attempt may have
+    // left a school record with an older name, so never create another
+    // configuration just because the submitted school name changed.
+    let schoolConfig = await SchoolConfiguration.findOne().sort({ createdAt: 1 });
     let createdSchool = false;
 
     if (!schoolConfig) {
