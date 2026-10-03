@@ -1065,6 +1065,24 @@ main .shadow-sm {
 .landing-feature-number { display: block; margin-bottom: 1.75rem; color: rgb(148 163 184 / 0.55); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em; }
 .public-card { border: 1px solid rgb(255 255 255 / 0.1); border-radius: 1rem; background: rgb(255 255 255 / 0.06); padding: 1.25rem; }
 .public-detail { border-radius: 1rem; background: rgb(255 255 255 / 0.035); padding: 1.25rem; }
+.landing-mobile-menu {
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(15 23 42 / 0.98);
+}
+.landing-mobile-link {
+  color: #e2e8f0;
+}
+.landing-mobile-link:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+}
+.landing-mobile-signin {
+  background: #fff;
+  color: #0f172a;
+}
+.landing-mobile-signin:hover {
+  background: #eff6ff;
+}
 @media (min-width: 640px) { .public-card, .public-detail { padding: 1.5rem; } }
 @media (max-width: 640px) { .book-scene { min-height: 16rem; } .book { transform: rotateX(62deg) rotateZ(-18deg) scale(0.75); } .book-two { transform: rotateX(62deg) rotateZ(-18deg) scale(0.66); } .book-three { transform: rotateX(62deg) rotateZ(-18deg) scale(0.56); } .scene-orbit { left: 8%; transform: rotateX(68deg) rotateZ(-18deg) scale(0.72); } .scene-orbit-two { left: 20%; transform: rotateX(68deg) rotateZ(42deg) scale(0.72); } .scene-pencil { right: 5%; top: 14%; scale: 0.8; } }
 @media (max-width: 640px) {

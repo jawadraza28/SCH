@@ -41,10 +41,10 @@ export default function LandingNav({ schoolName, schoolIcon }: Props) {
         </button>
       </div>
       {open && (
-        <div id="landing-mobile-menu" className="mt-3 rounded-2xl border border-white/10 bg-slate-900/95 p-2 shadow-2xl backdrop-blur sm:hidden">
-          <Link href="/about-us" onClick={() => setOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-medium text-slate-200 hover:bg-white/10">About us</Link>
-          <Link href="/contact" onClick={() => setOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-medium text-slate-200 hover:bg-white/10">Contact</Link>
-          <Link href="/login" onClick={() => setOpen(false)} className="mt-1 block rounded-xl bg-white px-4 py-3 text-center text-sm font-semibold text-slate-900 hover:bg-blue-50">Sign in</Link>
+        <div id="landing-mobile-menu" className="landing-mobile-menu mt-3 rounded-2xl p-2 shadow-2xl backdrop-blur sm:hidden">
+          <Link href="/about-us" onClick={() => setOpen(false)} className="landing-mobile-link block rounded-xl px-4 py-3 text-sm font-medium">About us</Link>
+          <Link href="/contact" onClick={() => setOpen(false)} className="landing-mobile-link block rounded-xl px-4 py-3 text-sm font-medium">Contact</Link>
+          <Link href="/login" onClick={() => setOpen(false)} className="landing-mobile-signin mt-1 block rounded-xl px-4 py-3 text-center text-sm font-semibold">Sign in</Link>
         </div>
       )}
     </nav>
