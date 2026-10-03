@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Teacher } from "@/Models";
-import { cloudinaryConfigured, deleteCloudinaryPhoto, uploadProfilePhoto } from "@/lib/cloudinary";
+import { cloudinaryConfigured, cloudinaryMissingVariables, deleteCloudinaryPhoto, uploadProfilePhoto } from "@/lib/cloudinary";
 
 async function teacherSession() {
   const session = await getCurrentUser();
@@ -21,7 +21,10 @@ export async function POST(request: Request) {
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return NextResponse.json({ error: "Only JPG, PNG, and WebP images are allowed" }, { status: 400 });
     const maxUploadMb = Math.max(1, Number(process.env.TEACHER_PHOTO_MAX_UPLOAD_MB ?? process.env.STUDENT_PHOTO_MAX_UPLOAD_MB ?? 5));
     if (file.size > maxUploadMb * 1024 * 1024) return NextResponse.json({ error: `Photo must be ${maxUploadMb} MB or smaller` }, { status: 400 });
-    if (!cloudinaryConfigured()) return NextResponse.json({ error: "Cloudinary photo storage is not configured" }, { status: 500 });
+    if (!cloudinaryConfigured()) {
+      console.error("Teacher photo upload blocked: missing Cloudinary variables", cloudinaryMissingVariables());
+      return NextResponse.json({ error: "Photo storage is not configured on the server. Add the Cloudinary environment variables in Vercel, then redeploy." }, { status: 503 });
+    }
 
     const original = Buffer.from(await file.arrayBuffer());
     const compressed = await sharp(original).rotate().resize({ width: 800, height: 800, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();

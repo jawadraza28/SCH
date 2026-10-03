@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher } from "@/Models";
-import { cloudinaryConfigured, deleteCloudinaryPhoto, uploadProfilePhoto } from "@/lib/cloudinary";
+import { cloudinaryConfigured, cloudinaryMissingVariables, deleteCloudinaryPhoto, uploadProfilePhoto } from "@/lib/cloudinary";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await getCurrentUser();
@@ -26,7 +26,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!allowed.has(file.type)) return NextResponse.json({ error: "Only JPG, PNG, and WebP images are allowed" }, { status: 400 });
     const maxUploadMb = Math.max(1, Number(process.env.STUDENT_PHOTO_MAX_UPLOAD_MB ?? 5));
     if (file.size > maxUploadMb * 1024 * 1024) return NextResponse.json({ error: `Photo must be ${maxUploadMb} MB or smaller` }, { status: 400 });
-    if (!cloudinaryConfigured()) return NextResponse.json({ error: "Cloudinary photo storage is not configured" }, { status: 500 });
+    if (!cloudinaryConfigured()) {
+      console.error("Student photo upload blocked: missing Cloudinary variables", cloudinaryMissingVariables());
+      return NextResponse.json({ error: "Photo storage is not configured on the server. Add the Cloudinary environment variables in Vercel, then redeploy." }, { status: 503 });
+    }
     const original = Buffer.from(await file.arrayBuffer());
     let quality = 82;
     let compressed = await sharp(original).rotate().resize({ width: 800, height: 800, fit: "inside", withoutEnlargement: true }).jpeg({ quality, mozjpeg: true }).toBuffer();
@@ -46,7 +49,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     if (previousPublicId) await deleteCloudinaryPhoto(previousPublicId).catch((error) => console.warn("Previous student photo cleanup failed:", error));
     return NextResponse.json({ success: true, photo: student.profilePhotoUrl });
-  } catch (error) { console.error("Student photo upload error:", error); return NextResponse.json({ error: "Unable to upload student photo", detail: process.env.NODE_ENV === "development" && error instanceof Error ? error.message : undefined }, { status: 500 }); }
+  } catch (error) {
+    console.error("Student photo upload error:", error);
+    const detail = error instanceof Error ? error.message : "Unknown upload error";
+    return NextResponse.json({ error: "Unable to upload student photo. Check the Cloudinary credentials and Vercel function logs.", detail: process.env.NODE_ENV === "development" ? detail : undefined }, { status: 500 });
+  }
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
