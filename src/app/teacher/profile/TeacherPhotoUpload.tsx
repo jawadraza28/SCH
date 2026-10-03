@@ -23,7 +23,7 @@ export default function TeacherPhotoUpload({ initials, hasPhoto }: Props) {
     try {
       const response = await fetch("/api/teachers/me/photo", { method: "POST", body: formData });
       const result = await response.json();
-      if (response.ok) { setMessage("Photo saved"); setPreviewUrl(`/api/teachers/me/photo?updated=${Date.now()}`); } else setMessage(result.error ?? "Upload failed");
+      if (response.ok) { setMessage("Photo saved"); setPreviewUrl(`/api/teachers/me/photo?updated=${Date.now()}`); } else setMessage(result.detail ? `${result.error ?? "Upload failed"} (${result.detail})` : result.error ?? "Upload failed");
     } catch { setMessage("Upload failed"); } finally { setUploading(false); URL.revokeObjectURL(localPreview); event.target.value = ""; }
   }
 

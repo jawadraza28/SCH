@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher } from "@/Models";
-import { cloudinaryConfigured, cloudinaryMissingVariables, deleteCloudinaryPhoto, uploadProfilePhoto } from "@/lib/cloudinary";
+import { cloudinaryConfigured, cloudinaryError, cloudinaryMissingVariables, deleteCloudinaryPhoto, uploadProfilePhoto } from "@/lib/cloudinary";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await getCurrentUser();
@@ -37,7 +37,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       quality -= 5;
       compressed = await sharp(original).rotate().resize({ width: 800, height: 800, fit: "inside", withoutEnlargement: true }).jpeg({ quality, mozjpeg: true }).toBuffer();
     }
-    const uploaded = await uploadProfilePhoto(compressed, `school/students/${String(student._id)}`);
+    let uploaded;
+    try {
+      uploaded = await uploadProfilePhoto(compressed, `school/students/${String(student._id)}`);
+    } catch (error) {
+      const cloudinary = cloudinaryError(error);
+      console.error("Cloudinary student upload rejected:", cloudinary);
+      return NextResponse.json({ error: "Cloudinary rejected this photo upload.", code: cloudinary.code, detail: cloudinary.message }, { status: cloudinary.status && cloudinary.status >= 400 && cloudinary.status < 600 ? cloudinary.status : 502 });
+    }
     const previousPublicId = student.profilePhotoPublicId;
     student.profilePhotoUrl = uploaded.secure_url;
     student.profilePhotoPublicId = uploaded.public_id;

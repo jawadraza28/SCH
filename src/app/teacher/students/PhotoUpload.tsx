@@ -21,7 +21,7 @@ export default function PhotoUpload({ studentId }: { studentId: string }) {
     try {
       const response = await fetch(`/api/students/${studentId}/photo`, { method: "POST", body: formData });
       const result = await response.json();
-      if (response.ok) { setMessage("Uploaded"); setPreviewUrl(`/api/students/${studentId}/photo?updated=${Date.now()}`); } else setMessage(result.error ?? "Upload failed");
+      if (response.ok) { setMessage("Uploaded"); setPreviewUrl(`/api/students/${studentId}/photo?updated=${Date.now()}`); } else setMessage(result.detail ? `${result.error ?? "Upload failed"} (${result.detail})` : result.error ?? "Upload failed");
     } catch { setMessage("Upload failed"); } finally { setUploading(false); URL.revokeObjectURL(localPreview); event.target.value = ""; }
   }
 

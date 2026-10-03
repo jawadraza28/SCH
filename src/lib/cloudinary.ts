@@ -14,6 +14,24 @@ export function cloudinaryMissingVariables() {
   return ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"].filter((name) => !process.env[name]);
 }
 
+export function cloudinaryError(error: unknown) {
+  const candidate = error as { message?: unknown; http_code?: unknown; name?: unknown; code?: unknown };
+  const message = typeof candidate?.message === "string" ? candidate.message : "Cloudinary rejected the image upload";
+  const status = typeof candidate?.http_code === "number" ? candidate.http_code : undefined;
+  const code = typeof candidate?.code === "string" ? candidate.code : typeof candidate?.name === "string" ? candidate.name : "CLOUDINARY_UPLOAD_FAILED";
+  return { message, status, code };
+}
+
+export async function verifyCloudinary() {
+  if (!cloudinaryConfigured()) return { ok: false as const, missing: cloudinaryMissingVariables() };
+  try {
+    await cloudinary.api.ping();
+    return { ok: true as const };
+  } catch (error) {
+    return { ok: false as const, error: cloudinaryError(error) };
+  }
+}
+
 export async function uploadProfilePhoto(buffer: Buffer, folder: string) {
   return new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
