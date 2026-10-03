@@ -32,6 +32,12 @@ export async function GET(request: Request) {
     }
     // Paginated callers pass ?page=; legacy callers keep the previous row cap.
     const params = new URL(request.url).searchParams;
+    const requestedStudent = params.get("studentId")?.trim();
+    if (requestedStudent) {
+      const allowed = await Student.exists({ _id: requestedStudent, ...(access.user.role === "teacher" ? query : {}) });
+      if (!allowed) return NextResponse.json({ error: "You are not allowed to view this student's results" }, { status: 403 });
+      query = { student: requestedStudent };
+    }
     const paginated = params.has("page");
     const limit = paginated ? parsePageSize(params.get("limit"), 20) : 200;
     const total = await Result.countDocuments(query);
