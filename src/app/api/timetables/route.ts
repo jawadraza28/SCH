@@ -31,7 +31,10 @@ export async function GET(request: Request) {
     }
     if (!scope || !target || !["class", "teacher"].includes(scope)) return NextResponse.json({ error: "Timetable scope and target are required" }, { status: 400 });
     const timetable = await Timetable.findOne({ scope, target, academicYear }).lean();
-    return NextResponse.json({ timetable: timetable ?? { scope, target, academicYear, classSection: "", entries: [] } });
+    const teachers = scope === "class"
+      ? await Teacher.find({ accountStatus: { $in: ["active", "pending"] } }).select("_id name").sort({ name: 1 }).lean()
+      : [];
+    return NextResponse.json({ timetable: timetable ?? { scope, target, academicYear, classSection: "", entries: [] }, teachers });
   } catch (error) {
     console.error("Timetable load error:", error);
     return NextResponse.json({ error: "Unable to load timetable" }, { status: 500 });
@@ -62,18 +65,18 @@ export async function POST(request: Request) {
       }
     } else {
       if (result.user.role === "teacher") {
-        const teacher = await Teacher.findOne({ cnic: result.user.cnic }).select("_id").lean();
-        if (String(teacher?._id) !== target) return NextResponse.json({ error: "You can only edit your own timetable" }, { status: 403 });
-      } else if (!await Teacher.exists({ _id: target })) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+        return NextResponse.json({ error: "Only administrators can edit teacher timetables" }, { status: 403 });
+      }
+      if (!await Teacher.exists({ _id: target })) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
     }
     const normalized = entries.map((entry: Record<string, unknown>) => ({
       day: String(entry.day ?? "").toLowerCase(),
       period: Number(entry.period),
       subject: String(entry.subject ?? "").trim(),
-      room: String(entry.room ?? "").trim(),
+      room: "",
       teacher: String(entry.teacher ?? "").trim(),
       classSection: String(entry.classSection ?? "").trim().toUpperCase(),
-    })).filter((entry: { day: string; period: number; subject: string }) => days.has(entry.day) && Number.isInteger(entry.period) && entry.period > 0 && entry.period <= 12 && entry.subject);
+    })).filter((entry: { day: string; period: number; subject: string }) => days.has(entry.day) && Number.isInteger(entry.period) && entry.period > 0 && entry.period <= 8 && entry.subject);
     const occupied = new Set<string>();
     for (const entry of normalized) {
       const key = `${entry.day}:${entry.period}`;
