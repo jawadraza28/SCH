@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,12 +52,28 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-[100dvh] flex-col bg-slate-950 px-4 py-5 text-slate-100 sm:px-6 lg:px-8">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-1 py-2 sm:px-2">
-        <Link href="/" className="text-white"><SchoolBrandMark compact /></Link>
-        <div className="flex items-center gap-1 sm:gap-2"><Link prefetch href="/" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Home</Link><Link prefetch href="/about-us" className="hidden rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white sm:block">About us</Link><Link prefetch href="/contact" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Contact</Link></div>
+      <nav className="relative z-30 py-2">
+        <div className="flex w-full items-center justify-between gap-4">
+          <Link href="/" prefetch className="flex min-w-0 items-center text-white"><SchoolBrandMark compact /></Link>
+          <div className="hidden items-center gap-1 sm:flex sm:gap-2"><Link prefetch href="/" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Home</Link><Link prefetch href="/about-us" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">About us</Link><Link prefetch href="/contact" className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white">Contact</Link></div>
+          <button type="button" onClick={() => setMenuOpen((current) => !current)} aria-expanded={menuOpen} aria-controls="login-mobile-menu" aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/15 text-slate-100 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 sm:hidden">
+            {menuOpen ? (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+            )}
+          </button>
+        </div>
+        {menuOpen && (
+          <div id="login-mobile-menu" className="landing-mobile-menu absolute inset-x-0 top-full mt-2 rounded-2xl p-2 shadow-2xl backdrop-blur sm:hidden">
+            <Link prefetch href="/" onClick={() => setMenuOpen(false)} className="landing-mobile-link block rounded-xl px-4 py-3 text-sm font-medium">Home</Link>
+            <Link prefetch href="/about-us" onClick={() => setMenuOpen(false)} className="landing-mobile-link block rounded-xl px-4 py-3 text-sm font-medium">About us</Link>
+            <Link prefetch href="/contact" onClick={() => setMenuOpen(false)} className="landing-mobile-link block rounded-xl px-4 py-3 text-sm font-medium">Contact</Link>
+          </div>
+        )}
       </nav>
       <div className="mx-auto grid w-full flex-1 max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="relative hidden overflow-hidden bg-blue-700 p-12 lg:flex lg:flex-col lg:justify-between">
+        <section className="relative hidden min-w-0 overflow-hidden bg-blue-700 p-12 lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
           <div className="relative">
             <div className="mb-10 text-blue-100"><SchoolBrandMark compact /></div>
@@ -67,11 +84,8 @@ export default function LoginPage() {
           <p className="relative text-sm text-blue-200">Secure, focused, and ready for your school.</p>
         </section>
 
-        <section className="flex items-center justify-center p-6 sm:p-12">
+        <section className="flex min-w-0 items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-md">
-            <div className="mb-8 lg:hidden">
-              <div className="text-blue-300"><SchoolBrandMark compact /></div>
-            </div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">Welcome back</p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Sign in to your school</h2>
             <p className="mt-2 text-slate-400">Choose your account type to continue.</p>

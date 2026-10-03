@@ -35,7 +35,7 @@ export default function SchoolBrandMark({ compact = false }: { compact?: boolean
       <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-500 text-lg font-black text-white">
         <img src="/logo.png" alt="" className="h-full w-full object-cover" />
       </span>
-      <span className="truncate">{name}</span>
+      <span className="min-w-0 truncate">{name}</span>
     </span>
   );
 }
