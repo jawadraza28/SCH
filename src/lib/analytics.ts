@@ -226,15 +226,23 @@ function rangeStart(range: TrendRange, end: Date) {
   return start;
 }
 
-/** Advances one bucket and returns its stable string key. */
-function stepRange(range: TrendRange, cursor: Date) {
-  if (range === "monthly") cursor.setUTCMonth(cursor.getUTCMonth() + 1);
-  else if (range === "yearly") cursor.setUTCFullYear(cursor.getUTCFullYear() + 1);
-  else cursor.setUTCDate(cursor.getUTCDate() + (range === "weekly" ? 7 : 1));
-
+/** The stable string key for the bucket a cursor currently points at. */
+function bucketKey(range: TrendRange, cursor: Date) {
   if (range === "monthly") return cursor.toISOString().slice(0, 7);
   if (range === "yearly") return String(cursor.getUTCFullYear());
   return cursor.toISOString().slice(0, 10);
+}
+
+/**
+ * Moves the cursor on by exactly one bucket. Kept separate from `bucketKey` on
+ * purpose: advancing and labelling in one step shifts every bucket forward by
+ * one, which quietly puts tomorrow in the daily range and a future month in the
+ * monthly one.
+ */
+function advanceCursor(range: TrendRange, cursor: Date) {
+  if (range === "monthly") cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  else if (range === "yearly") cursor.setUTCFullYear(cursor.getUTCFullYear() + 1);
+  else cursor.setUTCDate(cursor.getUTCDate() + (range === "weekly" ? 7 : 1));
 }
 
 /** Axis label for a bucket. */
@@ -268,6 +276,32 @@ function trendKeyExpression(range: TrendRange) {
 }
 
 /**
+ * The window a range covers: from the first bucket's start to the end of the
+ * anchor. Exposed so callers can run their own queries over the same period.
+ */
+export function attendanceWindow(range: TrendRange, anchor = "", now: Date = new Date()) {
+  const end = anchorEnd(anchor, now);
+  const start = rangeStart(range, end);
+  return { start, end };
+}
+
+/**
+ * The bucket keys a range covers, oldest first. Pure, so the calendar maths can
+ * be checked without a database — and so `attendanceSeries` and any caller
+ * building its own query agree on exactly the same buckets.
+ */
+export function attendanceBucketKeys(range: TrendRange, anchor = "", now: Date = new Date()): string[] {
+  const { end } = attendanceWindow(range, anchor, now);
+  const cursor = rangeStart(range, end);
+  const keys: string[] = [];
+  for (let step = 0; step < TREND_STEPS[range]; step += 1) {
+    keys.push(bucketKey(range, cursor));
+    advanceCursor(range, cursor);
+  }
+  return keys;
+}
+
+/**
  * Attendance bucketed by day, week, month or year, ending at `anchor`
  * (`YYYY-MM`) or today when no anchor is given. Empty buckets are filled with
  * zeros so the line stays continuous.
@@ -280,9 +314,7 @@ export async function attendanceSeries(
   anchor = "",
   now: Date = new Date(),
 ): Promise<DailyPoint[]> {
-  const end = anchorEnd(anchor, now);
-  const start = rangeStart(range, end);
-  const steps = TREND_STEPS[range];
+  const { start, end } = attendanceWindow(range, anchor, now);
 
   const rows = await Attendance.aggregate<Partial<StatusCounts> & { _id: { key: string } }>([
     { $match: { date: { $gte: start, $lt: new Date(end.getTime() + 86_400_000) } } },
@@ -298,8 +330,8 @@ export async function attendanceSeries(
   const points: DailyPoint[] = [];
   const cursor = new Date(start);
 
-  for (let step = 0; step < steps; step += 1) {
-    const key = stepRange(range, cursor);
+  for (let step = 0; step < TREND_STEPS[range]; step += 1) {
+    const key = bucketKey(range, cursor);
     const counts = countsFromRow(byKey.get(key) ?? {});
     points.push({
       key,
@@ -309,6 +341,7 @@ export async function attendanceSeries(
       marked: markedTotal(counts),
       rate: attendanceRate(counts),
     });
+    advanceCursor(range, cursor);
   }
   return points;
 }
@@ -641,8 +674,8 @@ function bucketPlan(bucket: FinanceBucket, now: Date) {
   return { start, steps };
 }
 
-/** The string key a given cursor date produces for a bucket. */
-function bucketKey(bucket: FinanceBucket, cursor: Date) {
+/** The string key a given cursor date produces for a finance bucket. */
+function financeBucketKey(bucket: FinanceBucket, cursor: Date) {
   if (bucket === "yearly") return String(cursor.getUTCFullYear());
   if (bucket === "monthly") return cursor.toISOString().slice(0, 7);
   return cursor.toISOString().slice(0, 10);
@@ -676,7 +709,7 @@ export async function financeTrend(bucket: FinanceBucket, now: Date = new Date()
     else if (bucket === "yearly") cursor.setUTCFullYear(cursor.getUTCFullYear() + step);
     else cursor.setUTCDate(cursor.getUTCDate() + step);
 
-    const key = bucketKey(bucket, cursor);
+    const key = financeBucketKey(bucket, cursor);
     const income = byKey.get(`${key}|income`) ?? 0;
     const expense = byKey.get(`${key}|expense`) ?? 0;
     points.push({

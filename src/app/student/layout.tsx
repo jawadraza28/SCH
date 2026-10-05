@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 const navigation: NavItem[] = [
   { label: "Overview", href: "/student", exact: true },
   { label: "My profile", href: "/student/profile", exact: true },
+  { label: "Performance", href: "/student/performance", exact: true },
   { label: "Attendance", href: "/student/attendance", exact: true },
   { label: "Class timetable", href: "/student/timetable", exact: true },
   { label: "Homework", href: "/student/homework", exact: true },

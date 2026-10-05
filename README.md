@@ -62,6 +62,14 @@ Vercel Cron calls attendance cleanup daily, fee generation monthly, and finance 
 
 The ledger is not typed in twice. Marking a student fee **paid** writes one income row carrying that class and date; marking a teacher salary **paid** writes one expense row. Reversing either deletes its row, so the totals always match the fees and salary screens. Only manually added rows can be deleted directly.
 
+In the expense list, a row written by a salary payment is labelled **Salary paid** and a row written by a fee is labelled **Fee paid**, so it is obvious at a glance which records came from which screen. A **Manage salaries** button on that tab jumps straight to the salary tab, and the salaries tab's month-by-month payroll table links each month into the expense list already filtered to it.
+
+The income and expense tabs both take a **Month** filter (the last twelve months) alongside the category, class, source and date-range filters. A month selection always wins over the from/to boxes, so the two controls can never disagree.
+
+### Analytics
+
+The attendance trend chart on `/dashboard/analytics` has a **Daily / Weekly / Monthly / Yearly** toggle and a **month picker**. Both are plain links (`?range=&month=`), so the chart stays server-rendered and the selection is shareable. Every range ends at the selected month — choose March and each range reads "up to and including March" — and weekly buckets are Monday-keyed. The calendar maths lives in `attendanceBucketKeys` (`src/lib/analytics.ts`), which is pure and therefore testable without a database.
+
 Each class section can carry its own monthly fee (`ClassSection.fee`); a fee of `0` falls back to the school-wide fee in school settings, so existing schools are unaffected. Each teacher carries a monthly `salary`.
 
 Finance rows and salary records are kept for **one rolling year**. `/api/maintenance/finance` opens each month by creating unpaid salary rows for the whole staff, then deletes anything older than a year. It also runs opportunistically when the finance or salary screens are opened, so no cron configuration is required.
