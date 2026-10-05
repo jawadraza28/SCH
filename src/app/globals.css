@@ -1437,6 +1437,96 @@ main .shadow-sm {
   }
 }
 
+/* --- Analytics charts (src/components/charts/*) --------------------------
+   The charts are hand-built SVG, so their colors cannot be Tailwind text
+   utilities. Every series/grid/ink color is a token defined once here and
+   overridden for Midnight, which keeps the admin analytics identical across
+   all seven themes and keeps the JSX free of theme checks. */
+:root {
+  /* categorical ramp — used for multi-series bars */
+  --chart-1: #3b82f6;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #ec4899;
+  --chart-6: #06b6d4;
+  /* attendance statuses — shared by donuts, legends and tooltips */
+  --chart-present: #10b981;
+  --chart-late: #f59e0b;
+  --chart-absent: #f43f5e;
+  --chart-leave: #8b5cf6;
+  --chart-holiday: #94a3b8;
+  --chart-unmarked: #cbd5e1;
+  /* surfaces */
+  --chart-grid: rgb(226 232 240);
+  --chart-axis: #64748b;
+  --chart-ink: #0f172a;
+  --chart-muted: #e2e8f0;
+  --chart-tooltip: rgb(15 23 42 / 0.94);
+}
+
+/* Midnight: lighter series so they hold up on the dark card surface, and a
+   dimmer grid so the plot area does not out-shine the data. */
+[data-theme="midnight"] {
+  --chart-1: #60a5fa;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #f472b6;
+  --chart-6: #22d3ee;
+  --chart-present: #34d399;
+  --chart-late: #fbbf24;
+  --chart-absent: #fb7185;
+  --chart-leave: #a78bfa;
+  --chart-holiday: #94a3b8;
+  --chart-unmarked: #64748b;
+  --chart-grid: rgb(51 65 85);
+  --chart-axis: #94a3b8;
+  --chart-ink: #f1f5f9;
+  --chart-muted: #334155;
+  --chart-tooltip: rgb(2 6 23 / 0.94);
+}
+
+/* Slices and bars grow in on mount so the panel feels alive. Width/height are
+   animated through the SVG geometry attributes, which keeps the animation
+   compositor-friendly and lets us honour reduced-motion below. */
+.chart-arc,
+.chart-bar {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.chart-enter {
+  animation: chart-enter 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes chart-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-enter {
+    animation: none;
+  }
+  .chart-arc,
+  .chart-bar {
+    transition: none;
+  }
+}
+
+@media print {
+  .chart-enter {
+    animation: none;
+  }
+}
+
 /* --- Mobile tab bar (AppNav bottomItems) ---------------------------------
    The global theme toggle must clear the fixed tab bar so it never overlaps. */
 body:has(.app-bottom-nav) .theme-fab {
