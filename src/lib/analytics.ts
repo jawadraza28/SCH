@@ -90,6 +90,8 @@ function countsFromRow(row: Partial<StatusCounts>): StatusCounts {
 /** Sum of every status that came from a save (i.e. excludes `unmarked`). */
 function markedTotal(counts: StatusCounts) {
   return MARKED_STATUSES.reduce((sum, status) => sum + counts[status], 0);
+}
+
 /**
  * Today's student register split. `unmarked` is the roster minus everyone with
  * a record today — the slice a pie chart of saved statuses alone would hide,
