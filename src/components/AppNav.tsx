@@ -73,7 +73,7 @@ const linkClass = (active: boolean, fill = false) =>
   }`;
 
 function NavIcon({ label }: { label: string }) {
-  const glyph = label.toLowerCase().includes("student") ? "M4 6h16v12H4zM8 10h8M8 14h5" : label.toLowerCase().includes("teacher") ? "M12 4l8 4-8 4-8-4 8-4Zm-5 7v4c3 2 7 2 10 0v-4" : label.toLowerCase().includes("attendance") ? "M7 3v4M17 3v4M4 9h16M6 13l2 2 4-4" : label.toLowerCase().includes("fee") ? "M6 4h12v16H6zM9 8h6M9 12h6M9 16h4" : label.toLowerCase().includes("setting") ? "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" : label.toLowerCase().includes("notice") ? "M5 5h14v14H5zM8 9h8M8 13h6" : label.toLowerCase().includes("class") ? "M4 5h16v14H4zM8 9h8M8 13h5" : "M4 12h16M12 4v16";
+  const glyph = label.toLowerCase().includes("analytic") ? "M4 19V9M9 19V5M14 19v-6M19 19v-9" : label.toLowerCase().includes("student") ? "M4 6h16v12H4zM8 10h8M8 14h5" : label.toLowerCase().includes("teacher") ? "M12 4l8 4-8 4-8-4 8-4Zm-5 7v4c3 2 7 2 10 0v-4" : label.toLowerCase().includes("attendance") ? "M7 3v4M17 3v4M4 9h16M6 13l2 2 4-4" : label.toLowerCase().includes("fee") ? "M6 4h12v16H6zM9 8h6M9 12h6M9 16h4" : label.toLowerCase().includes("setting") ? "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" : label.toLowerCase().includes("notice") ? "M5 5h14v14H5zM8 9h8M8 13h6" : label.toLowerCase().includes("class") ? "M4 5h16v14H4zM8 9h8M8 13h5" : "M4 12h16M12 4v16";
   return <svg viewBox="0 0 24 24" className="mr-3 h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={glyph} /></svg>;
 }
 

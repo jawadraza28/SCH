@@ -3,6 +3,15 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Attendance, ClassSection, Fee, Notice, Student, Teacher, TeacherAttendance } from "@/Models";
+import { attendanceRate, todayStudentAttendance } from "@/lib/analytics";
+import {
+  STATUS_COLOR,
+  STATUS_LABEL,
+  STATUS_ORDER,
+  STATUS_TEXT_CLASS,
+  formatCount,
+} from "@/components/charts/palette";
+import DonutChart from "@/components/charts/DonutChart";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +58,7 @@ async function DashboardContent() {
   const todayKey = `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, "0")}-${String(startOfDay.getDate()).padStart(2, "0")}`;
   const todayLabel = startOfDay.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees, teacherPresentToday, teacherAbsentToday, notices] = await Promise.all([
+  const [studentCount, teacherCount, classCount, presentToday, absentToday, pendingCount, unpaidFees, teacherPresentToday, teacherAbsentToday, notices, registerToday] = await Promise.all([
     Student.countDocuments(),
     Teacher.countDocuments(),
     ClassSection.countDocuments({ isActive: true }),
@@ -60,6 +69,7 @@ async function DashboardContent() {
     TeacherAttendance.countDocuments({ date: { $gte: startOfDay, $lt: endOfDay }, status: "present" }),
     TeacherAttendance.countDocuments({ date: { $gte: startOfDay, $lt: endOfDay }, status: "absent" }),
     Notice.find({ published: true, $or: [{ expiryDate: { $exists: false } }, { expiryDate: null }, { expiryDate: { $gte: new Date() } }] }).sort({ publishDate: -1 }).limit(4).select("title description type publishDate").lean(),
+    todayStudentAttendance(new Date()),
   ]);
 
   const cards: StatCard[] = [
@@ -73,6 +83,10 @@ async function DashboardContent() {
     { label: "Teachers present", value: teacherPresentToday, hint: `Teachers marked present on ${todayKey}`, href: `/dashboard/teacher-attendance?date=${todayKey}&status=present`, accent: "bg-emerald-50 text-emerald-600", icon: "present" },
     { label: "Teachers absent", value: teacherAbsentToday, hint: `Teachers marked absent on ${todayKey}`, href: `/dashboard/teacher-attendance?date=${todayKey}&status=absent`, accent: "bg-rose-50 text-rose-600", icon: "absent" },
   ];
+
+  // The donut reuses the same aggregate that filled the cards above, so the
+  // ring always adds up to the numbers printed on the cards.
+  const registerRate = attendanceRate(registerToday.counts);
 
   return (
     <div className="app-page bg-slate-100 text-slate-900">
@@ -126,6 +140,40 @@ async function DashboardContent() {
               <span className="qa-card__hint">Share a school update</span>
             </Link>
           </div>
+
+          {/* Today's register as a circle chart — the same numbers as the
+              "Present / Absent today" cards above, split by every status. */}
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Today at a glance</p>
+                <h3 className="mt-1 font-semibold">Student attendance circle</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {formatCount(registerToday.marked)} of {formatCount(registerToday.roster)} students marked · {registerRate}% attendance
+                </p>
+              </div>
+              <Link href="/dashboard/analytics" className="text-sm font-semibold text-blue-600 hover:underline">See all analytics →</Link>
+            </div>
+            {registerToday.roster === 0 ? (
+              <p className="mt-6 rounded-xl bg-slate-50 p-5 text-sm text-slate-500">
+                No students on the roster yet. Add students to see today&apos;s attendance circle.
+              </p>
+            ) : (
+              <div className="mt-6">
+                <DonutChart
+                  slices={STATUS_ORDER.map((status) => ({
+                    label: STATUS_LABEL[status],
+                    value: registerToday.counts[status],
+                    color: STATUS_COLOR[status],
+                    textClass: STATUS_TEXT_CLASS[status],
+                  }))}
+                  centerLabel="Students"
+                  centerHint={`${registerRate}% attended`}
+                  size={210}
+                />
+              </div>
+            )}
+          </section>
 
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">

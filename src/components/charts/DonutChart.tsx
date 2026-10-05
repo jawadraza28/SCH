@@ -52,14 +52,23 @@ export default function DonutChart({
   // slice never disappears entirely.
   const gap = 2;
 
-  let offset = 0;
-  const arcs = slices.map((slice, index) => {
+  // Arc geometry as pure maps: each slice's dash starts where the previous one
+  // ended. Slices are few (one per status), so the prefix sum is cheap.
+  const lengths = slices.map((slice) => {
     const value = Math.max(0, slice.value);
-    const length = total ? (value / total) * circumference : 0;
-    const visible = value > 0 ? Math.max(length - (length > gap * 2 ? gap : 0), 0.5) : 0;
-    const arc = { index, value, dash: `${visible} ${circumference - visible}`, shift: -offset, color: slice.color };
-    offset += length;
-    return arc;
+    return total ? (value / total) * circumference : 0;
+  });
+  const arcs = slices.map((slice, index) => {
+    const length = lengths[index];
+    const visible = length > 0 ? Math.max(length - (length > gap * 2 ? gap : 0), 0.5) : 0;
+    const offset = lengths.slice(0, index).reduce((sum, entry) => sum + entry, 0);
+    return {
+      index,
+      value: Math.max(0, slice.value),
+      dash: `${visible} ${circumference - visible}`,
+      shift: -offset,
+      color: slice.color,
+    };
   });
 
   const hovered = active === null ? null : slices[active];

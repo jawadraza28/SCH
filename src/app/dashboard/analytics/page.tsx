@@ -105,3 +105,243 @@ export default async function AnalyticsPage() {
     (best, row) => (row.marked > 0 && (!best || row.rate > best.rate) ? row : best),
     null,
   );
+
+  return (
+    <div className="app-page bg-slate-100 text-slate-900">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+        <header className="dashboard-overview-hero relative overflow-hidden rounded-3xl bg-blue-700 p-6 text-white shadow-lg shadow-blue-900/10 sm:p-9">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200 sm:text-sm">{todayLabel}</p>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">School analytics</h1>
+          <p className="mt-2 max-w-2xl text-sm text-blue-100 sm:text-base">
+            Today&apos;s registers, the last {TREND_DAYS} days of attendance, and a {CLASS_WINDOW_DAYS}-day comparison across every class.
+          </p>
+        </header>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <SnapshotTile
+            label="Active students"
+            value={formatCount(snapshot.activeStudents)}
+            hint={`${formatCount(snapshot.pendingRequests)} request(s) awaiting approval`}
+            href="/dashboard/students"
+            accent="bg-blue-500"
+          />
+          <SnapshotTile
+            label="Attendance today"
+            value={`${studentRate}%`}
+            hint={`${formatCount(studentsIn)} of ${formatCount(studentsToday.roster)} students in`}
+            href="/dashboard/attendance"
+            accent="bg-emerald-500"
+          />
+          <SnapshotTile
+            label="Fees outstanding"
+            value={formatMoney(outstanding)}
+            hint={`${formatMoney(collected)} collected in 12 months`}
+            href="/dashboard/fees"
+            accent="bg-amber-500"
+          />
+          <SnapshotTile
+            label="Teaching staff"
+            value={formatCount(snapshot.teachers)}
+            hint={`${teacherRate}% present today`}
+            href="/dashboard/teachers"
+            accent="bg-violet-500"
+          />
+        </div>
+
+        {/* Today's two registers — the pie charts the overview asked for. */}
+        <div className="mt-5 grid gap-5 xl:grid-cols-2">
+          <ChartCard
+            eyebrow="Today"
+            title="Student attendance"
+            subtitle={`${formatCount(studentsToday.marked)} of ${formatCount(studentsToday.roster)} students marked · ${studentRate}% attendance`}
+            action={{ href: "/dashboard/attendance", label: "Mark attendance" }}
+          >
+            {studentsToday.roster === 0 ? (
+              <EmptyChart message="No students on the roster yet. Add students to see today's attendance." />
+            ) : (
+              <DonutChart slices={statusSlices(studentsToday.counts)} centerLabel="Students" centerHint={`${studentRate}% attended`} />
+            )}
+          </ChartCard>
+
+          <ChartCard
+            eyebrow="Today"
+            title="Teacher attendance"
+            subtitle={`${formatCount(teachersToday.marked)} of ${formatCount(teachersToday.roster)} teachers marked · ${teacherRate}% attendance`}
+            action={{ href: "/dashboard/teacher-attendance", label: "Manage" }}
+          >
+            {teachersToday.roster === 0 ? (
+              <EmptyChart message="No teachers on the roster yet. Add teachers to see their attendance." />
+            ) : (
+              <DonutChart
+                slices={statusSlices(teachersToday.counts)}
+                centerLabel="Teachers"
+                centerHint={`${teacherRate}% attended`}
+                size={200}
+                thickness={26}
+              />
+            )}
+          </ChartCard>
+        </div>
+
+        {/* Trends */}
+        <div className="mt-5 grid gap-5 xl:grid-cols-3">
+          <ChartCard
+            className="xl:col-span-2"
+            eyebrow={`Last ${TREND_DAYS} days`}
+            title="Attendance rate trend"
+            subtitle="Share of marked days each student was present or late."
+          >
+            {trend.some((point) => point.marked > 0) ? (
+              <TrendChart
+                points={trend.map((point) => ({ label: point.label, title: point.title, value: point.rate }))}
+                color="var(--chart-present)"
+                formatValue={(value) => String(Math.round(value))}
+                suffix="%"
+              />
+            ) : (
+              <EmptyChart message="No attendance has been marked in this period yet." />
+            )}
+          </ChartCard>
+
+          <ChartCard eyebrow="Roster" title="Students by gender" subtitle="Every student record on file.">
+            <DonutChart
+              slices={genders.map((entry, index) => ({
+                label: entry.label,
+                value: entry.value,
+                color: SERIES_COLORS[index % SERIES_COLORS.length],
+              }))}
+              centerLabel="Students"
+              centerHint="in the roster"
+              size={190}
+              thickness={26}
+            />
+          </ChartCard>
+        </div>
+
+        {/* Per-class comparison */}
+        <ChartCard
+          className="mt-5"
+          eyebrow={`Last ${CLASS_WINDOW_DAYS} days`}
+          title="Attendance by class"
+          subtitle={
+            bestClass
+              ? `Best attended: ${bestClass.classSection} at ${bestClass.rate}%. Hover a bar for the full split.`
+              : "Mark a register to compare classes against each other."
+          }
+          action={{ href: "/dashboard/classes", label: "Manage classes" }}
+        >
+          {visibleClasses.length === 0 ? (
+            <EmptyChart message="No classes yet. Create a class section to start comparing attendance." />
+          ) : (
+            <BarChart
+              data={visibleClasses.map((row) => ({
+                label: row.classSection,
+                values: [row.counts.present, row.counts.late, row.counts.absent, row.counts.leave],
+                hint: `${formatCount(row.marked)} marked · ${row.rate}% rate · ${formatCount(row.students)} students`,
+              }))}
+              series={[
+                { key: "present", label: "Present", color: STATUS_COLOR.present },
+                { key: "late", label: "Late", color: STATUS_COLOR.late },
+                { key: "absent", label: "Absent", color: STATUS_COLOR.absent },
+                { key: "leave", label: "Leave", color: STATUS_COLOR.leave },
+              ]}
+            />
+          )}
+        </ChartCard>
+
+        <div className="mt-5 grid gap-5 xl:grid-cols-2">
+          <ChartCard
+            eyebrow="Last 12 months"
+            title="Fee collection"
+            subtitle={`${formatMoney(collected)} collected · ${formatMoney(outstanding)} still outstanding.`}
+            action={{ href: "/dashboard/fees", label: "Manage fees" }}
+          >
+            <BarChart
+              data={fees.map((month) => ({
+                label: month.label,
+                values: [month.collected, month.outstanding],
+                hint: month.title,
+              }))}
+              series={[
+                { key: "collected", label: "Collected", color: "var(--chart-present)" },
+                { key: "outstanding", label: "Outstanding", color: "var(--chart-late)" },
+              ]}
+              formatValue={formatCompactMoney}
+            />
+          </ChartCard>
+
+          <ChartCard eyebrow="Homework" title="Assignments per class" subtitle="Active homework an admin can act on.">
+            {homework.length === 0 ? (
+              <EmptyChart message="No homework has been assigned yet." />
+            ) : (
+              <BarChart
+                data={homework.map((row) => ({
+                  label: row.classSection,
+                  values: [row.total - row.overdue, row.overdue],
+                  hint: row.overdue ? `${row.overdue} past the due date` : "All within the due date",
+                }))}
+                series={[
+                  { key: "open", label: "Within due date", color: "var(--chart-1)" },
+                  { key: "overdue", label: "Past due date", color: "var(--chart-absent)" },
+                ]}
+              />
+            )}
+          </ChartCard>
+        </div>
+
+        {/* Attendance watchlist */}
+        <ChartCard
+          className="mt-5"
+          eyebrow={`Last ${CLASS_WINDOW_DAYS} days`}
+          title="Students needing attention"
+          subtitle="Lowest attendance rate among students with at least three marked days."
+          action={{ href: "/dashboard/students", label: "All students" }}
+        >
+          {risk.length === 0 ? (
+            <EmptyChart message="Not enough marked attendance yet to build this list." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-left text-sm">
+                <thead className="text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="py-3 font-semibold">Student</th>
+                    <th className="py-3 font-semibold">Class</th>
+                    <th className="py-3 text-right font-semibold">Marked</th>
+                    <th className="py-3 text-right font-semibold">Absent</th>
+                    <th className="py-3 text-right font-semibold">Rate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {risk.map((student) => (
+                    <tr key={student.id}>
+                      <td className="py-3">
+                        <a href={`/dashboard/students/${student.id}`} className="font-semibold text-blue-700 hover:underline">
+                          {student.name}
+                        </a>
+                        <p className="mt-0.5 text-xs text-slate-400">Roll {student.rollNumber || "-"}</p>
+                      </td>
+                      <td className="py-3 text-slate-600">{student.classSection}</td>
+                      <td className="py-3 text-right tabular-nums text-slate-600">{formatCount(student.marked)}</td>
+                      <td className="py-3 text-right tabular-nums text-rose-600">{formatCount(student.absent)}</td>
+                      <td className="py-3">
+                        <span className="flex items-center justify-end gap-2 font-semibold tabular-nums text-slate-900">
+                          <span className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+                            <span
+                              className="block h-full rounded-full"
+                              style={{ width: `${student.rate}%`, backgroundColor: rateColor(student.rate) }}
+                            />
+                          </span>
+                          {student.rate}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </ChartCard>
+      </div>
+    </div>
+  );
+}
