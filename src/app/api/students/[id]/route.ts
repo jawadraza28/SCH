@@ -7,6 +7,19 @@ import { deleteFromR2 } from "@/lib/object-storage";
 import { deleteCloudinaryPhoto } from "@/lib/cloudinary";
 import { fullClassMessage, seatAvailability } from "@/lib/seats";
 
+/**
+ * Reads a date coming from `<input type="date">` (`YYYY-MM-DD`).
+ *
+ * Blank means "no date" and yields `undefined`; anything unparseable yields
+ * `false` so the caller can answer 400 instead of silently storing garbage.
+ */
+function readDate(value: unknown): Date | false | undefined {
+  const raw = String(value ?? "").trim();
+  if (!raw) return undefined;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? false : parsed;
+}
+
 async function canAccessStudent(id: string) {
   const session = await getCurrentUser();
   if (!session.authenticated || !session.user || !["admin", "teacher"].includes(session.user.role)) return null;
@@ -89,9 +102,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (seats.full) return NextResponse.json({ error: fullClassMessage(className, section, seats) }, { status: 409 });
     }
 
+    const dateOfBirth = readDate(body.dateOfBirth);
+    const admissionDate = readDate(body.admissionDate);
+    if (dateOfBirth === false || admissionDate === false) return NextResponse.json({ error: "Date of birth and admission date must be valid dates" }, { status: 400 });
+
     const previousCNIC = student.cnic;
     student.fullName = fullName; student.cnic = cnic; student.class = className; student.section = section; student.rollNumber = rollNumber; student.gender = gender;
     student.fatherName = String(body.fatherName ?? "").trim(); student.fatherPhone = String(body.fatherPhone ?? "").trim(); student.homeAddress = String(body.homeAddress ?? "").trim();
+    // Absent keys leave the stored dates alone; a blank value clears them.
+    if (Object.prototype.hasOwnProperty.call(body, "dateOfBirth")) student.dateOfBirth = dateOfBirth ?? null;
+    if (Object.prototype.hasOwnProperty.call(body, "admissionDate")) student.admissionDate = admissionDate ?? null;
     await student.save();
     const user = await User.findOne({ role: "student", $or: [{ cnic: previousCNIC }, { cnic }] });
     if (user) { user.name = fullName; user.cnic = cnic; user.isActive = student.accountStatus === "active"; await user.save(); }

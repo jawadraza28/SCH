@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { ClassSection, Student } from "@/Models";
+import { ClassSection, Student, Teacher } from "@/Models";
 
 async function adminAccess() {
   const session = await getCurrentUser();
@@ -91,5 +91,60 @@ export async function PATCH(request: Request) {
   } catch (error) {
     console.error("Class update error:", error);
     return NextResponse.json({ error: "Unable to update class" }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/classes — retires a class section.
+ *
+ * A section is never hard-deleted: fees, attendance, results and timetables all
+ * point at it, so the row is switched off (`isActive: false`) and vanishes from
+ * every picker. Students are blocked first, because moving them later would
+ * strand their seat numbers and fee history in a class that no longer exists.
+ */
+export async function DELETE(request: Request) {
+  const access = await adminAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+  try {
+    const body = await request.json();
+    const id = String(body.id ?? "").trim();
+    if (!id) return NextResponse.json({ error: "Class is required" }, { status: 400 });
+    await connectToDatabase();
+    const classSection = await ClassSection.findById(id).lean();
+    if (!classSection || !classSection.isActive) return NextResponse.json({ error: "Class not found" }, { status: 404 });
+
+    const enrolled = await Student.countDocuments({
+      class: classSection.className,
+      section: classSection.sectionName,
+      accountStatus: { $in: ["active", "pending"] },
+    });
+    if (enrolled > 0) {
+      const label = `${classSection.className}-${classSection.sectionName}`;
+      return NextResponse.json(
+        { error: `${enrolled} student${enrolled === 1 ? "" : "s"} still attend ${label}. Move or remove them before deleting the class.` },
+        { status: 409 },
+      );
+    }
+
+    // The assignment string is what the teacher routes store, so dropping the
+    // class has to drop it there too — otherwise the dropdown offers a class
+    // that no longer exists.
+    const key = `${classSection.className}-${classSection.sectionName}`.toUpperCase();
+    const assigned = await Teacher.find({ assignedClasses: key }).lean();
+    await ClassSection.updateOne({ _id: id }, { $set: { isActive: false } });
+    for (const teacher of assigned) {
+      const remaining = (teacher.assignedClasses ?? []).filter((item: unknown) => String(item).toUpperCase() !== key);
+      await Teacher.updateOne({ _id: teacher._id }, {
+        $set: {
+          assignedClasses: remaining,
+          assignedSections: remaining.map((item: unknown) => String(item).split("-").slice(1).join("-")),
+        },
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Class deletion error:", error);
+    return NextResponse.json({ error: "Unable to delete class" }, { status: 500 });
   }
 }

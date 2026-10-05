@@ -391,6 +391,16 @@ const teacherSchema = new Schema({
     type: String,
     enum: ["male", "female", "other"],
   },
+  /** When the teacher was born. Collected on the teacher form, never required. */
+  dateOfBirth: {
+    type: Date,
+    default: null,
+  },
+  /** When the teacher joined the school. Defaults to today for new hires. */
+  dateOfJoining: {
+    type: Date,
+    default: Date.now,
+  },
   profilePhotoUrl: {
     type: String,
     default: "",
