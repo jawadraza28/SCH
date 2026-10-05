@@ -28,7 +28,7 @@ export default async function DashboardExamSeatingPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Administration</p>
           <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Exam seating generator</h1>
           <p className="mt-2 text-slate-500">
-            Build room-wise seating plans that mix nearby class bands while keeping the class/section placement sensible and printable.
+            Mix classes and sections inside separate grade bands, with room-wise and class-wise print layouts.
           </p>
         </div>
 
