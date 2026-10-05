@@ -254,7 +254,7 @@ export default async function AnalyticsPage() {
             eyebrow="Last 12 months"
             title="Fee collection"
             subtitle={`${formatMoney(collected)} collected · ${formatMoney(outstanding)} still outstanding.`}
-            action={{ href: "/dashboard/fees", label: "Manage fees" }}
+            action={{ href: "/dashboard/finance?bucket=monthly", label: "Open finance" }}
           >
             <BarChart
               data={fees.map((month) => ({

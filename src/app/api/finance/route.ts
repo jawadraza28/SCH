@@ -94,6 +94,32 @@ export async function GET(request: Request) {
       { $group: { _id: { category: "$category", type: "$type" }, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       { $sort: { total: -1 } },
     ]);
+
+    const classSections = (await FinanceEntry.distinct("classSection", { school, classSection: { $nin: ["", null] } }))
+      .map(String)
+      .filter(Boolean)
+      .sort();
+
+    return NextResponse.json({
+      entries,
+      summary: {
+        income: income?.total ?? 0,
+        expense: expense?.total ?? 0,
+        incomeCount: income?.count ?? 0,
+        expenseCount: expense?.count ?? 0,
+        balance: (income?.total ?? 0) - (expense?.total ?? 0),
+      },
+      categories: categories.map((row) => ({ category: row._id.category, type: row._id.type, total: row.total, count: row.count })),
+      classSections,
+      categoryOptions: { income: INCOME_CATEGORIES, expense: EXPENSE_CATEGORIES },
+      pagination: { page, pages, total, limit },
+    });
+  } catch (error) {
+    console.error("Finance list error:", error);
+    return NextResponse.json({ error: "Unable to load finance records" }, { status: 500 });
+  }
+}
+
 /** POST /api/finance — adds a manual income or expense row. */
 export async function POST(request: Request) {
   const access = await adminAccess();
@@ -126,8 +152,8 @@ export async function POST(request: Request) {
     const school = schoolIdFrom(access.user);
     if (!school) return NextResponse.json({ error: "School configuration is missing for this account" }, { status: 400 });
 
-    // Retention keeps a rolling year, so refuse a date that the next prune
-    // would silently delete instead of accepting a row that vanishes later.
+    // Retention keeps a rolling year, so refuse a date the next prune would
+    // silently delete instead of accepting a row that vanishes later.
     const entryDate = new Date(`${date}T12:00:00.000Z`);
     if (entryDate < retentionCutoff()) {
       return NextResponse.json({ error: "Records older than one year are not kept" }, { status: 400 });
@@ -173,30 +199,5 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error("Finance delete error:", error);
     return NextResponse.json({ error: "Unable to delete the record" }, { status: 500 });
-  }
-}
-
-    const classSections = (await FinanceEntry.distinct("classSection", { school, classSection: { $nin: ["", null] } }))
-      .map(String)
-      .filter(Boolean)
-      .sort();
-
-    return NextResponse.json({
-      entries,
-      summary: {
-        income: income?.total ?? 0,
-        expense: expense?.total ?? 0,
-        incomeCount: income?.count ?? 0,
-        expenseCount: expense?.count ?? 0,
-        balance: (income?.total ?? 0) - (expense?.total ?? 0),
-      },
-      categories: categories.map((row) => ({ category: row._id.category, type: row._id.type, total: row.total, count: row.count })),
-      classSections,
-      categoryOptions: { income: INCOME_CATEGORIES, expense: EXPENSE_CATEGORIES },
-      pagination: { page, pages, total, limit },
-    });
-  } catch (error) {
-    console.error("Finance list error:", error);
-    return NextResponse.json({ error: "Unable to load finance records" }, { status: 500 });
   }
 }

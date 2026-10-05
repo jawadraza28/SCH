@@ -50,7 +50,21 @@ Photos are accepted only as JPG, PNG, or WebP, compressed server-side, and store
 8. Configure a private Cloudflare R2 bucket and API token if photos are needed.
 9. Attach the school domain in Vercel.
 
-Vercel Cron calls attendance cleanup daily and fee generation monthly. Configure `CRON_SECRET` in Vercel; never expose it as a `NEXT_PUBLIC_` variable.
+Vercel Cron calls attendance cleanup daily, fee generation monthly, and finance maintenance monthly. Configure `CRON_SECRET` in Vercel; never expose it as a `NEXT_PUBLIC_` variable.
+
+## Finance
+
+`/dashboard/finance` holds four tabs over a single ledger (`FinanceEntry`):
+
+- **Overview** — balance, income-vs-expense chart (Daily / Weekly / Monthly / Yearly) and category donuts.
+- **Income** / **Expenses** — filterable, paginated lists with add forms.
+- **Teacher salaries** — per-month paid/unpaid list.
+
+The ledger is not typed in twice. Marking a student fee **paid** writes one income row carrying that class and date; marking a teacher salary **paid** writes one expense row. Reversing either deletes its row, so the totals always match the fees and salary screens. Only manually added rows can be deleted directly.
+
+Each class section can carry its own monthly fee (`ClassSection.fee`); a fee of `0` falls back to the school-wide fee in school settings, so existing schools are unaffected. Each teacher carries a monthly `salary`.
+
+Finance rows and salary records are kept for **one rolling year**. `/api/maintenance/finance` opens each month by creating unpaid salary rows for the whole staff, then deletes anything older than a year. It also runs opportunistically when the finance or salary screens are opened, so no cron configuration is required.
 
 ## Validation
 

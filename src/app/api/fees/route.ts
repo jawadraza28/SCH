@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Fee, SchoolConfiguration, Student } from "@/Models";
+import { ClassSection, Fee, SchoolConfiguration, Student } from "@/Models";
 import { monthNames, pruneRetentionIfDue } from "@/lib/retention";
+import { removeFeeIncome, syncFeeIncome } from "@/lib/finance";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 
 export async function GET(request: Request) {
@@ -58,6 +59,17 @@ export async function GET(request: Request) {
     const school = session.user.school ? await SchoolConfiguration.findById(session.user.school).lean() : null;
     const monthlyFee = Number(school?.monthlyFee ?? 0);
 
+    // Each class section can price its own fee. A section with fee 0 inherits
+    // the school-wide monthly fee, so existing schools are unaffected.
+    const pricedSections = await ClassSection.find({ isActive: true }).select("className sectionName fee").lean();
+    const feeByClass = new Map(
+      pricedSections.map((item) => [`${item.className}-${item.sectionName}`.toUpperCase(), Number(item.fee ?? 0)]),
+    );
+    const feeForStudent = (student: { class: string; section: string }) => {
+      const classFee = feeByClass.get(`${student.class}-${student.section}`.toUpperCase()) ?? 0;
+      return classFee > 0 ? classFee : monthlyFee;
+    };
+
     const paidFeeStudentIds = new Set<string>();
     for (const fee of fees) if (fee.status === "paid") paidFeeStudentIds.add(String(fee.student));
 
@@ -88,7 +100,7 @@ export async function GET(request: Request) {
         rollNumber: student.rollNumber ?? "",
         gender: student.gender ?? "",
         accountStatus: student.accountStatus ?? "active",
-        amount: Number(record?.amount ?? monthlyFee),
+        amount: Number(record?.amount ?? feeForStudent(student)),
         status: record?.status === "paid" ? ("paid" as const) : ("unpaid" as const),
         paidDate: record?.paidDate ? new Date(record.paidDate).toISOString() : null,
       }];
@@ -136,9 +148,26 @@ export async function POST(request: Request) {
     if (!mongoose.isValidObjectId(studentId)) return NextResponse.json({ error: "Student, month, and year are required" }, { status: 400 });
     if (!mongoose.isValidObjectId(session.user.school)) return NextResponse.json({ error: "School configuration is missing for this account" }, { status: 400 });
     const student = await Student.findById(studentId).lean(); if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
-    const school = await SchoolConfiguration.findById(session.user.school).lean(); const amount = Number(school?.monthlyFee ?? 0);
+    const school = await SchoolConfiguration.findById(session.user.school).lean();
+
+    // Charge the class's own fee when it has one, otherwise the school-wide fee.
+    const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const classSection = await ClassSection.findOne({
+      className: { $regex: `^${escape(String(student.class))}$`, $options: "i" },
+      sectionName: { $regex: `^${escape(String(student.section))}$`, $options: "i" },
+    }).select("fee").lean();
+    const classFee = Number(classSection?.fee ?? 0);
+    const amount = classFee > 0 ? classFee : Number(school?.monthlyFee ?? 0);
+
     const update = action === "paid" ? { $set: { amount, status: "paid", paidDate: new Date(), markedBy: session.user.id }, $setOnInsert: { student: student._id, month, year } } : { $set: { amount, status: "unpaid", paidDate: null, markedBy: session.user.id }, $setOnInsert: { student: student._id, month, year } };
     const fee = await Fee.findOneAndUpdate({ student: student._id, month, year }, update, { upsert: true, new: true, setDefaultsOnInsert: true });
+
+    // Keep the finance ledger in step with the fee tabs: a payment becomes an
+    // income row, and reversing the payment removes that row again. This is
+    // what makes the income tab agree with the fees tab at all times.
+    if (action === "paid") await syncFeeIncome(fee, { _id: student._id, fullName: student.fullName, class: student.class, section: student.section }, String(session.user.school), session.user.id);
+    else await removeFeeIncome(fee._id);
+
     await pruneRetentionIfDue();
     return NextResponse.json({ success: true, fee });
   } catch (error) { console.error("Fee save error:", error); return NextResponse.json({ error: "Unable to save fee" }, { status: 500 }); }

@@ -944,9 +944,12 @@ const financeEntrySchema = new Schema({
 financeEntrySchema.index({ school: 1, type: 1, date: -1 });
 // Category breakdown and per-class reporting.
 financeEntrySchema.index({ school: 1, category: 1, date: -1 });
-// Automatic entries are keyed by their source row so undoing a payment cleans up.
-financeEntrySchema.index({ fee: 1 });
-financeEntrySchema.index({ salary: 1 });
+// Automatic entries are keyed by their source row so undoing a payment cleans
+// up. Unique + sparse enforces the invariant the sync helpers rely on: exactly
+// ONE ledger row per fee, and exactly one per salary. Sparse is required
+// because manual rows carry neither field, and those must not collide.
+financeEntrySchema.index({ fee: 1 }, { unique: true, sparse: true });
+financeEntrySchema.index({ salary: 1 }, { unique: true, sparse: true });
 
 export const FinanceEntry = mongoose.models.FinanceEntry || mongoose.model("FinanceEntry", financeEntrySchema);
 

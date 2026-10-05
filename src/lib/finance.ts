@@ -11,7 +11,7 @@
  */
 
 import mongoose from "mongoose";
-import { FinanceEntry, TeacherSalary } from "@/Models";
+import { FinanceEntry } from "@/Models";
 
 /** Categories available when adding income by hand. */
 export const INCOME_CATEGORIES = [

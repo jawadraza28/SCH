@@ -44,10 +44,13 @@ export async function POST(request: Request) {
     const password = DEFAULT_TEACHER_PASSWORD;
     if (!name || !email || !/^\d{5}-\d{7}-\d$/.test(cnic) || !["male", "female", "other"].includes(gender)) return NextResponse.json({ error: "Name, email, valid CNIC, and gender are required" }, { status: 400 });
     if (password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+    // Monthly salary drives the salary tab; 0 is allowed for a not-yet-decided salary.
+    const salary = Number(body.salary);
+    if (!Number.isFinite(salary) || salary < 0) return NextResponse.json({ error: "Salary cannot be negative" }, { status: 400 });
     await connectToDatabase();
     const duplicate = await User.findOne({ $or: [{ email }, { cnic }] }).lean();
     if (duplicate) return NextResponse.json({ error: "An account with this email or CNIC already exists" }, { status: 409 });
-    const teacher = await Teacher.create({ name, cnic, phone: body.phone, subject: body.subject, gender, assignedClasses: [], assignedSections: [] });
+    const teacher = await Teacher.create({ name, cnic, phone: body.phone, subject: body.subject, gender, salary, assignedClasses: [], assignedSections: [] });
     await User.create({ name, email, cnic, role: "teacher", password: await hashPassword(password), isActive: true, school: access.user.school });
     return NextResponse.json({ success: true, teacher: { id: teacher._id, name: teacher.name } }, { status: 201 });
   } catch (error) {
@@ -71,14 +74,16 @@ export async function PATCH(request: Request) {
       const subject = String(body.subject ?? "").trim();
       const gender = String(body.gender ?? "").trim();
       const accountStatus = String(body.accountStatus ?? "active");
+      const salary = Number(body.salary);
       if (!teacherId || !name || !email || !/^\d{5}-\d{7}-\d$/.test(cnic) || !["male", "female", "other"].includes(gender) || !["active", "inactive", "pending"].includes(accountStatus)) return NextResponse.json({ error: "Teacher, name, email, valid CNIC, gender, and valid status are required" }, { status: 400 });
+      if (!Number.isFinite(salary) || salary < 0) return NextResponse.json({ error: "Salary cannot be negative" }, { status: 400 });
       await connectToDatabase();
       const teacher = await Teacher.findById(teacherId);
       if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
       const user = await User.findOne({ role: "teacher", cnic: teacher.cnic });
       const duplicate = await User.findOne({ $or: [{ email }, { cnic }], _id: { $ne: user?._id } }).lean();
       if (duplicate) return NextResponse.json({ error: "Another account already uses this email or CNIC" }, { status: 409 });
-      teacher.name = name; teacher.cnic = cnic; teacher.phone = phone; teacher.subject = subject; teacher.gender = gender; teacher.accountStatus = accountStatus;
+      teacher.name = name; teacher.cnic = cnic; teacher.phone = phone; teacher.subject = subject; teacher.gender = gender; teacher.accountStatus = accountStatus; teacher.salary = salary;
       await teacher.save();
       if (user) {
         user.name = name; user.email = email; user.cnic = cnic; user.isActive = accountStatus === "active";

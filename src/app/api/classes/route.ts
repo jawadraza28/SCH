@@ -41,13 +41,55 @@ export async function POST(request: Request) {
     const sectionName = String(body.sectionName ?? "").trim().toUpperCase();
     const academicYear = String(body.academicYear ?? "2026-2027").trim();
     if (!className || !sectionName || !academicYear) return NextResponse.json({ error: "Class, section, and academic year are required" }, { status: 400 });
+    const capacity = Number(body.capacity);
+    const fee = Number(body.fee);
+    if (!Number.isFinite(capacity) || capacity < 1) return NextResponse.json({ error: "Capacity must be at least 1" }, { status: 400 });
+    // A class may price differently from the school-wide fee; 0 means "inherit".
+    if (!Number.isFinite(fee) || fee < 0) return NextResponse.json({ error: "Class fee cannot be negative" }, { status: 400 });
     await connectToDatabase();
     const duplicate = await ClassSection.findOne({ className, sectionName, academicYear }).lean();
     if (duplicate) return NextResponse.json({ error: "This class and section already exists" }, { status: 409 });
-    const created = await ClassSection.create({ className, sectionName, academicYear, capacity: Number(body.capacity) || 50 });
+    const created = await ClassSection.create({ className, sectionName, academicYear, capacity, fee });
     return NextResponse.json({ success: true, classSection: created }, { status: 201 });
   } catch (error) {
     console.error("Class creation error:", error);
     return NextResponse.json({ error: "Unable to create class" }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH /api/classes — edits a section's details, including its monthly fee.
+ * Changing the fee only affects months that have not been paid yet; already
+ * paid fees keep the amount that was actually charged (see the fees route).
+ */
+export async function PATCH(request: Request) {
+  const access = await adminAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+  try {
+    const body = await request.json();
+    const id = String(body.id ?? "").trim();
+    const className = String(body.className ?? "").trim();
+    const sectionName = String(body.sectionName ?? "").trim().toUpperCase();
+    const academicYear = String(body.academicYear ?? "").trim();
+    const capacity = Number(body.capacity);
+    const fee = Number(body.fee);
+    if (!id || !className || !sectionName || !academicYear) {
+      return NextResponse.json({ error: "Class, section, and academic year are required" }, { status: 400 });
+    }
+    if (!Number.isFinite(capacity) || capacity < 1) return NextResponse.json({ error: "Capacity must be at least 1" }, { status: 400 });
+    if (!Number.isFinite(fee) || fee < 0) return NextResponse.json({ error: "Class fee cannot be negative" }, { status: 400 });
+    await connectToDatabase();
+    const duplicate = await ClassSection.findOne({ className, sectionName, academicYear, _id: { $ne: id } }).lean();
+    if (duplicate) return NextResponse.json({ error: "This class and section already exists" }, { status: 409 });
+    const updated = await ClassSection.findByIdAndUpdate(
+      id,
+      { $set: { className, sectionName, academicYear, capacity, fee } },
+      { new: true },
+    );
+    if (!updated) return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    return NextResponse.json({ success: true, classSection: updated });
+  } catch (error) {
+    console.error("Class update error:", error);
+    return NextResponse.json({ error: "Unable to update class" }, { status: 500 });
   }
 }

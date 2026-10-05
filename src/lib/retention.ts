@@ -53,10 +53,22 @@ export async function pruneTeacherAttendance(now: Date = new Date()) {
 let lastPrunedAt = 0;
 const pruneIntervalMs = 60 * 60 * 1000;
 
-/** Deletes teacher salary rows older than one year. */
+/**
+ * Deletes teacher salary rows older than one year.
+ *
+ * A row is aged by `paidDate` when it was paid, and by `createdAt` when it was
+ * never paid. The unpaid branch must match `paidDate: null` as well as a
+ * missing field: the salary API writes an explicit `null`, and `$exists:
+ * false` does NOT match a stored null — using only `$exists` would leave every
+ * unpaid salary row behind forever.
+ */
 export async function pruneTeacherSalary(now: Date = new Date()) {
+  const cutoff = retentionCutoff(now);
   const result = await TeacherSalary.deleteMany({
-    $or: [{ paidDate: { $lt: retentionCutoff(now) } }, { paidDate: { $exists: false }, createdAt: { $lt: retentionCutoff(now) } }],
+    $or: [
+      { paidDate: { $lt: cutoff } },
+      { $and: [{ $or: [{ paidDate: null }, { paidDate: { $exists: false } }] }, { createdAt: { $lt: cutoff } }] },
+    ],
   });
   return result.deletedCount ?? 0;
 }

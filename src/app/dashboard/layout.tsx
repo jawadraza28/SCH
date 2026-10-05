@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 const navigation: NavItem[] = [
   { label: "Overview", href: "/dashboard", exact: true },
   { label: "Analytics", href: "/dashboard/analytics", exact: true },
+  { label: "Finance", href: "/dashboard/finance", exact: true },
   { label: "Students", href: "/dashboard/students" },
   { label: "Teachers", href: "/dashboard/teachers" },
   { label: "Teacher attendance", href: "/dashboard/teacher-attendance", exact: true },
