@@ -66,6 +66,14 @@ Each class section can carry its own monthly fee (`ClassSection.fee`); a fee of 
 
 Finance rows and salary records are kept for **one rolling year**. `/api/maintenance/finance` opens each month by creating unpaid salary rows for the whole staff, then deletes anything older than a year. It also runs opportunistically when the finance or salary screens are opened, so no cron configuration is required.
 
+## Fee vouchers
+
+Every student carries a `voucherNo` (for example `VCH-2026-0001`), minted on create when the admin leaves the field blank, and editable afterwards. It is `unique + sparse`, so students created before the field existed never collide.
+
+The fees screen shows the voucher number and a **Send voucher** button on every row. Clicking it opens WhatsApp with the voucher already typed, addressed to the student's parent phone (falling back to the emergency contact, then the mother's number). The message carries the student name, class and section, roll number, voucher number, period, the amount due — which is that class's own fee — and a due date ten days after sending.
+
+Pakistani numbers are stored as `0300…` and are converted to the international `92300…` form WhatsApp expects. When a student has no usable number the button is disabled and explains what to add, rather than opening an empty WhatsApp chat.
+
 ## Validation
 
 ```powershell

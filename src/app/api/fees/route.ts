@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ClassSection, Fee, SchoolConfiguration, Student } from "@/Models";
 import { monthNames, pruneRetentionIfDue } from "@/lib/retention";
 import { removeFeeIncome, syncFeeIncome } from "@/lib/finance";
+import { voucherRecipient } from "@/lib/voucher";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 
 export async function GET(request: Request) {
@@ -94,6 +95,11 @@ export async function GET(request: Request) {
         id: String(student._id),
         fullName: student.fullName,
         studentId: student.studentId ?? "",
+        voucherNo: student.voucherNo ?? "",
+        // Whoever should receive the fee voucher: guardian first, then the
+        // emergency contact. Empty when the record carries no number at all,
+        // which is what disables the Send button on the fees screen.
+        voucherPhone: voucherRecipient(student),
         cnic: student.cnic ?? "",
         className: student.class,
         section: student.section,
@@ -125,6 +131,8 @@ export async function GET(request: Request) {
       month,
       year,
       monthlyFee,
+      // Printed in the WhatsApp voucher header.
+      schoolName: school?.schoolName ?? "",
       summary: {
         total: sortedIds.length,
         paid,

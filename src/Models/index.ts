@@ -208,6 +208,17 @@ const studentSchema = new Schema({
     type: String,
     required: true,
   },
+  /**
+   * Reference printed on the fee voucher the school sends to a parent, e.g.
+   * `VCH-2026-0001`. Minted on create when the admin leaves it blank, and
+   * editable afterwards. Sparse + unique so students created before this field
+   * existed (no voucher number) are never treated as duplicates.
+   */
+  voucherNo: {
+    type: String,
+    trim: true,
+    sparse: true,
+  },
   fatherName: {
     type: String,
     trim: true,
@@ -293,6 +304,9 @@ studentSchema.index({ class: 1, section: 1 });
 studentSchema.index({ cnic: 1 });
 // A roll number is unique inside its own class and section, not school wide.
 studentSchema.index({ class: 1, section: 1, rollNumber: 1 }, { unique: true });
+// Sparse + unique: only students that actually have a voucher number take part,
+// so records created before this field existed can never collide with each other.
+studentSchema.index({ voucherNo: 1 }, { unique: true, sparse: true });
 
 export const Student = mongoose.models.Student || mongoose.model("Student", studentSchema);
 

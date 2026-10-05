@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Student, Teacher } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 import { fullClassMessage, seatAvailability } from "@/lib/seats";
+import { buildVoucherNo } from "@/lib/voucher";
 
 const cnicPattern = /^\d{5}-\d{7}-\d$/;
 
@@ -97,13 +98,38 @@ export async function POST(request: Request) {
 
     const count = await Student.countDocuments();
     const isAdminAdmission = session.user.role === "admin";
-    const student = await Student.create({
-      studentId: `STU-${String(count + 1).padStart(6, "0")}`,
-      fullName: String(fullName).trim(), cnic: normalizedCNIC, dateOfBirth: dateOfBirth || undefined,
-      gender: gender || undefined, class: normalizedClass, section: normalizedSection,
-      rollNumber:       normalizedRoll, fatherName, fatherPhone, homeAddress,
-      accountStatus: isAdminAdmission ? "active" : "pending",
-    });
+
+    // The admin may type their own voucher reference; otherwise one is minted
+    // from this year's sequence. The generated branch retries because the number
+    // is derived from a count, and two admissions can land in the same instant.
+    const requestedVoucher = String(body.voucherNo ?? "").trim().toUpperCase();
+    if (requestedVoucher) {
+      const taken = await Student.findOne({ voucherNo: requestedVoucher }).select("_id").lean();
+      if (taken) return NextResponse.json({ error: `Voucher number ${requestedVoucher} is already used.` }, { status: 409 });
+    }
+
+    let student: InstanceType<typeof Student> | null = null;
+    let voucherNo = requestedVoucher;
+    for (let attempt = 0; attempt < 5 && !student; attempt += 1) {
+      voucherNo = requestedVoucher || buildVoucherNo(count + attempt + 1);
+      try {
+        student = await Student.create({
+          studentId: `STU-${String(count + 1).padStart(6, "0")}`,
+          voucherNo,
+          fullName: String(fullName).trim(), cnic: normalizedCNIC, dateOfBirth: dateOfBirth || undefined,
+          gender: gender || undefined, class: normalizedClass, section: normalizedSection,
+          rollNumber: normalizedRoll, fatherName, fatherPhone, homeAddress,
+          accountStatus: isAdminAdmission ? "active" : "pending",
+        });
+      } catch (error) {
+        // 11000 = the sparse unique index rejected a duplicate voucher number.
+        // A hand-typed number was already checked above, so only retry the
+        // generated one; anything else is a real failure.
+        const duplicate = (error as { code?: number })?.code === 11000;
+        if (!duplicate || requestedVoucher) throw error;
+      }
+    }
+    if (!student) return NextResponse.json({ error: "Unable to add student" }, { status: 500 });
     if (isAdminAdmission) {
       await (await import("@/Models")).User.create({
         name: student.fullName,
@@ -116,10 +142,10 @@ export async function POST(request: Request) {
         school: session.user.school,
       });
     }
-    return NextResponse.json({ success: true, student: { id: student._id, studentId: student.studentId, fullName: student.fullName, accountStatus: student.accountStatus } }, { status: 201 });
+    return NextResponse.json({ success: true, student: { id: student._id, studentId: student.studentId, voucherNo: student.voucherNo, fullName: student.fullName, accountStatus: student.accountStatus } }, { status: 201 });
   } catch (error) {
     if ((error as { code?: number }).code === 11000) {
-      return NextResponse.json({ error: "Another student already uses this CNIC or this roll number in the same class." }, { status: 409 });
+      return NextResponse.json({ error: "Another student already uses this CNIC, this roll number in the same class, or this voucher number." }, { status: 409 });
     }
     console.error("Student creation error:", error);
     return NextResponse.json({ error: "Unable to create student" }, { status: 500 });

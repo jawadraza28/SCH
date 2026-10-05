@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import FeeActions from "@/components/FeeActions";
+import VoucherSendButton from "@/components/VoucherSendButton";
 import { SkeletonRows } from "@/components/Loaders";
 import Pagination from "@/components/Pagination";
 import BackLink from "@/components/BackLink";
@@ -13,6 +14,8 @@ type Row = {
   id: string;
   fullName: string;
   studentId: string;
+  voucherNo: string;
+  voucherPhone: string;
   cnic: string;
   className: string;
   section: string;
@@ -46,6 +49,7 @@ export default function FeesPage() {
   const [classSections, setClassSections] = useState<string[]>([]);
   const [summary, setSummary] = useState<Summary>({ total: 0, paid: 0, unpaid: 0, shown: 0 });
   const [monthlyFee, setMonthlyFee] = useState(0);
+  const [schoolName, setSchoolName] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -76,6 +80,7 @@ export default function FeesPage() {
       setClassSections(result.classSections ?? []);
       setSummary(result.summary ?? { total: 0, paid: 0, unpaid: 0, shown: 0 });
       setMonthlyFee(Number(result.monthlyFee ?? 0));
+      setSchoolName(String(result.schoolName ?? ""));
       setPage(result.pagination?.page ?? 1);
       setPages(result.pagination?.pages ?? 1);
       setTotal(result.pagination?.total ?? 0);
@@ -277,6 +282,7 @@ export default function FeesPage() {
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Student ID</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Class</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Roll</th>
+                    <th className="px-4 py-3 sm:px-6 sm:py-4">Voucher No</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Amount</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Status</th>
                     <th className="px-4 py-3 sm:px-6 sm:py-4 text-right">Action</th>
@@ -301,6 +307,11 @@ export default function FeesPage() {
                         {row.className}-{row.section}
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.rollNumber || "-"}</td>
+                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                        <span className="whitespace-nowrap rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                          {row.voucherNo || "-"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.amount}</td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
                         <span
@@ -319,16 +330,30 @@ export default function FeesPage() {
                         ) : null}
                       </td>
                       <td className="px-4 py-3 sm:px-6 sm:py-4">
-                        <FeeActions
-                          studentId={row.id}
-                          month={filters.month}
-                          year={Number(filters.year) || now.getFullYear()}
-                          status={row.status}
-                          onUpdated={async () => {
-                            setMessage(`${row.fullName} marked ${row.status === "paid" ? "unpaid" : "paid"} for ${filters.month} ${filters.year}.`);
-                            await load();
-                          }}
-                        />
+                        <div className="flex flex-col items-end gap-2">
+                          <FeeActions
+                            studentId={row.id}
+                            month={filters.month}
+                            year={Number(filters.year) || now.getFullYear()}
+                            status={row.status}
+                            onUpdated={async () => {
+                              setMessage(`${row.fullName} marked ${row.status === "paid" ? "unpaid" : "paid"} for ${filters.month} ${filters.year}.`);
+                              await load();
+                            }}
+                          />
+                          <VoucherSendButton
+                            schoolName={schoolName}
+                            studentName={row.fullName}
+                            className={row.className}
+                            section={row.section}
+                            rollNumber={row.rollNumber}
+                            voucherNo={row.voucherNo}
+                            phone={row.voucherPhone}
+                            month={filters.month}
+                            year={filters.year}
+                            amount={row.amount}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
