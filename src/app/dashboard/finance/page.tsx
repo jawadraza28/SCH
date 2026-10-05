@@ -16,10 +16,22 @@ export const dynamic = "force-dynamic";
  * so the first paint needs no client fetch. The Overview tab draws its own
  * charts on the server (FinanceOverview) because it groups by time.
  */
-export default async function FinancePage({ searchParams }: { searchParams: Promise<{ bucket?: string }> }) {
+export default async function FinancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; month?: string; bucket?: string }>;
+}) {
   const session = await getCurrentUser();
   if (!session.authenticated || session.user?.role !== "admin") redirect("/dashboard");
   await connectToDatabase();
+
+  // Deep links such as ?tab=expenses&month=March-2026 open that tab already
+  // filtered, which is how the salary history links into the expenses list.
+  const params = await searchParams;
+  const initialTab = (["overview", "income", "expenses", "salaries"] as const).includes(params.tab as never)
+    ? (params.tab as "overview" | "income" | "expenses" | "salaries")
+    : "overview";
+  const initialMonth = /^\d{4}-\d{2}$/.test(params.month ?? "") ? params.month! : "";
 
   const school = session.user.school ? String(session.user.school) : null;
   const [entries, totals, categories, classSections] = await Promise.all([
@@ -76,7 +88,12 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         </header>
 
         <div className="mt-5">
-          <FinanceWorkspace initial={initial} overview={<FinanceOverview searchParams={searchParams} />} />
+          <FinanceWorkspace
+            initial={initial}
+            overview={<FinanceOverview bucket={params.bucket ?? "daily"} />}
+            initialTab={initialTab}
+            initialMonth={initialMonth}
+          />
         </div>
       </div>
     </div>

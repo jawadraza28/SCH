@@ -33,23 +33,18 @@ const BUCKET_WINDOW: Record<string, string> = {
  * which keeps the Daily/Weekly/Monthly/Yearly toggle a plain link rather than
  * client state — no spinner, and the choice is shareable.
  */
-export default async function FinanceOverview({
-  searchParams,
-}: {
-  searchParams: Promise<{ bucket?: string }>;
-}) {
+export default async function FinanceOverview({ bucket }: { bucket: string }) {
   const session = await getCurrentUser();
   if (!session.authenticated || session.user?.role !== "admin") redirect("/dashboard");
   await connectToDatabase();
 
-  const params = await searchParams;
   // Narrowed to FinanceBucket by the membership check, so the chart and the
   // ?bucket= link can never drift onto an unsupported value.
-  const bucket = (BUCKETS.some((item) => item.value === params.bucket) ? params.bucket : "daily") as FinanceBucket;
+  const selected = (BUCKETS.some((item) => item.value === bucket) ? bucket : "daily") as FinanceBucket;
 
   const [totals, trend, incomeByCategory, expenseByCategory] = await Promise.all([
     financeTotals(),
-    financeTrend(bucket),
+    financeTrend(selected),
     financeByCategory("income"),
     financeByCategory("expense"),
   ]);
@@ -61,7 +56,7 @@ export default async function FinanceOverview({
     { label: "Total income", value: formatMoney(totals.income), hint: `${formatCount(totals.incomeCount)} records`, tone: "bg-emerald-500" },
     { label: "Total expenses", value: formatMoney(totals.expense), hint: `${formatCount(totals.expenseCount)} records`, tone: "bg-rose-500" },
     { label: "Balance", value: formatMoney(totals.balance), hint: totals.balance >= 0 ? "Surplus overall" : "Deficit overall", tone: totals.balance >= 0 ? "bg-blue-500" : "bg-amber-500" },
-    { label: "Best period", value: best ? formatMoney(best.net) : "Rs 0", hint: best ? `Net in the ${BUCKET_WINDOW[bucket]}` : "No data yet", tone: "bg-violet-500" },
+    { label: "Best period", value: best ? formatMoney(best.net) : "Rs 0", hint: best ? `Net in the ${BUCKET_WINDOW[selected]}` : "No data yet", tone: "bg-violet-500" },
   ];
 
   return (
@@ -79,15 +74,15 @@ export default async function FinanceOverview({
         ))}
       </div>
 
-      <ChartCard eyebrow="Income vs expenses" title="Money in and out" subtitle={`Grouped across the ${BUCKET_WINDOW[bucket]}.`}>
+      <ChartCard eyebrow="Income vs expenses" title="Money in and out" subtitle={`Grouped across the ${BUCKET_WINDOW[selected]}.`}>
         <div className="mb-5 flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1">
           {BUCKETS.map((item) => (
             <Link
               key={item.value}
               href={`/dashboard/finance?bucket=${item.value}`}
-              aria-current={bucket === item.value ? "page" : undefined}
+              aria-current={selected === item.value ? "page" : undefined}
               className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
-                bucket === item.value ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
+                selected === item.value ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
               }`}
             >
               {item.label}

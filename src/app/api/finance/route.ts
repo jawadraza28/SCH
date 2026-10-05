@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { FinanceEntry } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, isCategory, schoolIdFrom } from "@/lib/finance";
-import { pruneFinanceIfDue } from "@/lib/retention";
+import { monthNames, pruneFinanceIfDue } from "@/lib/retention";
 
 async function adminAccess() {
   const session = await getCurrentUser();
@@ -48,13 +48,21 @@ export async function GET(request: Request) {
     const search = params.get("search")?.trim() ?? "";
     const from = params.get("from")?.trim() ?? "";
     const to = params.get("to")?.trim() ?? "";
+    const monthName = params.get("month")?.trim() ?? "";
+    const monthYear = Number(params.get("year"));
 
     const scope: Record<string, unknown>[] = [{ school }];
     if (type === "income" || type === "expense") scope.push({ type });
     if (category) scope.push({ category });
     if (classSection) scope.push({ classSection });
     if (source === "auto" || source === "manual") scope.push({ source });
-    if (DATE_PATTERN.test(from) || DATE_PATTERN.test(to)) {
+
+    // A whole-month shortcut, which is what the month picker sends. It wins
+    // over from/to so the two controls can never disagree with each other.
+    const monthIndex = monthNames.indexOf(monthName);
+    if (monthIndex >= 0 && Number.isInteger(monthYear) && monthYear > 0) {
+      scope.push({ date: { $gte: new Date(Date.UTC(monthYear, monthIndex, 1)), $lt: new Date(Date.UTC(monthYear, monthIndex + 1, 1)) } });
+    } else if (DATE_PATTERN.test(from) || DATE_PATTERN.test(to)) {
       const date: Record<string, Date> = {};
       if (DATE_PATTERN.test(from)) date.$gte = new Date(`${from}T00:00:00.000Z`);
       if (DATE_PATTERN.test(to)) date.$lte = new Date(`${to}T23:59:59.999Z`);

@@ -3,16 +3,19 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import {
+  TREND_RANGES,
   attendanceByClass,
   attendanceRate,
   attendanceRisk,
-  attendanceTrend,
+  attendanceSeries,
   feeTrend,
   genderSplit,
   homeworkByClass,
+  recentMonths,
   schoolSnapshot,
   todayStudentAttendance,
   todayTeacherAttendance,
+  type TrendRange,
 } from "@/lib/analytics";
 import {
   SERIES_COLORS,
@@ -31,8 +34,16 @@ import TrendChart from "@/components/charts/TrendChart";
 
 export const dynamic = "force-dynamic";
 
-const TREND_DAYS = 14;
 const CLASS_WINDOW_DAYS = 30;
+
+/** Builds a URL that keeps the other filters intact when one changes. */
+function analyticsHref(params: { range?: string; month?: string }) {
+  const query = new URLSearchParams();
+  if (params.range && params.range !== "daily") query.set("range", params.range);
+  if (params.month) query.set("month", params.month);
+  const search = query.toString();
+  return search ? `/dashboard/analytics?${search}` : "/dashboard/analytics";
+}
 
 /** Builds donut slices for a status breakdown, in the order admins read them. */
 function statusSlices(counts: Record<string, number>) {
@@ -73,7 +84,11 @@ function SnapshotTile({
   );
 }
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; month?: string }>;
+}) {
   const session = await getCurrentUser();
   if (!session.authenticated || session.user?.role !== "admin") redirect("/dashboard");
   await connectToDatabase();
@@ -81,10 +96,20 @@ export default async function AnalyticsPage() {
   const now = new Date();
   const todayLabel = now.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
+  // Both filters are validated against real options, so a hand-edited URL can
+  // never put an unsupported value into the aggregation.
+  const params = await searchParams;
+  const months = recentMonths(12, now);
+  const range = (TREND_RANGES.some((item) => item.value === params.range) ? params.range : "daily") as TrendRange;
+  const month = months.some((item) => item.value === params.month) ? params.month! : "";
+  const monthLabel = months.find((item) => item.value === month)?.label ?? "";
+  const rangeSteps = { daily: 14, weekly: 12, monthly: 12, yearly: 5 }[range];
+  const rangeUnit = { daily: "days", weekly: "weeks", monthly: "months", yearly: "years" }[range];
+
   const [studentsToday, teachersToday, trend, classes, fees, genders, homework, risk, snapshot] = await Promise.all([
     todayStudentAttendance(now),
     todayTeacherAttendance(now),
-    attendanceTrend(TREND_DAYS, now),
+    attendanceSeries(range, month, now),
     attendanceByClass(CLASS_WINDOW_DAYS, now),
     feeTrend(12, now),
     genderSplit(),
@@ -113,7 +138,7 @@ export default async function AnalyticsPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200 sm:text-sm">{todayLabel}</p>
           <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">School analytics</h1>
           <p className="mt-2 max-w-2xl text-sm text-blue-100 sm:text-base">
-            Today&apos;s registers, the last {TREND_DAYS} days of attendance, and a {CLASS_WINDOW_DAYS}-day comparison across every class.
+            Today&apos;s registers, attendance broken down by {range}, and a {CLASS_WINDOW_DAYS}-day comparison across every class.
           </p>
         </header>
 
@@ -187,10 +212,51 @@ export default async function AnalyticsPage() {
         <div className="mt-5 grid gap-5 xl:grid-cols-3">
           <ChartCard
             className="xl:col-span-2"
-            eyebrow={`Last ${TREND_DAYS} days`}
+            eyebrow={monthLabel ? `Up to ${monthLabel}` : `Latest ${rangeSteps} ${rangeUnit}`}
             title="Attendance rate trend"
             subtitle="Share of marked days each student was present or late."
           >
+            {/* Range and month are plain links, so the chart stays server-rendered
+                and the selection is shareable and back-button friendly. */}
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1">
+                {TREND_RANGES.map((item) => (
+                  <Link
+                    key={item.value}
+                    href={analyticsHref({ range: item.value, month })}
+                    aria-current={range === item.value ? "page" : undefined}
+                    className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                      range === item.value ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+              <form method="get" className="flex items-center gap-2">
+                {range !== "daily" ? <input type="hidden" name="range" value={range} /> : null}
+                <label className="sr-only" htmlFor="analytics-month">Month</label>
+                <select
+                  id="analytics-month"
+                  name="month"
+                  defaultValue={month}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+                >
+                  <option value="">Up to today</option>
+                  {months.map((item) => (
+                    <option key={item.value} value={item.value}>{item.label}</option>
+                  ))}
+                </select>
+                <button type="submit" className="rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-blue-500">
+                  Apply
+                </button>
+                {month ? (
+                  <Link href={analyticsHref({ range })} className="text-xs font-semibold text-slate-500 hover:underline">
+                    Reset
+                  </Link>
+                ) : null}
+              </form>
+            </div>
             {trend.some((point) => point.marked > 0) ? (
               <TrendChart
                 points={trend.map((point) => ({ label: point.label, title: point.title, value: point.rate }))}

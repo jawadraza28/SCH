@@ -12,7 +12,26 @@ import Pagination from "@/components/Pagination";
 import { formatCount, formatMoney } from "@/components/charts/palette";
 import type { FinancePayload } from "./FinanceWorkspace";
 
-export type LedgerFilters = { search: string; category: string; classSection: string; from: string; to: string; source: string };
+export type LedgerFilters = {
+  search: string;
+  category: string;
+  classSection: string;
+  from: string;
+  to: string;
+  source: string;
+  /** `YYYY-MM` whole-month shortcut. Wins over from/to when present. */
+  month: string;
+};
+
+/** The last twelve months, for the month picker. */
+export const LEDGER_MONTHS = (() => {
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, offset) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1));
+    const value = date.toISOString().slice(0, 7);
+    return { value, label: date.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }) };
+  });
+})();
 
 /** One small money tile in the strip above the table. */
 export function MoneyTile({ label, value, hint, tone }: { label: string; value: number | string; hint: string; tone: string }) {
@@ -28,8 +47,26 @@ export function MoneyTile({ label, value, hint, tone }: { label: string; value: 
   );
 }
 
-/** Marks a row as written by the fees/salary flow or typed in by hand. */
-export function SourcePill({ source }: { source: "auto" | "manual" }) {
+/**
+ * Marks a row as written by the fees/salary flow or typed in by hand. A salary
+ * row gets its own label because "paid salary" is the answer to "did this
+ * reach the expenses tab?", which is the question admins ask most here.
+ */
+export function SourcePill({ source, category }: { source: "auto" | "manual"; category?: string }) {
+  if (source === "auto" && category === "Teacher salary") {
+    return (
+      <span className="inline-block whitespace-nowrap rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
+        Salary paid
+      </span>
+    );
+  }
+  if (source === "auto" && category === "Class fee") {
+    return (
+      <span className="inline-block whitespace-nowrap rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+        Fee paid
+      </span>
+    );
+  }
   return source === "auto" ? (
     <span className="inline-block whitespace-nowrap rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">Automatic</span>
   ) : (
@@ -50,6 +87,7 @@ export default function LedgerPanel({
   setMessage,
   onChanged,
   onPage,
+  onOpenSalaries,
 }: {
   type: "income" | "expenses";
   filters: LedgerFilters;
@@ -63,6 +101,8 @@ export default function LedgerPanel({
   setMessage: (value: string) => void;
   onChanged: () => void;
   onPage: (page: number) => void;
+  /** Jumps to the salary tab, so the two sides of a payroll stay connected. */
+  onOpenSalaries: () => void;
 }) {
   const entryType = type === "income" ? "income" : "expense";
   const [open, setOpen] = useState(false);
@@ -127,12 +167,29 @@ const rows = data.entries;
             <div>
               <h2 className="font-semibold text-slate-900">{type === "income" ? "Income records" : "Expense records"}</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Every {type === "income" ? "payment received" : "payment made"}, including the rows created automatically from fees and salaries.
+                {type === "income"
+                  ? "Every payment received, including the rows created automatically when a student fee is marked paid."
+                  : "Every payment made, including the rows created automatically when a teacher salary is marked paid."}
               </p>
             </div>
-            <button type="button" onClick={() => setOpen((value) => !value)} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500">
-              {open ? "Close" : `+ Add ${type}`}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {type === "expenses" ? (
+                <button
+                  type="button"
+                  onClick={onOpenSalaries}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Manage salaries
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setOpen((value) => !value)}
+                className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500"
+              >
+                {open ? "Close" : `+ Add ${type}`}
+              </button>
+            </div>
           </div>
 
           {open ? (
@@ -175,6 +232,15 @@ const rows = data.entries;
             </form>
           ) : null}
 <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="text-sm font-medium text-slate-600">
+              Month
+              <select value={filters.month} onChange={(event) => updateFilter("month", event.target.value)} className={`${field} bg-white`}>
+                <option value="">All months</option>
+                {LEDGER_MONTHS.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+            </label>
             <label className="text-sm font-medium text-slate-600">
               Search
               <input value={filters.search} onChange={(event) => updateFilter("search", event.target.value)} placeholder="Description" className={field} />
@@ -252,7 +318,7 @@ const rows = data.entries;
                     </td>
                     <td className="px-6 py-3 text-slate-600">{entry.category}</td>
                     <td className="px-6 py-3 text-slate-600">{entry.classSection || "-"}</td>
-                    <td className="px-6 py-3"><SourcePill source={entry.source} /></td>
+                    <td className="px-6 py-3"><SourcePill source={entry.source} category={entry.category} /></td>
                     <td className={`whitespace-nowrap px-6 py-3 text-right font-semibold tabular-nums ${entry.type === "income" ? "text-emerald-600" : "text-rose-600"}`}>
                       {entry.type === "income" ? "+" : "-"}{formatMoney(entry.amount)}
                     </td>

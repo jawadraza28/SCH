@@ -311,6 +311,46 @@ studentSchema.index({ voucherNo: 1 }, { unique: true, sparse: true });
 export const Student = mongoose.models.Student || mongoose.model("Student", studentSchema);
 
 // ==========================================
+// Student Behavior Schema
+// ==========================================
+const studentBehaviorSchema = new Schema({
+  student: {
+    type: Schema.Types.ObjectId,
+    ref: "Student",
+    required: true,
+  },
+  teacher: {
+    type: Schema.Types.ObjectId,
+    ref: "Teacher",
+    required: true,
+  },
+  school: {
+    type: Schema.Types.ObjectId,
+    ref: "SchoolConfiguration",
+    required: true,
+  },
+  rating: {
+    type: String,
+    enum: ["excellent", "improving", "needs_attention"],
+    required: true,
+  },
+  note: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  observedAt: {
+    type: Date,
+    default: Date.now,
+  },
+}, { timestamps: true });
+
+studentBehaviorSchema.index({ student: 1, observedAt: -1 });
+studentBehaviorSchema.index({ school: 1, student: 1, observedAt: -1 });
+
+export const StudentBehavior = mongoose.models.StudentBehavior || mongoose.model("StudentBehavior", studentBehaviorSchema);
+
+// ==========================================
 // Teacher Schema
 // ==========================================
 const teacherSchema = new Schema({

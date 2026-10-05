@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Attendance, Fee, Student, Teacher } from "@/Models";
+import { Attendance, Fee, Student, StudentBehavior, Teacher } from "@/Models";
 import AttendanceHistory from "@/components/AttendanceHistory";
+import StudentBehaviorPanel from "@/components/StudentBehaviorPanel";
 import { buildAttendanceDateFilter } from "@/lib/attendance";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
 
@@ -30,10 +31,11 @@ export default async function TeacherStudentProfilePage({
 
   const filters = buildAttendanceDateFilter(queryParams);
   const attendanceQuery = { student: student._id, ...(filters.date ? { date: filters.date } : {}) };
-  const [fees, attendanceTotal, attendanceStats] = await Promise.all([
+  const [fees, attendanceTotal, attendanceStats, behaviorRecords] = await Promise.all([
     Fee.find({ student: student._id }).sort({ year: -1, month: -1 }).limit(12).lean(),
     Attendance.countDocuments(attendanceQuery),
     Attendance.aggregate([{ $match: attendanceQuery }, { $group: { _id: "$status", count: { $sum: 1 } } }]),
+    StudentBehavior.find({ student: student._id }).sort({ observedAt: -1 }).limit(6).populate("teacher", "name").lean(),
   ]);
   const pages = countPages(attendanceTotal, DEFAULT_PAGE_SIZE);
   const page = clampPage(parsePageNumber(queryParams.page), pages);
@@ -66,6 +68,13 @@ export default async function TeacherStudentProfilePage({
           </div>
         </section>
         <div className="mt-6 space-y-4">
+          <StudentBehaviorPanel studentId={String(student._id)} initialRecords={behaviorRecords.map((record) => ({
+            _id: String(record._id),
+            rating: String(record.rating) as "excellent" | "improving" | "needs_attention",
+            note: String(record.note ?? ""),
+            observedAt: record.observedAt ? new Date(record.observedAt).toISOString() : new Date().toISOString(),
+            teacher: record.teacher && typeof record.teacher === "object" && "name" in record.teacher ? String(record.teacher.name) : "Teacher",
+          }))} />
           <details className="group rounded-2xl bg-white shadow-sm"><summary className="cursor-pointer list-none px-6 py-5 font-semibold">Fees <span className="float-right text-sm font-normal text-slate-400 group-open:hidden">View details +</span><span className="float-right hidden text-sm font-normal text-slate-400 group-open:inline">Hide details -</span></summary><div className="overflow-x-auto border-t border-slate-100 px-6 py-4"><table className="w-full min-w-[520px] text-left text-sm"><thead className="text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3">Month</th><th className="py-3">Amount</th><th className="py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{fees.map((fee) => <tr key={String(fee._id)}><td className="py-3">{fee.month} {fee.year}</td><td className="py-3">{fee.amount}</td><td className="py-3 capitalize">{fee.status}</td></tr>)}</tbody></table>{fees.length === 0 && <p className="py-6 text-sm text-slate-400">No fee records available.</p>}</div></details>
           <AttendanceHistory records={attendance} page={page} pages={pages} month={filters.month} from={filters.from} to={filters.to} present={countOf("present")} late={countOf("late")} absent={countOf("absent")} leave={countOf("leave")} holidays={countOf("holiday")} hrefFor={attendanceHref} />
         </div>

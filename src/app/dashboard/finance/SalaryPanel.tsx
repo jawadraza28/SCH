@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { formatCount, formatMoney } from "@/components/charts/palette";
 import { MoneyTile } from "./LedgerPanel";
 
@@ -35,6 +36,7 @@ type SalaryPayload = {
   months: SalaryMonth[];
   rows: SalaryRow[];
   summary: { paid: number; unpaid: number; teachers: number };
+  history: Array<{ month: string; year: number; key: string; value: string; paid: number; unpaid: number }>;
 };
 
 export default function SalaryPanel() {
@@ -102,6 +104,7 @@ export default function SalaryPanel() {
     }
   }
 
+  const field = "mt-1 block rounded-xl border border-slate-200 bg-white px-3 py-2.5";
   const rows = data?.rows ?? [];
   const summary = data?.summary;
 return (
@@ -203,7 +206,56 @@ return (
           )}
         </div>
       </section>
+
+      {/* Month-wise payroll across the retained year, so a bad month is obvious
+          at a glance and each row links straight to that month's expenses. */}
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 p-5 sm:p-6">
+          <h2 className="font-semibold text-slate-900">Payroll by month</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Paid and unpaid salary totals for each month kept. Choosing a month above loads its teachers.
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-6 py-3 font-semibold">Month</th>
+                <th className="px-6 py-3 text-right font-semibold">Paid</th>
+                <th className="px-6 py-3 text-right font-semibold">Unpaid</th>
+                <th className="px-6 py-3 text-right font-semibold">Total</th>
+                <th className="px-6 py-3 text-right font-semibold">Expenses</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {(data?.history ?? []).map((item) => {
+                const isCurrent = item.month === month && item.year === year;
+                return (
+                  <tr key={item.key} className={isCurrent ? "bg-blue-50/50" : undefined}>
+                    <td className="px-6 py-3">
+                      <span className="font-semibold text-slate-900">{item.key}</span>
+                      {isCurrent ? (
+                        <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Showing</span>
+                      ) : null}
+                    </td>
+                    <td className="px-6 py-3 text-right font-semibold tabular-nums text-emerald-600">{formatMoney(item.paid)}</td>
+                    <td className="px-6 py-3 text-right font-semibold tabular-nums text-amber-600">{formatMoney(item.unpaid)}</td>
+                    <td className="px-6 py-3 text-right font-semibold tabular-nums text-slate-900">{formatMoney(item.paid + item.unpaid)}</td>
+                    <td className="px-6 py-3 text-right">
+                      <Link
+                        href={`/dashboard/finance?tab=expenses&month=${item.value}`}
+                        className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline"
+                      >
+                        View →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }
-  const field = "mt-1 block rounded-xl border border-slate-200 bg-white px-3 py-2.5";

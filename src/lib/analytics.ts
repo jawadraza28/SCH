@@ -173,6 +173,146 @@ export async function attendanceTrend(days = 14, now: Date = new Date()): Promis
   return points;
 }
 
+// ==========================================
+// Attendance trend ranges
+// ==========================================
+
+/** How finely the attendance trend can be grouped. */
+export type TrendRange = "daily" | "weekly" | "monthly" | "yearly";
+
+/** How many buckets each range shows. */
+const TREND_STEPS: Record<TrendRange, number> = { daily: 14, weekly: 12, monthly: 12, yearly: 5 };
+
+export const TREND_RANGES: Array<{ value: TrendRange; label: string }> = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+];
+
+/** The last twelve months as `YYYY-MM`, newest first — the month picker. */
+export function recentMonths(count = 12, now: Date = new Date()) {
+  const months: Array<{ value: string; label: string }> = [];
+  for (let offset = 0; offset < count; offset += 1) {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1));
+    months.push({
+      value: date.toISOString().slice(0, 7),
+      label: date.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }),
+    });
+  }
+  return months;
+}
+
+/** The final instant a range should cover: the end of `anchor`, or today. */
+function anchorEnd(anchor: string, now: Date) {
+  const today = new Date(dayKey(now) + "T00:00:00.000Z");
+  const match = /^(\d{4})-(\d{2})$/.exec(anchor);
+  if (!match) return today;
+  // Day 0 of the NEXT month number is the last day of the anchor month.
+  const end = new Date(Date.UTC(Number(match[1]), Number(match[2]), 0, 23, 59, 59, 999));
+  // The current month can only be measured up to today.
+  return end > today ? today : end;
+}
+
+/** First day of the window for a range ending at `end`. */
+function rangeStart(range: TrendRange, end: Date) {
+  const start = new Date(end);
+  if (range === "daily") start.setUTCDate(start.getUTCDate() - (TREND_STEPS.daily - 1));
+  else if (range === "weekly") start.setUTCDate(start.getUTCDate() - (TREND_STEPS.weekly * 7 - 1));
+  else if (range === "monthly") start.setUTCMonth(start.getUTCMonth() - (TREND_STEPS.monthly - 1), 1);
+  else start.setUTCFullYear(start.getUTCFullYear() - (TREND_STEPS.yearly - 1), 0, 1);
+  // Weekly buckets are Monday-keyed, so the window starts on a Monday.
+  if (range === "weekly") start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+  return start;
+}
+
+/** Advances one bucket and returns its stable string key. */
+function stepRange(range: TrendRange, cursor: Date) {
+  if (range === "monthly") cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  else if (range === "yearly") cursor.setUTCFullYear(cursor.getUTCFullYear() + 1);
+  else cursor.setUTCDate(cursor.getUTCDate() + (range === "weekly" ? 7 : 1));
+
+  if (range === "monthly") return cursor.toISOString().slice(0, 7);
+  if (range === "yearly") return String(cursor.getUTCFullYear());
+  return cursor.toISOString().slice(0, 10);
+}
+
+/** Axis label for a bucket. */
+function stepLabel(range: TrendRange, cursor: Date) {
+  if (range === "yearly") return String(cursor.getUTCFullYear());
+  if (range === "monthly") return cursor.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  return cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+/** Fuller label used in the tooltip. */
+function stepTitle(range: TrendRange, cursor: Date) {
+  if (range === "yearly") return String(cursor.getUTCFullYear());
+  if (range === "monthly") {
+    return cursor.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  }
+  return cursor.toLocaleDateString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** The `$dateToString` group key that matches how the buckets are keyed. */
+function trendKeyExpression(range: TrendRange) {
+  if (range === "monthly") return { $dateToString: { format: "%Y-%m", date: "$date", timezone: "UTC" } };
+  if (range === "yearly") return { $dateToString: { format: "%Y", date: "$date", timezone: "UTC" } };
+  if (range === "weekly") return { $dateToString: { format: "%Y-%m-%d", date: "$date", startOfWeek: "monday", timezone: "UTC" } };
+  return { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } };
+}
+
+/**
+ * Attendance bucketed by day, week, month or year, ending at `anchor`
+ * (`YYYY-MM`) or today when no anchor is given. Empty buckets are filled with
+ * zeros so the line stays continuous.
+ *
+ * Every range ends at the anchor, which is what makes the month picker
+ * predictable: choose March and each range reads "up to and including March".
+ */
+export async function attendanceSeries(
+  range: TrendRange,
+  anchor = "",
+  now: Date = new Date(),
+): Promise<DailyPoint[]> {
+  const end = anchorEnd(anchor, now);
+  const start = rangeStart(range, end);
+  const steps = TREND_STEPS[range];
+
+  const rows = await Attendance.aggregate<Partial<StatusCounts> & { _id: { key: string } }>([
+    { $match: { date: { $gte: start, $lt: new Date(end.getTime() + 86_400_000) } } },
+    {
+      $group: {
+        _id: { key: trendKeyExpression(range), status: "$status" },
+        ...addStatusFields(),
+      },
+    },
+  ]);
+
+  const byKey = new Map(rows.map((row) => [row._id.key, row]));
+  const points: DailyPoint[] = [];
+  const cursor = new Date(start);
+
+  for (let step = 0; step < steps; step += 1) {
+    const key = stepRange(range, cursor);
+    const counts = countsFromRow(byKey.get(key) ?? {});
+    points.push({
+      key,
+      label: stepLabel(range, cursor),
+      title: stepTitle(range, cursor),
+      counts,
+      marked: markedTotal(counts),
+      rate: attendanceRate(counts),
+    });
+  }
+  return points;
+}
+
 /** Orders "9-A" before "10-A" instead of the plain string order "10" < "9". */
 export function compareClassSections(a: string, b: string) {
   const [classA, sectionA = ""] = a.split("-");
@@ -323,6 +463,82 @@ export type RiskStudent = {
   rate: number;
   absent: number;
 };
+
+export type ClassNeedsAttention = {
+  classSection: string;
+  students: number;
+  marked: number;
+  unmarked: number;
+  rate: number;
+};
+
+/**
+ * Classes with students still missing from the attendance register in the
+ * selected window. These are the follow-up classes admins should review first.
+ */
+export async function unmarkedClassesBySection(days = 30, now: Date = new Date()): Promise<ClassNeedsAttention[]> {
+  const { start, end } = recentWindow(days, now);
+  const [rows, roster] = await Promise.all([
+    Attendance.aggregate([
+      { $match: { date: { $gte: start, $lt: end } } },
+      {
+        $group: {
+          _id: "$classSection",
+          marked: { $sum: 1 },
+          present: { $sum: { $cond: [{ $eq: ["$status", "present"] }, 1, 0] } },
+          late: { $sum: { $cond: [{ $eq: ["$status", "late"] }, 1, 0] } },
+          absent: { $sum: { $cond: [{ $eq: ["$status", "absent"] }, 1, 0] } },
+          leave: { $sum: { $cond: [{ $eq: ["$status", "leave"] }, 1, 0] } },
+          holiday: { $sum: { $cond: [{ $eq: ["$status", "holiday"] }, 1, 0] } },
+        },
+      },
+      { $sort: { marked: 1 } },
+    ]),
+    Student.aggregate([
+      { $match: { accountStatus: { $in: ["active", "pending"] } } },
+      {
+        $group: {
+          _id: {
+            className: { $toUpper: { $ifNull: ["$class", ""] } },
+            section: { $toUpper: { $ifNull: ["$section", ""] } },
+          },
+          students: { $sum: 1 },
+        },
+      },
+    ]),
+  ]);
+
+  const headcount = new Map(
+    roster.map((row) => [`${row._id.className}-${row._id.section}`.replace(/-+$/, ""), row.students]),
+  );
+
+  const needed: ClassNeedsAttention[] = [];
+  for (const row of rows) {
+    const total = headcount.get(row._id) ?? 0;
+    const marked = row.marked;
+    const unmarked = Math.max(0, total - marked);
+    if (total > 0 && unmarked > 0) {
+      const counts = countsFromRow(row);
+      needed.push({
+        classSection: row._id,
+        students: total,
+        marked,
+        unmarked,
+        rate: attendanceRate(counts),
+      });
+    }
+  }
+
+  for (const [classSection, total] of headcount) {
+    if (!classSection || total === 0) continue;
+    const matching = needed.find((entry) => entry.classSection === classSection);
+    if (!matching) {
+      needed.push({ classSection, students: total, marked: 0, unmarked: total, rate: 0 });
+    }
+  }
+
+  return needed.sort((a, b) => b.unmarked - a.unmarked || compareClassSections(a.classSection, b.classSection));
+}
 
 /**
  * Students whose attendance in the window is worst. A student needs at least

@@ -55,7 +55,15 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-const EMPTY_FILTERS: LedgerFilters = { search: "", category: "", classSection: "", from: "", to: "", source: "" };
+const EMPTY_FILTERS: LedgerFilters = {
+  search: "",
+  category: "",
+  classSection: "",
+  from: "",
+  to: "",
+  source: "",
+  month: "",
+};
 
 /** Builds a query string, dropping empty values so the URL stays readable. */
 function buildQuery(filters: LedgerFilters, page: number, limit: number) {
@@ -66,9 +74,21 @@ function buildQuery(filters: LedgerFilters, page: number, limit: number) {
   return params.toString();
 }
 
-export default function FinanceWorkspace({ initial, overview }: { initial: FinancePayload; overview: ReactNode }) {
-  const [tab, setTab] = useState<TabKey>("overview");
-  const [filters, setFilters] = useState<LedgerFilters>(EMPTY_FILTERS);
+export default function FinanceWorkspace({
+  initial,
+  overview,
+  initialTab = "overview",
+  initialMonth = "",
+}: {
+  initial: FinancePayload;
+  overview: ReactNode;
+  /** Lets a deep link open straight onto a tab, e.g. from the salary history. */
+  initialTab?: TabKey;
+  /** `YYYY-MM`, pre-applied to the ledger month filter. */
+  initialMonth?: string;
+}) {
+  const [tab, setTab] = useState<TabKey>(initialTab);
+  const [filters, setFilters] = useState<LedgerFilters>({ ...EMPTY_FILTERS, month: initialMonth });
   const [data, setData] = useState<FinancePayload>(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -145,6 +165,7 @@ export default function FinanceWorkspace({ initial, overview }: { initial: Finan
           setMessage={setMessage}
           onChanged={() => void load(1)}
           onPage={(page) => void load(page)}
+          onOpenSalaries={() => selectTab("salaries")}
         />
       )}
     </div>

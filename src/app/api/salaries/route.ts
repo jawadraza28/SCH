@@ -74,6 +74,20 @@ export async function GET(request: Request) {
       };
     });
 
+    // Month-wise history over the same window the picker offers, so payroll can
+    // be compared month by month without leaving the tab.
+    const history = await TeacherSalary.aggregate<{ _id: { year: number; month: string }; paid: number; unpaid: number }>([
+      { $match: { school, year: { $gte: available[available.length - 1].year } } },
+      {
+        $group: {
+          _id: { year: "$year", month: "$month" },
+          paid: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$amount", 0] } },
+          unpaid: { $sum: { $cond: [{ $eq: ["$status", "unpaid"] }, "$amount", 0] } },
+        },
+      },
+    ]);
+    const historyByKey = new Map(history.map((row) => [`${row._id.year}-${row._id.month}`, row]));
+
     return NextResponse.json({
       month: selected.month,
       year: selected.year,
@@ -83,6 +97,19 @@ export async function GET(request: Request) {
         ...salaryTotals(rows.map((row) => ({ status: row.status, amount: row.salary }))),
         teachers: rows.length,
       },
+      history: available.map((item) => {
+        const row = historyByKey.get(`${item.year}-${item.month}`);
+        const monthIndex = monthNames.indexOf(item.month);
+        return {
+          month: item.month,
+          year: item.year,
+          key: item.key,
+          // `YYYY-MM` so the row can deep-link straight into the month filter.
+          value: `${item.year}-${String(monthIndex + 1).padStart(2, "0")}`,
+          paid: row?.paid ?? 0,
+          unpaid: row?.unpaid ?? 0,
+        };
+      }),
     });
   } catch (error) {
     console.error("Salary list error:", error);
