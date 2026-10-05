@@ -763,8 +763,21 @@ const feeSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ["unpaid", "paid"],
+    // "partial" is a custom payment: some of the month's fee arrived and the
+    // rest is still owed. The student portal shows the balance that remains.
+    enum: ["unpaid", "partial", "paid"],
     default: "unpaid",
+  },
+  /**
+   * How much of `amount` has actually been received. 0 for an untouched month,
+   * equal to `amount` once fully paid, in between for a custom payment. Rows
+   * written before the field existed are read as fully paid when `status` says
+   * "paid" (feePaidAmount in src/lib/fees.ts).
+   */
+  paidAmount: {
+    type: Number,
+    min: [0, "Paid amount cannot be negative"],
+    default: 0,
   },
   paidDate: {
     type: Date,

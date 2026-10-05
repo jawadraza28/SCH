@@ -138,7 +138,7 @@ export default function FinanceWorkspace({
             type="button"
             onClick={() => selectTab(item.key)}
             aria-pressed={tab === item.key}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            className={`min-w-0 flex-1 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition sm:flex-none sm:px-4 sm:text-sm ${
               tab === item.key ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
             }`}
           >

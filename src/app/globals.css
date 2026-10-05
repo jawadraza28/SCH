@@ -1357,6 +1357,16 @@ main .shadow-sm {
 
 
 
+/* --- Exam seating room rows (ExamSeatingGenerator) ------------------------
+   On a phone each seat keeps a readable minimum and the room body scrolls
+   sideways instead of shrinking names into unreadable slivers. The rule is
+   scoped to `screen`, so printing keeps the fluid grid that fits the paper. */
+@media screen and (max-width: 47.9375rem) {
+  .seat-row-grid {
+    min-width: calc(var(--seat-columns, 5) * 6.5rem);
+  }
+}
+
 /* --- Stacked responsive tables (.stack-table) ----------------------------
    A wide table used to force sideways scrolling on every phone. Below the `md`
    breakpoint each row turns into a small card and each cell prints its column

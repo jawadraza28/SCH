@@ -3,8 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Attendance, Fee, SchoolConfiguration, Student } from "@/Models";
-import { lastTwelveMonthsNewestFirst } from "@/lib/fees";
+import { feePaidAmount, feeRemaining, feeStatusOf, lastTwelveMonthsNewestFirst } from "@/lib/fees";
 import FeeActions from "@/components/FeeActions";
+import { formatMoney } from "@/components/charts/palette";
+import { voucherRecipient } from "@/lib/voucher";
 import AttendanceHistory from "@/components/AttendanceHistory";
 import { buildAttendanceDateFilter } from "@/lib/attendance";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
@@ -44,17 +46,32 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
   const school = session.user.school ? await SchoolConfiguration.findById(session.user.school).lean() : null;
   const monthlyFee = Number(school?.monthlyFee ?? 0);
   const feeByMonth = new Map(fees.map((fee) => [`${fee.month}-${fee.year}`, fee]));
-  // Every student always shows the full one year window, most recent month first.
+  // Every student always shows the full one year window, most recent month first,
+  // priced with what has been received and what still remains on each month.
   const feeRows = lastTwelveMonthsNewestFirst().map((entry) => {
     const record = feeByMonth.get(entry.key);
+    const amount = Number(record?.amount ?? monthlyFee);
+    const paidAmount = record ? feePaidAmount(record) : 0;
     return {
       ...entry,
-      amount: record?.amount ?? monthlyFee,
-      status: record?.status === "paid" ? ("paid" as const) : ("unpaid" as const),
+      amount,
+      paidAmount,
+      remaining: feeRemaining(amount, paidAmount),
+      status: record ? feeStatusOf(amount, paidAmount) : ("unpaid" as const),
       paidDate: record?.paidDate ? new Date(record.paidDate).toLocaleDateString() : "",
     };
   });
   const paidMonths = feeRows.filter((row) => row.status === "paid").length;
+  const balanceDue = feeRows.reduce((sum, row) => sum + row.remaining, 0);
+  // The receipt the WhatsApp button words and addresses after each payment.
+  const receipt = {
+    schoolName: school?.schoolName ?? "",
+    studentName: String(student.fullName),
+    className: String(student.class),
+    section: String(student.section),
+    rollNumber: student.rollNumber ? String(student.rollNumber) : "",
+    phone: voucherRecipient(student),
+  };
 
   return (
     <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
@@ -78,46 +95,71 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
         </section>
 
         <section className="mt-6 overflow-hidden rounded-3xl bg-white shadow-sm">
-          <div className="flex flex-col justify-between gap-2 border-b border-slate-100 px-8 py-5 sm:flex-row sm:items-center">
+          <div className="flex flex-col justify-between gap-2 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:px-8 sm:py-5">
             <div>
               <h2 className="font-semibold">Monthly fees (last 12 months)</h2>
-              <p className="mt-1 text-sm text-slate-500">Mark any month paid or unpaid. The student sees this immediately in the student portal.</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Mark a month paid, record a part payment, or reverse it. The student sees this in the portal at once.
+              </p>
             </div>
-            <p className="text-sm font-semibold text-emerald-700">
-              {paidMonths} of {feeRows.length} months paid
-            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <p className="text-sm font-semibold text-emerald-700">
+                {paidMonths} of {feeRows.length} months paid
+              </p>
+              <p className={`text-sm font-semibold ${balanceDue > 0 ? "text-rose-600" : "text-slate-500"}`}>
+                {balanceDue > 0 ? `${formatMoney(balanceDue)} due` : "Nothing due"}
+              </p>
+            </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[620px] text-left text-sm">
+            <table className="stack-table w-full text-left text-sm md:min-w-[680px]">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-8 py-4">Month</th>
-                  <th className="px-4 py-3 sm:px-6 sm:py-4">Amount</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4">Month</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4">Fee · paid · balance</th>
                   <th className="px-4 py-3 sm:px-6 sm:py-4">Status</th>
-                  <th className="px-8 py-4 text-right">Action</th>
+                  <th className="px-4 py-3 sm:px-6 sm:py-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {feeRows.map((row) => (
                   <tr key={row.key}>
-                    <td className="px-8 py-4 font-medium">
+                    <td data-full className="px-4 py-3 sm:px-6 sm:py-4 font-medium">
                       {row.month} {row.year}
+                      {row.paidDate ? <p className="mt-1 text-xs text-slate-400">Paid on {row.paidDate}</p> : null}
                     </td>
-                    <td className="px-4 py-3 sm:px-6 sm:py-4">{row.amount}</td>
-                    <td className="px-4 py-3 sm:px-6 sm:py-4">
+                    <td data-label="Fee" className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">
+                      <p className="tabular-nums">{formatMoney(row.amount)}</p>
+                      <p className="mt-0.5 text-xs tabular-nums text-emerald-600">Paid {formatMoney(row.paidAmount)}</p>
+                      {row.remaining > 0 ? (
+                        <p className="text-xs tabular-nums text-rose-600">Balance {formatMoney(row.remaining)}</p>
+                      ) : null}
+                    </td>
+                    <td data-label="Status" className="px-4 py-3 sm:px-6 sm:py-4">
                       <span
                         className={
                           row.status === "paid"
-                            ? "rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
-                            : "rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
+                            ? "whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+                            : row.status === "partial"
+                              ? "whitespace-nowrap rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                              : "whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
                         }
                       >
-                        {row.status === "paid" ? "Paid" : "Unpaid"}
+                        {row.status === "paid" ? "Paid" : row.status === "partial" ? "Partly paid" : "Unpaid"}
                       </span>
-                      {row.paidDate ? <p className="mt-1 text-xs text-slate-400">Paid on {row.paidDate}</p> : null}
                     </td>
-                    <td className="px-8 py-4">
-                      <FeeActions studentId={studentId} month={row.month} year={row.year} status={row.status} />
+                    <td data-label="Action" data-full className="px-4 py-3 sm:px-6 sm:py-4">
+                      <div className="flex flex-col items-end gap-2">
+                        <FeeActions
+                          studentId={studentId}
+                          month={row.month}
+                          year={row.year}
+                          status={row.status}
+                          amount={row.amount}
+                          paidAmount={row.paidAmount}
+                          receipt={receipt}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { Printer, RefreshCw, Save, Trash2 } from "lucide-react";
 import { buildSeatingPlan, listSections, type ExamStudent } from "@/lib/exam-seating";
 
@@ -385,15 +385,21 @@ export default function ExamSeatingGenerator({
                   <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">{room.label} · {room.seats.length} seats · {room.columns} per row</span>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 overflow-x-auto print:overflow-visible">
                   {rows.map((rowSeats, rowIndex) => (
-                    <div key={`${room.name}-row-${rowIndex}`} className="flex items-stretch gap-2">
+                    <div key={`${room.name}-row-${rowIndex}`} className="flex items-stretch gap-2 print:min-w-0">
                       <span className="hidden w-16 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 print:flex print:bg-slate-100 sm:flex">
                         Row {rowIndex + 1}
                       </span>
                       <div
-                        className="grid flex-1 gap-2 print:gap-1"
-                        style={{ gridTemplateColumns: `repeat(${room.columns}, minmax(0, 1fr))` }}
+                        className="seat-row-grid grid flex-1 gap-2 print:gap-1"
+                        style={
+                          {
+                            gridTemplateColumns: `repeat(${room.columns}, minmax(0, 1fr))`,
+                            // Lets the phone rule below size the row from the column count.
+                            "--seat-columns": room.columns,
+                          } as CSSProperties
+                        }
                       >
                         {rowSeats.map((seat) => (
                           <div key={`${room.name}-${seat.seatNumber}`} className="rounded-xl border border-slate-200 bg-white p-2.5 print:rounded-none print:p-1.5">
@@ -411,7 +417,7 @@ export default function ExamSeatingGenerator({
           </div>
         ) : (
           <div className="seating-print-content mt-6 overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-left text-sm print:min-w-0">
+            <table className="stack-table w-full border-collapse text-left text-sm md:min-w-[720px] print:min-w-0">
               <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 print:bg-white">
                 <tr>
                   <th className="border-b border-slate-300 px-3 py-2">Class</th>
@@ -426,13 +432,13 @@ export default function ExamSeatingGenerator({
               <tbody>
                 {classWiseSeats.map((seat) => (
                   <tr key={`${seat.student._id}-${seat.roomName}`} className="break-inside-avoid">
-                    <td className="border-b border-slate-200 px-3 py-2">{seat.student.class}</td>
-                    <td className="border-b border-slate-200 px-3 py-2">{seat.student.section}</td>
-                    <td className="border-b border-slate-200 px-3 py-2">{seat.student.rollNumber || "-"}</td>
-                    <td className="border-b border-slate-200 px-3 py-2 font-medium">{seat.student.fullName}</td>
-                    <td className="border-b border-slate-200 px-3 py-2">{seat.roomName}</td>
-                    <td className="border-b border-slate-200 px-3 py-2">{seat.row + 1}</td>
-                    <td className="border-b border-slate-200 px-3 py-2">{seat.seatNumber}</td>
+                    <td data-label="Class" className="border-b border-slate-200 px-3 py-2">{seat.student.class}</td>
+                    <td data-label="Section" className="border-b border-slate-200 px-3 py-2">{seat.student.section}</td>
+                    <td data-label="Roll no." className="border-b border-slate-200 px-3 py-2">{seat.student.rollNumber || "-"}</td>
+                    <td data-label="Student" data-full className="border-b border-slate-200 px-3 py-2 font-medium">{seat.student.fullName}</td>
+                    <td data-label="Room" className="border-b border-slate-200 px-3 py-2">{seat.roomName}</td>
+                    <td data-label="Row" className="border-b border-slate-200 px-3 py-2">{seat.row + 1}</td>
+                    <td data-label="Seat" className="border-b border-slate-200 px-3 py-2">{seat.seatNumber}</td>
                   </tr>
                 ))}
               </tbody>

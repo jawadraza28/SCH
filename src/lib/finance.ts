@@ -57,14 +57,19 @@ export function schoolIdFrom(user: { school?: unknown }) {
 /**
  * Writes the income entry for a fee the admin just marked paid, or removes it
  * when the payment is reversed. Safe to call repeatedly: it upserts on the fee
- * id, so re-marking paid updates the amount instead of double counting.
+ * id, so re-marking paid — or topping up a custom payment — updates the amount
+ * instead of double counting. The row carries the money actually received, so a
+ * partly paid month contributes only what came in.
  */
 export async function syncFeeIncome(
-  fee: { _id: unknown; amount: number; month: string; year: number; paidDate?: Date | null },
+  fee: { _id: unknown; amount: number; paidAmount?: number; month: string; year: number; paidDate?: Date | null },
   student: { _id: unknown; fullName: string; class: string; section: string },
   school: string,
   recordedBy: unknown,
 ) {
+  // paidAmount wins when present; rows from before the field existed fall back
+  // to the full fee, which is exactly what "paid" meant back then.
+  const received = Number(fee.paidAmount ?? 0) > 0 ? Number(fee.paidAmount) : Number(fee.amount);
   await FinanceEntry.updateOne(
     { fee: fee._id },
     {
@@ -72,7 +77,7 @@ export async function syncFeeIncome(
         type: "income",
         category: AUTO_INCOME_CATEGORY,
         title: `${student.fullName} · ${student.class}-${student.section} · ${fee.month} ${fee.year}`,
-        amount: fee.amount,
+        amount: received,
         // The chart groups by when the money moved, not when the row was written.
         date: fee.paidDate ?? new Date(),
         source: "auto",

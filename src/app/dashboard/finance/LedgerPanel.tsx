@@ -291,7 +291,7 @@ const rows = data.entries;
           {loading ? (
             <p className="px-6 py-10 text-center text-sm text-slate-400">Loading records…</p>
           ) : rows.length ? (
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="stack-table w-full text-left text-sm md:min-w-[760px]">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-6 py-3 font-semibold">Date</th>
@@ -302,11 +302,11 @@ const rows = data.entries;
                   <th className="px-6 py-3 text-right font-semibold">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {rows.map((entry) => (
                   <tr key={entry._id}>
-                    <td className="whitespace-nowrap px-6 py-3 text-slate-600">{new Date(entry.date).toLocaleDateString()}</td>
-                    <td className="px-6 py-3">
+                    <td data-label="Date" className="whitespace-nowrap px-6 py-3 text-slate-600">{new Date(entry.date).toLocaleDateString()}</td>
+                    <td data-label="Description" data-full className="px-6 py-3">
                       <p className="font-semibold text-slate-900">{entry.title}</p>
                       {entry.note ? <p className="mt-0.5 text-xs text-slate-400">{entry.note}</p> : null}
                       {entry.student ? (
@@ -316,10 +316,10 @@ const rows = data.entries;
                       ) : null}
                       {entry.teacher ? <p className="mt-0.5 text-xs text-slate-400">{entry.teacher.name}</p> : null}
                     </td>
-                    <td className="px-6 py-3 text-slate-600">{entry.category}</td>
-                    <td className="px-6 py-3 text-slate-600">{entry.classSection || "-"}</td>
-                    <td className="px-6 py-3"><SourcePill source={entry.source} category={entry.category} /></td>
-                    <td className={`whitespace-nowrap px-6 py-3 text-right font-semibold tabular-nums ${entry.type === "income" ? "text-emerald-600" : "text-rose-600"}`}>
+                    <td data-label="Category" className="px-6 py-3 text-slate-600">{entry.category}</td>
+                    <td data-label="Class" className="px-6 py-3 text-slate-600">{entry.classSection || "-"}</td>
+                    <td data-label="Source" className="px-6 py-3"><SourcePill source={entry.source} category={entry.category} /></td>
+                    <td data-label="Amount" className={`whitespace-nowrap px-6 py-3 text-right font-semibold tabular-nums ${entry.type === "income" ? "text-emerald-600" : "text-rose-600"}`}>
                       {entry.type === "income" ? "+" : "-"}{formatMoney(entry.amount)}
                     </td>
                   </tr>

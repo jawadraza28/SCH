@@ -14,6 +14,7 @@
  */
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatCount } from "./palette";
 
 export type DonutSlice = {
@@ -32,6 +33,7 @@ export default function DonutChart({
   size = 220,
   thickness = 30,
   className = "",
+  sliceHref,
 }: {
   slices: DonutSlice[];
   /** Caption under the centre number when nothing is hovered. */
@@ -41,8 +43,16 @@ export default function DonutChart({
   size?: number;
   thickness?: number;
   className?: string;
+  /** Optional link per slice (index-aligned with `slices`). When present, clicking a slice or its legend row navigates to that URL. */
+  sliceHref?: string[];
 }) {
+  const router = useRouter();
   const [active, setActive] = useState<number | null>(null);
+
+  const navigate = (index: number) => {
+    const href = sliceHref?.[index];
+    if (href && href !== window.location.pathname + window.location.search) router.push(href);
+  };
 
   const total = slices.reduce((sum, slice) => sum + Math.max(0, slice.value), 0);
   const radius = (size - thickness) / 2;
@@ -97,12 +107,13 @@ return (
                   strokeWidth={active === arc.index ? thickness + 7 : thickness}
                   strokeDasharray={arc.dash}
                   strokeDashoffset={arc.shift}
-                  className="chart-arc"
-                  opacity={active === null || active === arc.index ? 1 : 0.32}
-                  style={{ cursor: "pointer" }}
-                  onMouseEnter={() => setActive(arc.index)}
-                  onMouseLeave={() => setActive(null)}
-                />
+                   className="chart-arc"
+                   opacity={active === null || active === arc.index ? 1 : 0.32}
+                   style={{ cursor: sliceHref ? "pointer" : "default" }}
+                   onMouseEnter={() => setActive(arc.index)}
+                   onMouseLeave={() => setActive(null)}
+                   onClick={() => navigate(arc.index)}
+                 />
               ),
             )}
           </g>
@@ -135,15 +146,16 @@ return (
           const isActive = active === index;
           return (
             <li key={slice.label}>
-              <button
-                type="button"
-                onMouseEnter={() => setActive(index)}
-                onMouseLeave={() => setActive(null)}
-                onFocus={() => setActive(index)}
-                onBlur={() => setActive(null)}
-                aria-pressed={isActive}
-                className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition ${isActive ? "bg-slate-100" : "hover:bg-slate-50"}`}
-              >
+             <button
+                 type="button"
+                 onMouseEnter={() => setActive(index)}
+                 onMouseLeave={() => setActive(null)}
+                 onFocus={() => setActive(index)}
+                 onBlur={() => setActive(null)}
+                 onClick={() => navigate(index)}
+                 aria-pressed={isActive}
+                 className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition ${isActive ? "bg-slate-100" : "hover:bg-slate-50"}`}
+               >
                 <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: slice.color }} aria-hidden="true" />
                 <span className="min-w-0 flex-1 truncate text-sm text-slate-600">{slice.label}</span>
                 <span className={`shrink-0 text-sm font-semibold tabular-nums ${isActive ? "text-slate-900" : "text-slate-500"}`}>

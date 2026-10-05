@@ -9,6 +9,7 @@ import VoucherSendButton from "@/components/VoucherSendButton";
 import { SkeletonRows } from "@/components/Loaders";
 import Pagination from "@/components/Pagination";
 import BackLink from "@/components/BackLink";
+import { formatMoney } from "@/components/charts/palette";
 
 type Row = {
   id: string;
@@ -21,15 +22,60 @@ type Row = {
   section: string;
   rollNumber: string;
   accountStatus: string;
+  /** The month's full fee. */
   amount: number;
-  status: "paid" | "unpaid";
+  /** What the office has received against it. */
+  paidAmount: number;
+  /** What is still owed. */
+  remaining: number;
+  status: "paid" | "partial" | "unpaid";
   paidDate: string | null;
 };
 
-type Summary = { total: number; paid: number; unpaid: number; shown: number };
+type Summary = {
+  total: number;
+  paid: number;
+  partial: number;
+  unpaid: number;
+  shown: number;
+  collected: number;
+  outstanding: number;
+};
 type Filters = { search: string; className: string; section: string; month: string; year: string; status: string };
 
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const EMPTY_SUMMARY: Summary = { total: 0, paid: 0, partial: 0, unpaid: 0, shown: 0, collected: 0, outstanding: 0 };
+
+/** The pill that names a row's state — paid, partly paid, or unpaid. */
+function StatusBadge({ status }: { status: Row["status"] }) {
+  const look =
+    status === "paid"
+      ? "bg-emerald-50 text-emerald-700"
+      : status === "partial"
+        ? "bg-blue-50 text-blue-700"
+        : "bg-amber-50 text-amber-700";
+  const label = status === "paid" ? "Paid" : status === "partial" ? "Partly paid" : "Unpaid";
+  return <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${look}`}>{label}</span>;
+}
+
+/** Due, received and balance for one row, as a compact three-line block. */
+function MoneyBreakdown({ row }: { row: Row }) {
+  return (
+    <div className="text-sm">
+      <p className="font-semibold tabular-nums text-slate-700">{formatMoney(row.amount)}</p>
+      <p className="mt-0.5 text-xs tabular-nums text-emerald-600">Paid {formatMoney(row.paidAmount)}</p>
+      <p className={`text-xs tabular-nums ${row.remaining > 0 ? "text-rose-600" : "text-slate-400"}`}>
+        {row.remaining > 0 ? `Balance ${formatMoney(row.remaining)}` : "Nothing due"}
+      </p>
+      {row.paidDate ? (
+        <p className="mt-1 text-[0.7rem] text-slate-400">
+          {row.remaining > 0 ? "Last payment " : "Paid on "}
+          {new Date(row.paidDate).toLocaleDateString()}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 // Orders "1, 2, ... 9, 10" instead of the plain string order "1, 10, 2".
 function compareLabels(a: string, b: string) {
@@ -47,12 +93,13 @@ export default function FeesPage() {
   const [filters, setFilters] = useState<Filters>(defaults);
   const [rows, setRows] = useState<Row[]>([]);
   const [classSections, setClassSections] = useState<string[]>([]);
-  const [summary, setSummary] = useState<Summary>({ total: 0, paid: 0, unpaid: 0, shown: 0 });
+  const [summary, setSummary] = useState<Summary>(EMPTY_SUMMARY);
   const [monthlyFee, setMonthlyFee] = useState(0);
   const [schoolName, setSchoolName] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -78,7 +125,7 @@ export default function FeesPage() {
       }
       setRows(result.students ?? []);
       setClassSections(result.classSections ?? []);
-      setSummary(result.summary ?? { total: 0, paid: 0, unpaid: 0, shown: 0 });
+      setSummary({ ...EMPTY_SUMMARY, ...(result.summary ?? {}) });
       setMonthlyFee(Number(result.monthlyFee ?? 0));
       setSchoolName(String(result.schoolName ?? ""));
       setPage(result.pagination?.page ?? 1);
@@ -124,6 +171,72 @@ export default function FeesPage() {
     setFilters(defaults);
     setMessage("");
     await load(defaults, 1);
+  }
+
+  /** The WhatsApp receipt details every action button on a row needs. */
+  function receiptFor(row: Row) {
+    return {
+      schoolName,
+      studentName: row.fullName,
+      className: row.className,
+      section: row.section,
+      rollNumber: row.rollNumber,
+      phone: row.voucherPhone,
+    };
+  }
+
+  /**
+   * Settles every student the current filters point at in one go. The filters —
+   * not the rows on screen — are sent, so students further down the pages of the
+   * same view are covered too.
+   */
+  async function markAllPaid() {
+    const settled = summary.unpaid + summary.partial;
+    if (settled <= 0) {
+      setMessage(`Everything in this view is already paid for ${filters.month} ${filters.year}.`);
+      return;
+    }
+    const confirmed = window.confirm(
+      `Mark ${settled} student${settled === 1 ? "" : "s"} as fully paid for ${filters.month} ${filters.year}?\n\n` +
+        `This covers the current filters${summary.total > settled ? ` — ${summary.total} students in scope` : ""}. ` +
+        `WhatsApp receipts can be sent afterwards from any row.`,
+    );
+    if (!confirmed) return;
+
+    setBulkBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/fees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          month: filters.month,
+          year: Number(filters.year) || now.getFullYear(),
+          action: "paid-all",
+          class: filters.className,
+          section: filters.section,
+          search: filters.search,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setError(result.error ?? "Unable to mark fees paid");
+        return;
+      }
+      const updated = Number(result.updated ?? 0);
+      const skipped = Number(result.total ?? 0) - updated;
+      setMessage(
+        `Marked ${updated} student${updated === 1 ? "" : "s"} paid for ${filters.month} ${filters.year}` +
+          (skipped > 0 ? ` · ${skipped} already paid` : "") +
+          ". Open any row's WhatsApp button to send the receipt.",
+      );
+      await load();
+    } catch {
+      setError("Unable to connect to the server");
+    } finally {
+      setBulkBusy(false);
+    }
   }
 
   function goToPage(next: number) {
@@ -212,6 +325,7 @@ export default function FeesPage() {
             >
               <option value="all">All students</option>
               <option value="paid">Paid only</option>
+              <option value="partial">Partly paid only</option>
               <option value="unpaid">Unpaid only</option>
             </select>
           </label>
@@ -235,27 +349,41 @@ export default function FeesPage() {
         {error && <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
         {message && <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>}
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+        <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm text-slate-500">Students in list</p>
-            <p className="mt-2 text-2xl sm:text-3xl font-bold">{summary.total}</p>
+            <p className="mt-2 text-xl font-bold sm:text-2xl">{summary.total}</p>
+            <p className="mt-1 text-xs text-slate-400">{summary.shown} match these filters</p>
           </div>
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm text-slate-500">Paid</p>
-            <p className="mt-2 text-2xl sm:text-3xl font-bold text-emerald-600">{summary.paid}</p>
+            <p className="mt-2 text-xl font-bold text-emerald-600 sm:text-2xl">{summary.paid}</p>
+            <p className="mt-1 text-xs text-slate-400">Fully settled</p>
           </div>
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+            <p className="text-sm text-slate-500">Partly paid</p>
+            <p className="mt-2 text-xl font-bold text-blue-600 sm:text-2xl">{summary.partial}</p>
+            <p className="mt-1 text-xs text-slate-400">Balance still due</p>
+          </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm text-slate-500">Unpaid</p>
-            <p className="mt-2 text-2xl sm:text-3xl font-bold text-red-600">{summary.unpaid}</p>
+            <p className="mt-2 text-xl font-bold text-amber-600 sm:text-2xl">{summary.unpaid}</p>
+            <p className="mt-1 text-xs text-slate-400">Nothing received</p>
           </div>
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Monthly fee</p>
-            <p className="mt-2 text-2xl sm:text-3xl font-bold">{monthlyFee}</p>
+          <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+            <p className="text-sm text-slate-500">Collected</p>
+            <p className="mt-2 text-xl font-bold text-emerald-600 sm:text-2xl">{formatMoney(summary.collected)}</p>
+            <p className="mt-1 text-xs text-slate-400">Received for {filters.month}</p>
+          </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+            <p className="text-sm text-slate-500">Outstanding</p>
+            <p className="mt-2 text-xl font-bold text-rose-600 sm:text-2xl">{formatMoney(summary.outstanding)}</p>
+            <p className="mt-1 text-xs text-slate-400">Monthly fee from {formatMoney(monthlyFee)}</p>
           </div>
         </div>
 
         <section className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="flex flex-col justify-between gap-2 border-b border-slate-100 px-6 py-4 sm:flex-row sm:items-center">
+          <div className="flex flex-col justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:px-6 sm:py-5">
             <div>
               <h2 className="font-semibold">
                 Fees for {filters.month} {filters.year}
@@ -265,9 +393,20 @@ export default function FeesPage() {
                 history.
               </p>
             </div>
-            <p className="text-sm text-slate-500">
-              {summary.shown} of {summary.total} students shown{total > 0 ? ` · page ${page} of ${pages}` : ""}
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-slate-500">
+                {summary.shown} of {summary.total} students shown{total > 0 ? ` · page ${page} of ${pages}` : ""}
+              </p>
+              <button
+                type="button"
+                onClick={() => void markAllPaid()}
+                disabled={bulkBusy || loading}
+                title="Settle every student the current filters point at"
+                className="whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {bulkBusy ? "Marking…" : "Mark all paid"}
+              </button>
+            </div>
           </div>
           {loading ? (
             <SkeletonRows rows={6} className="px-6 py-6" />
@@ -275,7 +414,7 @@ export default function FeesPage() {
             <div className="px-4 py-16 sm:px-6 sm:py-20 text-center text-sm text-slate-400">No students match the selected filters.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
+              <table className="stack-table w-full text-left text-sm md:min-w-[900px]">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Student</th>
@@ -288,10 +427,10 @@ export default function FeesPage() {
                     <th className="px-4 py-3 sm:px-6 sm:py-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {rows.map((row) => (
                     <tr key={row.id}>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                      <td data-full className="px-4 py-3 sm:px-6 sm:py-4">
                         <Link
                           href={`/dashboard/students/${row.id}`}
                           className="font-semibold text-blue-700 hover:underline"
@@ -302,42 +441,42 @@ export default function FeesPage() {
                           {row.accountStatus === "pending" ? "Pending approval" : row.cnic || "-"}
                         </p>
                       </td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.studentId || "-"}</td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">
+                      <td data-label="Student ID" className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.studentId || "-"}</td>
+                      <td data-label="Class" className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">
                         {row.className}-{row.section}
                       </td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.rollNumber || "-"}</td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                      <td data-label="Roll" className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.rollNumber || "-"}</td>
+                      <td data-label="Voucher" className="px-4 py-3 sm:px-6 sm:py-4">
                         <span className="whitespace-nowrap rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
                           {row.voucherNo || "-"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4 text-slate-600">{row.amount}</td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4">
-                        <span
-                          className={
-                            row.status === "paid"
-                              ? "whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
-                              : "whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
-                          }
-                        >
-                          {row.status === "paid" ? "Paid" : "Unpaid"}
-                        </span>
-                        {row.paidDate ? (
-                          <p className="mt-1 text-xs text-slate-400">
-                            Paid on {new Date(row.paidDate).toLocaleDateString()}
-                          </p>
-                        ) : null}
+                      {/* Due, received and balance in one block — the numbers the
+                          custom payment box and the student portal both quote. */}
+                      <td data-label="Fee" data-full className="px-4 py-3 sm:px-6 sm:py-4">
+                        <MoneyBreakdown row={row} />
                       </td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                      <td data-label="Status" data-full className="px-4 py-3 sm:px-6 sm:py-4">
+                        <StatusBadge status={row.status} />
+                      </td>
+                      <td data-label="Action" data-full className="px-4 py-3 sm:px-6 sm:py-4">
                         <div className="flex flex-col items-end gap-2">
                           <FeeActions
                             studentId={row.id}
                             month={filters.month}
                             year={Number(filters.year) || now.getFullYear()}
                             status={row.status}
-                            onUpdated={async () => {
-                              setMessage(`${row.fullName} marked ${row.status === "paid" ? "unpaid" : "paid"} for ${filters.month} ${filters.year}.`);
+                            amount={row.amount}
+                            paidAmount={row.paidAmount}
+                            receipt={receiptFor(row)}
+                            onUpdated={async (update) => {
+                              setMessage(
+                                update.status === "paid"
+                                  ? `${row.fullName} marked paid for ${filters.month} ${filters.year}.`
+                                  : update.status === "partial"
+                                    ? `${formatMoney(update.received)} received from ${row.fullName} — ${formatMoney(update.remaining)} still due for ${filters.month} ${filters.year}.`
+                                    : `Payment reversed for ${row.fullName} — ${filters.month} ${filters.year} is unpaid again.`,
+                              );
                               await load();
                             }}
                           />

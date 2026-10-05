@@ -112,6 +112,52 @@ export function buildVoucherMessage(details: VoucherDetails): string {
   ].join("\n");
 }
 
+/**
+ * The WhatsApp text of a payment receipt. It repeats what the admin recorded —
+ * fee for the month, money received, and what is still owed — so the parent can
+ * check it against the receipt without opening the portal. WhatsApp renders
+ * *asterisks* as bold, hence the wrapped labels.
+ */
+export function buildReceiptMessage(details: {
+  schoolName: string;
+  studentName: string;
+  className: string;
+  section: string;
+  rollNumber: string;
+  month: string;
+  year: number | string;
+  /** The whole month's fee. */
+  fee: number;
+  /** What the school has received against it, in total. */
+  paid: number;
+  /** The date this payment was recorded. */
+  paidOn?: Date;
+}): string {
+  const money = (value: number) => new Intl.NumberFormat("en-US").format(Math.round(value));
+  const remaining = Math.max(0, details.fee - details.paid);
+  const greeting = details.studentName.trim().split(/\s+/)[0] || details.studentName;
+  const paidOn = details.paidOn ?? new Date();
+
+  return [
+    `*PAYMENT RECEIPT — ${details.schoolName.trim() || "School"}*`,
+    "",
+    `Assalam-o-Alaikum ${greeting},`,
+    "",
+    `*Student:* ${details.studentName}`,
+    `*Class:* ${details.className}-${details.section}`,
+    `*Roll No:* ${details.rollNumber || "-"}`,
+    `*Period:* ${details.month} ${details.year}`,
+    `*Fee:* Rs ${money(details.fee)}`,
+    `*Received:* Rs ${money(details.paid)}`,
+    remaining > 0 ? `*Balance remaining:* Rs ${money(remaining)}` : "*Balance remaining:* Nil — paid in full",
+    `*Paid on:* ${formatVoucherDate(paidOn)}`,
+    "",
+    remaining > 0
+      ? `Please clear the remaining Rs ${money(remaining)} at the school office.`
+      : "Thank you, your fee for this month is fully cleared.",
+  ].join("\n");
+}
+
 /** The wa.me deep link with the voucher text already encoded into it. */
 export function whatsappVoucherLink(phone: string, message: string): string {
   return `https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(message)}`;

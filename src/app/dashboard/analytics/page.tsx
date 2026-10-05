@@ -367,7 +367,7 @@ export default async function AnalyticsPage({
             <EmptyChart message="Not enough marked attendance yet to build this list." />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-left text-sm">
+              <table className="stack-table w-full text-left text-sm md:min-w-[520px]">
                 <thead className="text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="py-3 font-semibold">Student</th>
@@ -377,19 +377,19 @@ export default async function AnalyticsPage({
                     <th className="py-3 text-right font-semibold">Rate</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {risk.map((student) => (
                     <tr key={student.id}>
-                      <td className="py-3">
+                      <td data-full className="py-3">
                         <Link href={`/dashboard/students/${student.id}`} className="font-semibold text-blue-700 hover:underline">
                           {student.name}
                         </Link>
                         <p className="mt-0.5 text-xs text-slate-400">Roll {student.rollNumber || "-"}</p>
                       </td>
-                      <td className="py-3 text-slate-600">{student.classSection}</td>
-                      <td className="py-3 text-right tabular-nums text-slate-600">{formatCount(student.marked)}</td>
-                      <td className="py-3 text-right tabular-nums text-rose-600">{formatCount(student.absent)}</td>
-                      <td className="py-3">
+                      <td data-label="Class" className="py-3 text-slate-600">{student.classSection}</td>
+                      <td data-label="Marked" className="py-3 text-right tabular-nums text-slate-600">{formatCount(student.marked)}</td>
+                      <td data-label="Absent" className="py-3 text-right tabular-nums text-rose-600">{formatCount(student.absent)}</td>
+                      <td data-label="Rate" className="py-3">
                         <span className="flex items-center justify-end gap-2 font-semibold tabular-nums text-slate-900">
                           <span className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
                             <span

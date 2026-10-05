@@ -77,7 +77,7 @@ export default function AttendanceHistory({
         </div>
       </div>
       <div className="overflow-x-auto px-6 py-4 sm:px-8">
-        {records.length ? <table className="w-full min-w-[560px] text-left text-sm"><thead className="text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3">Date</th><th className="py-3">Class</th><th className="py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{records.map((record) => <tr key={String(record._id)}><td className="py-3">{new Date(record.date).toLocaleDateString()}</td><td className="py-3">{record.classSection || "-"}</td><td className="py-3 capitalize">{record.status}</td></tr>)}</tbody></table> : <p className="py-8 text-center text-sm text-slate-400">No attendance records match this period.</p>}
+        {records.length ? <table className="stack-table w-full text-left text-sm md:min-w-[560px]"><thead className="text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3">Date</th><th className="py-3">Class</th><th className="py-3">Status</th></tr></thead><tbody>{records.map((record) => <tr key={String(record._id)}><td data-label="Date" className="py-3">{new Date(record.date).toLocaleDateString()}</td><td data-label="Class" className="py-3">{record.classSection || "-"}</td><td data-label="Status" className="py-3 capitalize">{record.status}</td></tr>)}</tbody></table> : <p className="py-8 text-center text-sm text-slate-400">No attendance records match this period.</p>}
       </div>
       <div className="border-t border-slate-100 px-6 py-4 sm:px-8"><Pagination page={page} pages={pages} hrefFor={hrefFor} /></div>
     </section>

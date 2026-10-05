@@ -150,7 +150,7 @@ return (
           {loading ? (
             <p className="px-6 py-10 text-center text-sm text-slate-400">Loading salaries…</p>
           ) : rows.length ? (
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="stack-table w-full text-left text-sm md:min-w-[640px]">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-6 py-3 font-semibold">Teacher</th>
@@ -161,14 +161,14 @@ return (
                   <th className="px-6 py-3 text-right font-semibold">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {rows.map((row) => (
                   <tr key={row.teacherId}>
-                    <td className="px-6 py-3 font-semibold text-slate-900">{row.name}</td>
-                    <td className="px-6 py-3 text-slate-600">{row.subject || "-"}</td>
-                    <td className="px-6 py-3 text-right font-semibold tabular-nums text-slate-900">{formatMoney(row.salary)}</td>
-                    <td className="px-6 py-3 text-slate-600">{row.paidDate ? new Date(row.paidDate).toLocaleDateString() : "-"}</td>
-                    <td className="px-6 py-3">
+                    <td data-label="Teacher" className="px-6 py-3 font-semibold text-slate-900">{row.name}</td>
+                    <td data-label="Subject" className="px-6 py-3 text-slate-600">{row.subject || "-"}</td>
+                    <td data-label="Salary" className="px-6 py-3 text-right font-semibold tabular-nums text-slate-900">{formatMoney(row.salary)}</td>
+                    <td data-label="Paid on" className="px-6 py-3 text-slate-600">{row.paidDate ? new Date(row.paidDate).toLocaleDateString() : "-"}</td>
+                    <td data-label="Status" className="px-6 py-3">
                       <span
                         className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
                           row.status === "paid" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
@@ -177,8 +177,8 @@ return (
                         {row.status === "paid" ? "Paid" : "Unpaid"}
                       </span>
                     </td>
-                    <td className="px-6 py-3">
-                      <div className="flex justify-end gap-2">
+                    <td data-label="Action" data-full className="px-6 py-3">
+                      <div className="flex flex-wrap justify-end gap-2">
                         <button
                           type="button"
                           disabled={busy === row.teacherId || row.status === "paid"}
@@ -217,7 +217,7 @@ return (
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="stack-table w-full text-left text-sm md:min-w-[560px]">
             <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-6 py-3 font-semibold">Month</th>
@@ -227,21 +227,21 @@ return (
                 <th className="px-6 py-3 text-right font-semibold">Expenses</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {(data?.history ?? []).map((item) => {
                 const isCurrent = item.month === month && item.year === year;
                 return (
                   <tr key={item.key} className={isCurrent ? "bg-blue-50/50" : undefined}>
-                    <td className="px-6 py-3">
+                    <td data-label="Month" className="px-6 py-3">
                       <span className="font-semibold text-slate-900">{item.key}</span>
                       {isCurrent ? (
                         <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Showing</span>
                       ) : null}
                     </td>
-                    <td className="px-6 py-3 text-right font-semibold tabular-nums text-emerald-600">{formatMoney(item.paid)}</td>
-                    <td className="px-6 py-3 text-right font-semibold tabular-nums text-amber-600">{formatMoney(item.unpaid)}</td>
-                    <td className="px-6 py-3 text-right font-semibold tabular-nums text-slate-900">{formatMoney(item.paid + item.unpaid)}</td>
-                    <td className="px-6 py-3 text-right">
+                    <td data-label="Paid" className="px-6 py-3 text-right font-semibold tabular-nums text-emerald-600">{formatMoney(item.paid)}</td>
+                    <td data-label="Unpaid" className="px-6 py-3 text-right font-semibold tabular-nums text-amber-600">{formatMoney(item.unpaid)}</td>
+                    <td data-label="Total" className="px-6 py-3 text-right font-semibold tabular-nums text-slate-900">{formatMoney(item.paid + item.unpaid)}</td>
+                    <td data-label="Expenses" className="px-6 py-3 text-right">
                       <Link
                         href={`/dashboard/finance?tab=expenses&month=${item.value}`}
                         className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline"

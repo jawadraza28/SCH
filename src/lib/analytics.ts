@@ -128,6 +128,42 @@ export async function todayTeacherAttendance(now: Date = new Date()) {
   return { counts, roster, marked: markedTotal(counts) };
 }
 
+/**
+ * Every student marked present (or late) today, with their roster details so the
+ * admin can click through to the register or reach a student record directly.
+ * Sorted by class then roll number for a stable, scannable list.
+ */
+export async function todayPresentStudents(now: Date = new Date()): Promise<PresentStudent[]> {
+  const { start, end } = todayWindow(now);
+  const rows = await Attendance.aggregate<{
+    _id: string;
+    student: { fullName: string; studentId: string; rollNumber: string; gender: string | null };
+    classSection: string;
+  }>([
+    { $match: { date: { $gte: start, $lte: end }, status: { $in: ["present", "late"] } } },
+    {
+      $lookup: {
+        from: "students",
+        localField: "student",
+        foreignField: "_id",
+        as: "student",
+        pipeline: [{ $project: { fullName: 1, studentId: 1, rollNumber: 1, gender: 1 } }],
+      },
+    },
+    { $unwind: "$student" },
+    { $sort: { classSection: 1, "student.rollNumber": 1, "student.fullName": 1 } },
+  ]);
+
+  return rows.map((row) => ({
+    id: String(row._id),
+    fullName: row.student.fullName,
+    studentId: row.student.studentId,
+    rollNumber: row.student.rollNumber,
+    classSection: row.classSection,
+    gender: row.student.gender ?? null,
+  }));
+}
+
 export type DailyPoint = {
   key: string;
   label: string;
@@ -434,8 +470,19 @@ export async function feeTrend(months = 12, now: Date = new Date()): Promise<Fee
     {
       $group: {
         _id: { year: "$year", month: "$month" },
-        collected: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$amount", 0] } },
-        outstanding: { $sum: { $cond: [{ $eq: ["$status", "unpaid"] }, "$amount", 0] } },
+        // Received: a fully paid row counts its whole fee, a partly paid one
+        // only what actually arrived, and an untouched row nothing at all.
+        collected: { $sum: { $cond: [{ $eq: ["$status", "paid"] }, "$amount", { $ifNull: ["$paidAmount", 0] }] } },
+        // Still owed: the part of the fee no money has reached yet.
+        outstanding: {
+          $sum: {
+            $cond: [
+              { $eq: ["$status", "paid"] },
+              0,
+              { $max: [{ $subtract: ["$amount", { $ifNull: ["$paidAmount", 0] }] }, 0] },
+            ],
+          },
+        },
       },
     },
   ]);
@@ -485,6 +532,15 @@ export async function homeworkByClass(limit = 8) {
   ]);
   return rows.map((row) => ({ classSection: row._id || "Unassigned", total: row.total, overdue: row.overdue }));
 }
+
+export type PresentStudent = {
+  id: string;
+  fullName: string;
+  studentId: string;
+  rollNumber: string;
+  classSection: string;
+  gender: string | null;
+};
 
 export type RiskStudent = {
   id: string;
