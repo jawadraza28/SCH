@@ -78,6 +78,24 @@ export function formatMoney(value: number) {
 }
 
 /**
+ * How a chart should print a value.
+ *
+ * Charts are Client Components but are rendered from Server Components, and
+ * React cannot pass a FUNCTION across that boundary. So the page names the
+ * format it wants and the chart resolves it here, which keeps every prop
+ * serializable (see formatByKind).
+ */
+export type ValueFormat = "count" | "money" | "money-compact" | "percent";
+
+/** Resolves a ValueFormat name to the formatter the charts call internally. */
+export function formatByKind(value: number, format: ValueFormat): string {
+  if (format === "money") return formatMoney(value);
+  if (format === "money-compact") return formatCompactMoney(value);
+  if (format === "percent") return String(Math.round(value));
+  return formatCount(value);
+}
+
+/**
  * A "nice" axis maximum (1, 2, 5 × 10ⁿ) that is always ≥ the data maximum, so
  * gridlines land on readable numbers instead of arbitrary decimals.
  */

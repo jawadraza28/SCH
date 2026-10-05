@@ -12,7 +12,7 @@
  * imported from a Client Component.
  */
 
-import { Attendance, ClassSection, Fee, Homework, Student, Teacher, TeacherAttendance } from "@/Models";
+import { Attendance, ClassSection, Fee, FinanceEntry, Homework, Student, Teacher, TeacherAttendance } from "@/Models";
 import { monthNames } from "@/lib/retention";
 import type { AttendanceStatus } from "@/components/charts/palette";
 
@@ -383,4 +383,130 @@ export async function schoolSnapshot() {
     Student.countDocuments({ accountStatus: "pending" }),
   ]);
   return { classes, teachers, activeStudents, pendingRequests };
+}
+
+// ==========================================
+// Finance
+// ==========================================
+
+/** How the finance trend chart can be bucketed. */
+export type FinanceBucket = "daily" | "weekly" | "monthly" | "yearly";
+
+export const FINANCE_BUCKETS: Array<{ value: FinanceBucket; label: string }> = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "yearly", label: "Yearly" },
+];
+
+/** Months of history each bucket shows — it mirrors the one-year retention window. */
+const BUCKET_SPAN: Record<FinanceBucket, number> = { daily: 30, weekly: 26, monthly: 12, yearly: 5 };
+
+/**
+ * `$dateToString` is used for every bucket rather than `$dateTrunc` because it
+ * works on every MongoDB version the app supports, and because the weekly form
+ * can snap to a Monday, giving a stable, sortable key per week.
+ */
+function bucketExpression(bucket: FinanceBucket) {
+  if (bucket === "monthly") return { $dateToString: { format: "%Y-%m", date: "$date", timezone: "UTC" } };
+  if (bucket === "yearly") return { $dateToString: { format: "%Y", date: "$date", timezone: "UTC" } };
+  if (bucket === "weekly") return { $dateToString: { format: "%Y-%m-%d", date: "$date", startOfWeek: "monday", timezone: "UTC" } };
+  return { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } };
+}
+
+/** How many buckets to render, and the first day of the window. */
+function bucketPlan(bucket: FinanceBucket, now: Date) {
+  const today = new Date(dayKey(now) + "T00:00:00.000Z");
+  const steps = BUCKET_SPAN[bucket];
+  const start = new Date(today);
+  if (bucket === "monthly") start.setUTCMonth(start.getUTCMonth() - (steps - 1), 1);
+  else if (bucket === "yearly") start.setUTCFullYear(start.getUTCFullYear() - (steps - 1), 0, 1);
+  else start.setUTCDate(start.getUTCDate() - (steps - 1));
+  return { start, steps };
+}
+
+/** The string key a given cursor date produces for a bucket. */
+function bucketKey(bucket: FinanceBucket, cursor: Date) {
+  if (bucket === "yearly") return String(cursor.getUTCFullYear());
+  if (bucket === "monthly") return cursor.toISOString().slice(0, 7);
+  return cursor.toISOString().slice(0, 10);
+}
+
+export type FinanceTrendPoint = { key: string; label: string; title: string; income: number; expense: number; net: number };
+
+/**
+ * Income vs expense per bucket across the retention window. Buckets with no
+ * entries are filled with zeros so the bars stay evenly spaced and the chart
+ * reads as a continuous timeline rather than a jagged one.
+ */
+export async function financeTrend(bucket: FinanceBucket, now: Date = new Date()): Promise<FinanceTrendPoint[]> {
+  const { start, steps } = bucketPlan(bucket, now);
+  const rows = await FinanceEntry.aggregate<{ _id: { key: string; type: string }; total: number }>([
+    { $match: { date: { $gte: start } } },
+    {
+      $group: {
+        _id: { key: bucketExpression(bucket), type: "$type" },
+        total: { $sum: "$amount" },
+      },
+    },
+  ]);
+
+  const byKey = new Map(rows.map((row) => [`${row._id.key}|${row._id.type}`, row.total]));
+  const points: FinanceTrendPoint[] = [];
+
+  for (let step = 0; step < steps; step += 1) {
+    const cursor = new Date(start);
+    if (bucket === "monthly") cursor.setUTCMonth(cursor.getUTCMonth() + step);
+    else if (bucket === "yearly") cursor.setUTCFullYear(cursor.getUTCFullYear() + step);
+    else cursor.setUTCDate(cursor.getUTCDate() + step);
+
+    const key = bucketKey(bucket, cursor);
+    const income = byKey.get(`${key}|income`) ?? 0;
+    const expense = byKey.get(`${key}|expense`) ?? 0;
+    points.push({
+      key,
+      label: bucket === "yearly"
+        ? key
+        : bucket === "monthly"
+          ? cursor.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })
+          : cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }),
+      title: bucket === "monthly"
+        ? cursor.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })
+        : cursor.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }),
+      income,
+      expense,
+      net: income - expense,
+    });
+  }
+  return points;
+}
+
+/** Total income, expense and balance inside an optional date window. */
+export async function financeTotals(range?: { start?: Date; end?: Date }) {
+  const match = range
+    ? { date: { ...(range.start ? { $gte: range.start } : {}), ...(range.end ? { $lte: range.end } : {}) } }
+    : {};
+  const rows = await FinanceEntry.aggregate<{ _id: string; total: number; count: number }>([
+    { $match: match },
+    { $group: { _id: "$type", total: { $sum: "$amount" }, count: { $sum: 1 } } },
+  ]);
+  const income = rows.find((row) => row._id === "income");
+  const expense = rows.find((row) => row._id === "expense");
+  return {
+    income: income?.total ?? 0,
+    expense: expense?.total ?? 0,
+    incomeCount: income?.count ?? 0,
+    expenseCount: expense?.count ?? 0,
+    balance: (income?.total ?? 0) - (expense?.total ?? 0),
+  };
+}
+
+/** Spend (or income) split by category, biggest first, for the donut charts. */
+export async function financeByCategory(type: "income" | "expense") {
+  const rows = await FinanceEntry.aggregate<{ _id: string; total: number; count: number }>([
+    { $match: { type } },
+    { $group: { _id: "$category", total: { $sum: "$amount" }, count: { $sum: 1 } } },
+    { $sort: { total: -1 } },
+  ]);
+  return rows.map((row) => ({ category: row._id, total: row.total, count: row.count }));
 }

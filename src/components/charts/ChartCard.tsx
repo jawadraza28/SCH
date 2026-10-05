@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 /**
@@ -38,9 +39,9 @@ export default function ChartCard({
           {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
         </div>
         {action ? (
-          <a href={action.href} className="shrink-0 text-sm font-semibold text-blue-600 hover:underline">
+          <Link href={action.href} className="shrink-0 text-sm font-semibold text-blue-600 hover:underline">
             {action.label} →
-          </a>
+          </Link>
         ) : null}
       </header>
       <div className="mt-5 flex-1">{children}</div>

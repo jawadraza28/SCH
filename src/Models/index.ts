@@ -327,6 +327,12 @@ const teacherSchema = new Schema({
     type: String,
     trim: true,
   },
+  /** Monthly salary for this teacher. Marking it paid records an expense. */
+  salary: {
+    type: Number,
+    default: 0,
+    min: [0, "Salary cannot be negative"],
+  },
   gender: {
     type: String,
     enum: ["male", "female", "other"],
@@ -421,6 +427,15 @@ const classSectionSchema = new Schema({
   currentStrength: {
     type: Number,
     default: 0,
+  },
+  /**
+   * Monthly fee charged to students in this class section. Each class can
+   * price differently; 0 means "use the school-wide monthly fee".
+   */
+  fee: {
+    type: Number,
+    default: 0,
+    min: [0, "Class fee cannot be negative"],
   },
   academicYear: {
     type: String,
@@ -790,5 +805,149 @@ auditLogSchema.index({ timestamp: -1 });
 auditLogSchema.index({ user: 1, timestamp: -1 });
 
 export const AuditLog = mongoose.models.AuditLog || mongoose.model("AuditLog", auditLogSchema);
+
+// ==========================================
+// Teacher Salary Schema
+// ==========================================
+// One row per teacher per month. Rows default to UNPAID so the salary tab
+// always shows what is still owed; marking one paid writes an expense into
+// FinanceEntry, and marking it unpaid removes that expense again.
+const teacherSalarySchema = new Schema({
+  teacher: {
+    type: Schema.Types.ObjectId,
+    ref: "Teacher",
+    required: true,
+  },
+  month: {
+    type: String,
+    enum: [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ],
+    required: true,
+  },
+  year: {
+    type: Number,
+    required: true,
+  },
+  /** Snapshot of the teacher's salary when the row was created. */
+  amount: {
+    type: Number,
+    required: true,
+    min: [0, "Salary cannot be negative"],
+  },
+  status: {
+    type: String,
+    enum: ["unpaid", "paid"],
+    default: "unpaid",
+  },
+  paidDate: {
+    type: Date,
+  },
+  markedBy: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+  school: {
+    type: Schema.Types.ObjectId,
+    ref: "SchoolConfiguration",
+    required: true,
+  },
+}, { timestamps: true });
+
+// One salary row per teacher per month.
+teacherSalarySchema.index({ teacher: 1, month: 1, year: 1 }, { unique: true });
+// Drives the salary tab's month/year listing and its paid/unpaid filter.
+teacherSalarySchema.index({ school: 1, year: -1, month: -1, status: 1 });
+
+export const TeacherSalary = mongoose.models.TeacherSalary || mongoose.model("TeacherSalary", teacherSalarySchema);
+
+// ==========================================
+// Finance Entry Schema (income + expenses)
+// ==========================================
+// A single ledger for both directions. Income is written automatically when a
+// student fee is marked paid; expenses automatically when a salary is marked
+// paid. An admin can also add either direction by hand. `fee`/`salary` hold the
+// source row so an automatic entry can be found and removed again if the admin
+// reverses the payment — the ledger never disagrees with the fees tab.
+const financeEntrySchema = new Schema({
+  type: {
+    type: String,
+    enum: ["income", "expense"],
+    required: true,
+  },
+  category: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  title: {
+    type: String,
+    required: [true, "Description is required"],
+    trim: true,
+  },
+  amount: {
+    type: Number,
+    required: [true, "Amount is required"],
+    min: [0, "Amount cannot be negative"],
+  },
+  /** When the money actually moved — this is what the charts group by. */
+  date: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+  source: {
+    type: String,
+    enum: ["auto", "manual"],
+    default: "manual",
+  },
+  /** Class the money relates to, so the ledger can be filtered per class. */
+  classSection: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  student: {
+    type: Schema.Types.ObjectId,
+    ref: "Student",
+  },
+  teacher: {
+    type: Schema.Types.ObjectId,
+    ref: "Teacher",
+  },
+  fee: {
+    type: Schema.Types.ObjectId,
+    ref: "Fee",
+  },
+  salary: {
+    type: Schema.Types.ObjectId,
+    ref: "TeacherSalary",
+  },
+  note: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  recordedBy: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+  school: {
+    type: Schema.Types.ObjectId,
+    ref: "SchoolConfiguration",
+    required: true,
+  },
+}, { timestamps: true });
+
+// The finance tab lists by direction and newest-first.
+financeEntrySchema.index({ school: 1, type: 1, date: -1 });
+// Category breakdown and per-class reporting.
+financeEntrySchema.index({ school: 1, category: 1, date: -1 });
+// Automatic entries are keyed by their source row so undoing a payment cleans up.
+financeEntrySchema.index({ fee: 1 });
+financeEntrySchema.index({ salary: 1 });
+
+export const FinanceEntry = mongoose.models.FinanceEntry || mongoose.model("FinanceEntry", financeEntrySchema);
 
 console.log("📚 Database models loaded successfully");

@@ -4,17 +4,18 @@
  * TrendChart — an area + line chart for a single measure over time
  * (attendance rate per day, fees collected per month).
  *
- * The line is smoothed with a monotone-ish cubic curve so a noisy week still
- * reads as one trend, and the area under it fades to transparent so the grid
- * stays visible. Hovering anywhere on the plot snaps a dot to the nearest
- * point and shows that day's exact value — the curve itself is decorative,
- * the tooltip is the accurate read-out.
+ * Straight segments join the points: this is daily attendance data where the
+ * exact number matters more than a pretty curve, and the area underneath fades
+ * to transparent so the grid stays visible. Hovering anywhere on the plot snaps
+ * a dot to the nearest point and shows that day's exact value.
  *
- * A Client Component because of the hover state.
+ * A Client Component because of the hover state. As with BarChart, values are
+ * printed through a named `valueFormat` — a function prop could not cross the
+ * server/client boundary.
  */
 
 import { useState } from "react";
-import { formatCount, niceCeiling } from "./palette";
+import { formatByKind, niceCeiling, type ValueFormat } from "./palette";
 
 export type TrendPoint = {
   /** Short axis label, e.g. "12 Mar". */
@@ -27,10 +28,12 @@ export type TrendPoint = {
 const VIEW_WIDTH = 720;
 const VIEW_HEIGHT = 240;
 const PADDING = { top: 22, right: 16, bottom: 32, left: 44 };
+const GRID_LINES = 4;
+
 export default function TrendChart({
   points,
   color = "var(--chart-1)",
-  formatValue = formatCount,
+  valueFormat = "count",
   suffix = "",
   caption,
   className = "",
@@ -38,7 +41,8 @@ export default function TrendChart({
   points: TrendPoint[];
   /** Line + gradient color. */
   color?: string;
-  formatValue?: (value: number) => string;
+  /** Names the formatter used for axis ticks, the tooltip and the caption. */
+  valueFormat?: ValueFormat;
   /** Appended to the tooltip value only (e.g. "%" or " students"). */
   suffix?: string;
   /** Small line under the chart, e.g. "Best: 96% on 12 March". */
@@ -46,6 +50,9 @@ export default function TrendChart({
   className?: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
+  const formatValue = (value: number) => formatByKind(value, valueFormat);
+  // Same contract as BarChart: an empty series must not crash the page.
+  if (points.length === 0) return <div className={className} />;
 
   const plotWidth = VIEW_WIDTH - PADDING.left - PADDING.right;
   const plotHeight = VIEW_HEIGHT - PADDING.top - PADDING.bottom;
@@ -142,10 +149,10 @@ export default function TrendChart({
           <g transform={`translate(${Math.min(Math.max(coords[active].x - 70, PADDING.left), VIEW_WIDTH - PADDING.right - 140)}, ${Math.max(coords[active].y - 46, 4)})`}>
             <rect width={140} height={38} rx={10} fill="var(--chart-tooltip)" />
             <text x={12} y={16} fontSize={11} fill="#cbd5e1">
-              {points[active].title ?? points[active].label}
+              {samples[active].title ?? samples[active].label}
             </text>
             <text x={12} y={31} fontSize={13} fontWeight={700} fill="#ffffff">
-              {formatValue(points[active].value)}
+              {formatValue(samples[active].value)}
               {suffix}
             </text>
           </g>
@@ -168,4 +175,3 @@ export default function TrendChart({
     </div>
   );
 }
-const GRID_LINES = 4;

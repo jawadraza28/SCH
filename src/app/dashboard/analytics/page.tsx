@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
@@ -19,7 +20,6 @@ import {
   STATUS_LABEL,
   STATUS_ORDER,
   STATUS_TEXT_CLASS,
-  formatCompactMoney,
   formatCount,
   formatMoney,
   rateColor,
@@ -59,7 +59,7 @@ function SnapshotTile({
   accent: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
       className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
     >
@@ -69,7 +69,7 @@ function SnapshotTile({
       </div>
       <p className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">{value}</p>
       <p className="mt-1 text-xs text-slate-400">{hint}</p>
-    </a>
+    </Link>
   );
 }
 
@@ -195,7 +195,7 @@ export default async function AnalyticsPage() {
               <TrendChart
                 points={trend.map((point) => ({ label: point.label, title: point.title, value: point.rate }))}
                 color="var(--chart-present)"
-                formatValue={(value) => String(Math.round(value))}
+                valueFormat="percent"
                 suffix="%"
               />
             ) : (
@@ -266,7 +266,7 @@ export default async function AnalyticsPage() {
                 { key: "collected", label: "Collected", color: "var(--chart-present)" },
                 { key: "outstanding", label: "Outstanding", color: "var(--chart-late)" },
               ]}
-              formatValue={formatCompactMoney}
+              valueFormat="money-compact"
             />
           </ChartCard>
 
@@ -315,9 +315,9 @@ export default async function AnalyticsPage() {
                   {risk.map((student) => (
                     <tr key={student.id}>
                       <td className="py-3">
-                        <a href={`/dashboard/students/${student.id}`} className="font-semibold text-blue-700 hover:underline">
+                        <Link href={`/dashboard/students/${student.id}`} className="font-semibold text-blue-700 hover:underline">
                           {student.name}
-                        </a>
+                        </Link>
                         <p className="mt-0.5 text-xs text-slate-400">Roll {student.rollNumber || "-"}</p>
                       </td>
                       <td className="py-3 text-slate-600">{student.classSection}</td>

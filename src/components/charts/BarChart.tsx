@@ -9,11 +9,13 @@
  * ResizeObserver and no layout thrash. Hovering a bar (or its legend row)
  * lifts it and prints a tooltip with every series for that category.
  *
- * A Client Component because of the hover state.
+ * A Client Component because of the hover state. Values are printed through a
+ * named `valueFormat` rather than a formatter function, because React cannot
+ * pass a function from a Server Component to a Client Component.
  */
 
 import { useState } from "react";
-import { formatCount, niceCeiling } from "./palette";
+import { formatByKind, niceCeiling, type ValueFormat } from "./palette";
 
 export type BarSeries = {
   key: string;
@@ -36,19 +38,23 @@ const PADDING = { top: 18, right: 12, bottom: 40, left: 44 };
 export default function BarChart({
   data,
   series,
-  formatValue = formatCount,
+  valueFormat = "count",
   unit = "",
   className = "",
 }: {
   data: BarDatum[];
   series: BarSeries[];
-  /** Formats axis ticks, bar values and tooltips. */
-  formatValue?: (value: number) => string;
+  /** Names the formatter; charts are client components, so a function prop is not an option. */
+  valueFormat?: ValueFormat;
   /** Suffix appended to axis ticks only (e.g. "%"). */
   unit?: string;
   className?: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
+  const formatValue = (value: number) => formatByKind(value, valueFormat);
+  // Callers already render an EmptyChart for "no rows", but a chart that can
+  // only crash is a bad contract — return a plain frame instead.
+  if (data.length === 0) return <div className={className} />;
 
   const plotWidth = VIEW_WIDTH - PADDING.left - PADDING.right;
   const plotHeight = VIEW_HEIGHT - PADDING.top - PADDING.bottom;
