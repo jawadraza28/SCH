@@ -21,7 +21,7 @@ type StatCard = {
   hint: string;
   href: string;
   accent: string;
-  icon: "students" | "teachers" | "classes" | "present" | "absent" | "requests" | "fees";
+  icon: "students" | "teachers" | "classes" | "present" | "absent" | "requests" | "fees" | "unmarked";
 };
 
 function CardIcon({ type }: { type: StatCard["icon"] }) {
@@ -33,6 +33,7 @@ function CardIcon({ type }: { type: StatCard["icon"] }) {
     absent: "M6 6l12 12M18 6 6 18",
     requests: "M6 4h12v16H6zM9 9h6M9 13h6M9 17h3",
     fees: "M6 4h12v16H6zM9 8h6M9 12h6M9 16h4",
+    unmarked: "M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
   } as const;
   return <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[type]} /></svg>;
 }
@@ -78,6 +79,7 @@ async function DashboardContent() {
     { label: "Active classes", value: classCount, hint: "Sections that are currently running", href: "/dashboard/classes", accent: "bg-violet-50 text-violet-600", icon: "classes" },
     { label: "Present today", value: presentToday, hint: `Students marked present on ${todayKey}`, href: `/dashboard/students?presentOn=${todayKey}`, accent: "bg-emerald-50 text-emerald-600", icon: "present" },
     { label: "Absent today", value: absentToday, hint: `Students marked absent on ${todayKey}`, href: "/dashboard/attendance", accent: "bg-rose-50 text-rose-600", icon: "absent" },
+    { label: "Unmarked attendance", value: registerToday.counts.unmarked, hint: `Students without attendance marked today`, href: "/dashboard/attendance", accent: "bg-amber-50 text-amber-600", icon: "unmarked" },
     { label: "Pending requests", value: pendingCount, hint: "Student requests waiting for a decision", href: "/dashboard/students/requests", accent: "bg-amber-50 text-amber-600", icon: "requests" },
     { label: "Unpaid fees", value: unpaidFees, hint: "Fee records still waiting for payment", href: "/dashboard/fees", accent: "bg-rose-50 text-rose-600", icon: "fees" },
     { label: "Teachers present", value: teacherPresentToday, hint: `Teachers marked present on ${todayKey}`, href: `/dashboard/teacher-attendance?date=${todayKey}&status=present`, accent: "bg-emerald-50 text-emerald-600", icon: "present" },

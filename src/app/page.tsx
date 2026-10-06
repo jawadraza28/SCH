@@ -64,8 +64,8 @@ export default async function Home() {
     <main className="landing-page min-h-screen overflow-hidden bg-slate-950 text-slate-100">
       <section className="relative w-full overflow-hidden px-4 pb-14 sm:px-10 sm:pb-20 lg:pb-28">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={coverImage} alt="" aria-hidden className="landing-cover opacity-40" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/65" />
+        <img src={coverImage} alt="" aria-hidden className="landing-cover opacity-75" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/40" />
         <div aria-hidden className="landing-cover-fade" />
         <LandingNav schoolName={schoolName} logo={logo} />
         <div className="relative z-10 mx-auto max-w-7xl pt-10 sm:pt-16 lg:pt-24">

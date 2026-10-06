@@ -501,7 +501,7 @@ export default function FeesPage() {
             <p className="mt-1 text-xs text-slate-400">Received for {filters.month}</p>
           </div>
           <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
-            <p className="text-sm text-slate-500">Outstanding</p>
+            <p className="text-sm text-slate-500">Unpaid</p>
             <p className="mt-2 text-xl font-bold text-rose-600 sm:text-2xl">{formatMoney(summary.outstanding)}</p>
             <p className="mt-1 text-xs text-slate-400">Monthly fee from {formatMoney(monthlyFee)}</p>
           </div>
