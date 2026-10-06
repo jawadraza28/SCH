@@ -9,7 +9,7 @@ export async function GET() {
     await connectToDatabase();
     const school = await SchoolConfiguration.findOne()
       .sort({ updatedAt: -1, createdAt: -1 })
-      .select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear")
+      .select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear tagline mission vision principalName principalMessage principalPhoto coverImage logo topStudents newsPosts gallery")
       .lean();
     if (!school) return NextResponse.json({ school: null });
 

@@ -1049,6 +1049,16 @@ main .shadow-sm {
 .landing-feature { position: relative; display: block; min-height: 12rem; border: 1px solid rgb(255 255 255 / 0.08); border-radius: 1rem; padding: 1.35rem; transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease; }
 .landing-feature:hover { border-color: rgb(125 211 252 / 0.35); background: rgb(255 255 255 / 0.04); transform: translateY(-0.25rem); }
 .landing-feature-number { display: block; margin-bottom: 1.75rem; color: rgb(148 163 184 / 0.55); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em; }
+
+/* --- Landing page content bands (mission, achievers, news, gallery) ------ */
+/* Small coloured label above every band heading. */
+.landing-eyebrow { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+/* A soft dark surface used for mission/vision and the closing CTA. */
+.landing-panel { border: 1px solid rgb(255 255 255 / 0.1); border-radius: 1.25rem; background: rgb(255 255 255 / 0.04); padding: 1.5rem; }
+/* A raised card for achievers and news posts. */
+.landing-card { border: 1px solid rgb(255 255 255 / 0.08); border-radius: 1.25rem; background: rgb(255 255 255 / 0.045); padding: 1.35rem; transition: border-color 180ms ease, background-color 180ms ease; }
+.landing-card:hover { border-color: rgb(125 211 252 / 0.3); background: rgb(255 255 255 / 0.06); }
+@media (min-width: 640px) { .landing-panel { padding: 2rem; } }
 .public-card { border: 1px solid rgb(255 255 255 / 0.1); border-radius: 1rem; background: rgb(255 255 255 / 0.06); padding: 1.25rem; }
 .public-detail { border-radius: 1rem; background: rgb(255 255 255 / 0.035); padding: 1.25rem; }
 .landing-mobile-menu {

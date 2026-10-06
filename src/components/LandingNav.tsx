@@ -5,9 +5,11 @@ import { useState } from "react";
 
 type Props = {
   schoolName: string;
+  /** Cloudinary logo from school settings; falls back to the bundled mark. */
+  logo?: string;
 };
 
-export default function LandingNav({ schoolName }: Props) {
+export default function LandingNav({ schoolName, logo }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,7 +17,8 @@ export default function LandingNav({ schoolName }: Props) {
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
         <Link href="/" className="flex min-w-0 items-center gap-3 text-sm font-bold tracking-wide">
           <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-500 text-lg">
-            <img src="/logo.png" alt="" className="h-full w-full object-cover" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logo || "/logo.png"} alt="" className="h-full w-full object-cover" />
           </span>
           <span className="truncate">{schoolName}</span>
         </Link>

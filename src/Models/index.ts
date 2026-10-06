@@ -5,6 +5,40 @@ import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 // ==========================================
+// Landing page content (nested on SchoolConfiguration)
+// ==========================================
+
+/** One achiever spotlighted in the "Top students" band of the public page. */
+const topStudentSchema = new Schema({
+  name: { type: String, trim: true, default: "" },
+  className: { type: String, trim: true, default: "" },
+  section: { type: String, trim: true, default: "" },
+  achievement: { type: String, trim: true, default: "" },
+  year: { type: String, trim: true, default: "" },
+  // Cloudinary secure URL plus the public id kept only so the old asset can be
+  // deleted when the admin swaps the photo.
+  photo: { type: String, default: "" },
+  photoPublicId: { type: String, default: "" },
+});
+
+/** One news / announcement card on the public page. */
+const newsPostSchema = new Schema({
+  title: { type: String, trim: true, default: "" },
+  description: { type: String, trim: true, default: "" },
+  image: { type: String, default: "" },
+  imagePublicId: { type: String, default: "" },
+  published: { type: Boolean, default: true },
+  publishedAt: { type: Date, default: Date.now },
+});
+
+/** One picture in the campus gallery. */
+const galleryImageSchema = new Schema({
+  image: { type: String, default: "" },
+  imagePublicId: { type: String, default: "" },
+  caption: { type: String, trim: true, default: "" },
+});
+
+// ==========================================
 // School Configuration Schema
 // ==========================================
 const schoolConfigurationSchema = new Schema({
@@ -76,6 +110,64 @@ const schoolConfigurationSchema = new Schema({
   subscriptionPlan: {
     type: String,
     default: "standard",
+  },
+  // --- Public landing page content, all editable from School settings -----
+  // A short line under the school name in the hero.
+  tagline: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  mission: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  vision: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  // Principal / head message band.
+  principalName: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  principalMessage: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  principalPhoto: {
+    type: String,
+    default: "",
+  },
+  principalPhotoPublicId: {
+    type: String,
+    default: "",
+  },
+  // Public ids for the hero cover and the brand logo, kept so the previous
+  // Cloudinary asset can be cleaned up whenever a new one replaces it.
+  coverImagePublicId: {
+    type: String,
+    default: "",
+  },
+  logoPublicId: {
+    type: String,
+    default: "",
+  },
+  topStudents: {
+    type: [topStudentSchema],
+    default: [],
+  },
+  newsPosts: {
+    type: [newsPostSchema],
+    default: [],
+  },
+  gallery: {
+    type: [galleryImageSchema],
+    default: [],
   },
 }, { timestamps: true });
 

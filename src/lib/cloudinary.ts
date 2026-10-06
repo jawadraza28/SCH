@@ -32,12 +32,19 @@ export async function verifyCloudinary() {
   }
 }
 
-export async function uploadProfilePhoto(buffer: Buffer, folder: string) {
+/**
+ * Uploads an already-compressed image buffer to Cloudinary.
+ *
+ * `maxDimension` caps the longest side; profile photos stay square-ish at 800,
+ * while wide landing imagery (hero cover, gallery) can pass a larger value so
+ * the picture still looks sharp on a desktop screen.
+ */
+export async function uploadImage(buffer: Buffer, folder: string, maxDimension = 800) {
   return new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
       folder,
       resource_type: "image",
-      transformation: [{ width: 800, height: 800, crop: "limit", quality: "auto", fetch_format: "auto" }],
+      transformation: [{ width: maxDimension, height: maxDimension, crop: "limit", quality: "auto", fetch_format: "auto" }],
     }, (error, result) => {
       if (error || !result?.secure_url || !result.public_id) {
         reject(error ?? new Error("Cloudinary did not return an uploaded image"));
@@ -47,6 +54,11 @@ export async function uploadProfilePhoto(buffer: Buffer, folder: string) {
     });
     stream.end(buffer);
   });
+}
+
+/** Profile photos (students, teachers, principal): capped at 800px. */
+export async function uploadProfilePhoto(buffer: Buffer, folder: string) {
+  return uploadImage(buffer, folder, 800);
 }
 
 export async function deleteCloudinaryPhoto(publicId?: string) {

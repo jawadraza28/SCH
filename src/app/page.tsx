@@ -1,33 +1,271 @@
 import Link from "next/link";
 import { connectToDatabase } from "@/lib/mongodb";
-import { SchoolConfiguration } from "@/Models";
+import { ClassSection, SchoolConfiguration, Student, Teacher } from "@/Models";
 import LandingNav from "@/components/LandingNav";
+import { formatCount } from "@/components/charts/palette";
+import { publishedNews, readLanding, visibleGallery, visibleTopStudents } from "@/lib/landing";
 
 export const dynamic = "force-dynamic";
 
+/** A short, human date for news cards. */
+function formatDate(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
+
+/**
+ * The public home page. Everything below the school's name is content the
+ * admin edits in the dashboard (School settings → Landing page) and images are
+ * served from Cloudinary. Each band renders only when it actually has content,
+ * so a school that has filled in nothing still gets a clean, complete page.
+ */
 export default async function Home() {
-  let school: { schoolName?: string; schoolDescription?: string } | null = null;
+  let school: Record<string, unknown> | null = null;
+  let studentCount = 0;
+  let teacherCount = 0;
+  let classCount = 0;
   try {
     await connectToDatabase();
     school = await SchoolConfiguration.findOne()
       .sort({ updatedAt: -1, createdAt: -1 })
-      .select("schoolName schoolDescription")
+      .select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear tagline mission vision principalName principalMessage principalPhoto coverImage logo topStudents newsPosts gallery")
       .lean();
+    const [students, teachers, classes] = await Promise.all([
+      Student.countDocuments({ accountStatus: { $in: ["active", "pending"] } }),
+      Teacher.countDocuments(),
+      ClassSection.countDocuments({ isActive: true }),
+    ]);
+    studentCount = students;
+    teacherCount = teachers;
+    classCount = classes;
   } catch {
     // The public page remains useful while first-time setup is being prepared.
   }
 
-  const schoolName = school?.schoolName || "Your School";
-  const description = school?.schoolDescription || "One clear place for attendance, learning, communication, and progress.";
+  const text = (value: unknown) => (typeof value === "string" ? value : "");
+  const schoolName = text(school?.schoolName) || "Your School";
+  const description = text(school?.schoolDescription) || "One clear place for attendance, learning, communication, and progress.";
+  const content = readLanding(school);
+  const coverImage = content.coverImage || "/landingcover.png";
+  const logo = content.logo || "/logo.png";
+  const news = publishedNews(content);
+  const achievers = visibleTopStudents(content);
+  const gallery = visibleGallery(content);
+  const heroLead = content.tagline || description;
+
+  const stats = [
+    { label: "Students", value: studentCount },
+    { label: "Teachers", value: teacherCount },
+    { label: "Classes", value: classCount },
+  ].filter((stat) => stat.value > 0);
+
   return (
     <main className="landing-page min-h-screen overflow-hidden bg-slate-950 text-slate-100">
-      <section className="relative w-full overflow-hidden px-4 pb-14 sm:px-10 sm:pb-20 lg:pb-28"><img src="/landingcover.png" alt="" aria-hidden className="landing-cover opacity-40" /><div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/65" /><div aria-hidden className="landing-cover-fade" /><LandingNav schoolName={schoolName} />
-        <div className="relative z-10 mx-auto grid max-w-7xl gap-8 pt-10 sm:gap-12 sm:pt-16 lg:grid-cols-[1fr_0.8fr] lg:items-center lg:pt-24">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400 sm:text-sm sm:tracking-[0.22em]">Welcome to</p><h1 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.1] tracking-tight sm:mt-6 sm:text-6xl">{schoolName}</h1><p className="mt-5 max-w-xl text-base leading-7 text-slate-400 sm:mt-7 sm:text-lg sm:leading-8">{description}</p><div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row"><Link href="/login" className="rounded-xl bg-blue-500 px-6 py-3.5 text-center font-semibold text-white hover:bg-blue-400">Open your workspace</Link><Link href="/about-us" className="rounded-xl border border-white/15 px-6 py-3.5 text-center font-semibold text-slate-200 hover:bg-white/5">Discover our school</Link></div></div>
+      <section className="relative w-full overflow-hidden px-4 pb-14 sm:px-10 sm:pb-20 lg:pb-28">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={coverImage} alt="" aria-hidden className="landing-cover opacity-40" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/65" />
+        <div aria-hidden className="landing-cover-fade" />
+        <LandingNav schoolName={schoolName} logo={logo} />
+        <div className="relative z-10 mx-auto max-w-7xl pt-10 sm:pt-16 lg:pt-24">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400 sm:text-sm sm:tracking-[0.22em]">Welcome to</p>
+          <h1 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.1] tracking-tight sm:mt-6 sm:text-6xl">{schoolName}</h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-slate-400 sm:mt-7 sm:text-lg sm:leading-8">{heroLead}</p>
+          <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row">
+            <Link href="/login" className="rounded-xl bg-blue-500 px-6 py-3.5 text-center font-semibold text-white hover:bg-blue-400">Open your workspace</Link>
+            <Link href="/about-us" className="rounded-xl border border-white/15 px-6 py-3.5 text-center font-semibold text-slate-200 hover:bg-white/5">Discover our school</Link>
+          </div>
+          {stats.length ? (
+            <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3 sm:mt-12">
+              {stats.map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 px-3 py-4 text-center backdrop-blur sm:px-5">
+                  <p className="text-xl font-bold tabular-nums sm:text-2xl">{formatCount(stat.value)}</p>
+                  <p className="mt-1 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400 sm:text-xs">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       </section>
-      <section className="border-t border-white/10 bg-slate-900/70"><div className="mx-auto max-w-7xl px-6 py-12 sm:px-10"><div className="grid gap-4 sm:grid-cols-3"><Link href="/login" className="landing-feature"><span className="landing-feature-number">01</span><p className="text-sm font-semibold text-white">For administrators</p><p className="mt-2 text-sm leading-6 text-slate-400">See the whole school, make decisions faster, and keep records organized.</p><span className="mt-5 block text-xs font-semibold text-blue-300">Open workspace →</span></Link><Link href="/login" className="landing-feature"><span className="landing-feature-number">02</span><p className="text-sm font-semibold text-white">For teachers</p><p className="mt-2 text-sm leading-6 text-slate-400">Spend less time on paperwork and more time with your classes.</p><span className="mt-5 block text-xs font-semibold text-emerald-300">Open workspace →</span></Link><Link href="/login" className="landing-feature"><span className="landing-feature-number">03</span><p className="text-sm font-semibold text-white">For students</p><p className="mt-2 text-sm leading-6 text-slate-400">Keep attendance, homework, results, notices, and fees close at hand.</p><span className="mt-5 block text-xs font-semibold text-amber-300">Open workspace →</span></Link></div></div></section>
-      <footer className="border-t border-white/10 px-6 py-8 sm:px-10"><div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between"><p>{schoolName} · A clearer school day.</p><div className="flex gap-4"><Link href="/about-us" className="hover:text-white">About us</Link><Link href="/contact" className="hover:text-white">Contact</Link><Link href="/login" className="hover:text-white">Sign in</Link></div></div></footer>
+      {(content.mission || content.vision) ? (
+        <section className="border-t border-white/10 bg-slate-900/70">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+            <div className="grid gap-5 sm:grid-cols-2 sm:gap-6">
+              {content.mission ? (
+                <article className="landing-panel border-blue-300/20">
+                  <p className="landing-eyebrow text-blue-300">Our mission</p>
+                  <p className="mt-3 text-base leading-7 text-slate-300">{content.mission}</p>
+                </article>
+              ) : null}
+              {content.vision ? (
+                <article className="landing-panel border-emerald-300/20">
+                  <p className="landing-eyebrow text-emerald-300">Our vision</p>
+                  <p className="mt-3 text-base leading-7 text-slate-300">{content.vision}</p>
+                </article>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {(content.principalName || content.principalMessage || content.principalPhoto) ? (
+        <section className="border-t border-white/10">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+            <div className="grid gap-6 sm:grid-cols-[14rem_1fr] sm:items-start sm:gap-10">
+              {content.principalPhoto ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={content.principalPhoto} alt={content.principalName || "Principal"} className="h-56 w-full max-w-xs rounded-3xl object-cover sm:h-52 sm:w-52" />
+                </>
+              ) : null}
+              <div>
+                <p className="landing-eyebrow text-blue-300">From the principal</p>
+                {content.principalMessage ? <p className="mt-4 text-lg italic leading-8 text-slate-300">“{content.principalMessage}”</p> : null}
+                {content.principalName ? <p className="mt-5 font-semibold text-white">{content.principalName}</p> : null}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+      {achievers.length ? (
+        <section className="border-t border-white/10 bg-slate-900/70">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+            <div className="max-w-2xl">
+              <p className="landing-eyebrow text-amber-300">Our achievers</p>
+              <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Top students</h2>
+              <p className="mt-3 text-slate-400">Learners who make us proud through their effort and results.</p>
+            </div>
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {achievers.map((student, index) => (
+                <article key={student.id || index} className="landing-card">
+                  <div className="flex items-center gap-4">
+                    <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white/10 text-lg font-bold">
+                      {student.photo ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={student.photo} alt={student.name} className="h-full w-full object-cover" />
+                        </>
+                      ) : (
+                        student.name.charAt(0)
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-white">{student.name}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        {[student.className ? `Class ${student.className}` : "", student.section ? `Section ${student.section}` : "", student.year].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                  {student.achievement ? <p className="mt-4 text-sm leading-6 text-slate-300">{student.achievement}</p> : null}
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {news.length ? (
+        <section className="border-t border-white/10">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+            <div className="max-w-2xl">
+              <p className="landing-eyebrow text-blue-300">Latest updates</p>
+              <h2 className="mt-3 text-2xl font-bold sm:text-3xl">News &amp; announcements</h2>
+            </div>
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {news.map((post, index) => (
+                <article key={post.id || index} className="landing-card overflow-hidden p-0">
+                  {post.image ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={post.image} alt={post.title || "News"} className="h-44 w-full object-cover" />
+                    </>
+                  ) : null}
+                  <div className="p-5">
+                    {post.publishedAt ? <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">{formatDate(post.publishedAt)}</p> : null}
+                    {post.title ? <h3 className="mt-2 font-semibold text-white">{post.title}</h3> : null}
+                    {post.description ? <p className="mt-2 text-sm leading-6 text-slate-400">{post.description}</p> : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+      {gallery.length ? (
+        <section className="border-t border-white/10 bg-slate-900/70">
+          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+            <div className="max-w-2xl">
+              <p className="landing-eyebrow text-emerald-300">Campus life</p>
+              <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Gallery</h2>
+            </div>
+            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {gallery.map((item, index) => (
+                <figure key={item.id || index} className="overflow-hidden rounded-2xl border border-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.image} alt={item.caption || "Campus"} className="h-40 w-full object-cover transition duration-300 hover:scale-105 sm:h-44" />
+                  {item.caption ? <figcaption className="bg-white/5 px-3 py-2 text-xs text-slate-300">{item.caption}</figcaption> : null}
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="border-t border-white/10 bg-slate-900/70">
+        <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+          <div className="max-w-2xl">
+            <p className="landing-eyebrow text-blue-300">One connected school</p>
+            <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Built for everyone</h2>
+          </div>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <Link href="/login" className="landing-feature">
+              <span className="landing-feature-number">01</span>
+              <p className="text-sm font-semibold text-white">For administrators</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">See the whole school, make decisions faster, and keep records organized.</p>
+              <span className="mt-5 block text-xs font-semibold text-blue-300">Open workspace →</span>
+            </Link>
+            <Link href="/login" className="landing-feature">
+              <span className="landing-feature-number">02</span>
+              <p className="text-sm font-semibold text-white">For teachers</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Spend less time on paperwork and more time with your classes.</p>
+              <span className="mt-5 block text-xs font-semibold text-emerald-300">Open workspace →</span>
+            </Link>
+            <Link href="/login" className="landing-feature">
+              <span className="landing-feature-number">03</span>
+              <p className="text-sm font-semibold text-white">For students</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Keep attendance, homework, results, notices, and fees close at hand.</p>
+              <span className="mt-5 block text-xs font-semibold text-amber-300">Open workspace →</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+          <div className="landing-panel flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold sm:text-2xl">Ready to see it in action?</h2>
+              <p className="mt-2 max-w-xl text-slate-400">Open the workspace, or reach the school office to arrange a visit.</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link href="/login" className="rounded-xl bg-blue-500 px-6 py-3 text-center font-semibold text-white hover:bg-blue-400">Sign in</Link>
+              <Link href="/contact" className="rounded-xl border border-white/15 px-6 py-3 text-center font-semibold text-slate-200 hover:bg-white/5">Contact us</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 px-6 py-8 sm:px-10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>{schoolName} · A clearer school day.</p>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/about-us" className="hover:text-white">About us</Link>
+            <Link href="/contact" className="hover:text-white">Contact</Link>
+            <Link href="/login" className="hover:text-white">Sign in</Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

@@ -25,6 +25,7 @@ const navigation: NavItem[] = [
   { label: "Assign classes", href: "/dashboard/teachers/assign", exact: true },
   { label: "Classes & sections", href: "/dashboard/classes" },
   { label: "Fees", href: "/dashboard/fees" },
+  { label: "Landing page", href: "/dashboard/landing", exact: true },
   { label: "Notices", href: "/dashboard/notices" },
   { label: "Student requests", href: "/dashboard/students/requests", exact: true },
   { label: "School settings", href: "/dashboard/school-settings", exact: true },
