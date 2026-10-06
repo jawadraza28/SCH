@@ -90,8 +90,8 @@ export default function DonutChart({
     .join(", ")}.`;
 return (
     <div className={`flex flex-col items-center gap-6 sm:flex-row sm:items-center ${className}`}>
-      <div className="relative shrink-0" style={{ width: size, maxWidth: "100%" }}>
-        <svg viewBox={`0 0 ${size} ${size}`} className="chart-enter h-auto w-full" role="img" aria-label={summary}>
+      <div className="relative shrink-0" style={{ width: size, maxWidth: "100%", aspectRatio: "1 / 1" }}>
+        <svg viewBox={`0 0 ${size} ${size}`} className="chart-enter block h-full w-full" role="img" aria-label={summary}>
           {/* Track: the empty remainder of the ring. */}
           <circle cx={center} cy={center} r={radius} fill="none" stroke="var(--chart-muted)" strokeWidth={thickness} />
           <g transform={`rotate(-90 ${center} ${center})`}>

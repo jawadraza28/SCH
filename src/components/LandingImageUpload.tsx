@@ -56,32 +56,62 @@ export default function LandingImageUpload({ kind, value, onChange, label = "Ima
     }
   }
 
+  function remove() {
+    onChange("", "");
+  }
+
+  const hasImage = Boolean(value);
+
   return (
-    <div>
+    <div className="w-full">
       <p className="text-sm font-medium text-slate-700">{label}</p>
       <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start">
+        {/* Preview frame */}
         <div className={`grid shrink-0 place-items-center overflow-hidden bg-slate-100 text-xs text-slate-400 ${frameClass}`}>
-          {value ? (
+          {hasImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={value} alt="" className="h-full w-full object-cover" />
           ) : (
-            <span>No image</span>
+            <div className="flex flex-col items-center justify-center gap-2 p-4 text-center text-slate-400">
+              <svg className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-xs">No image</span>
+            </div>
           )}
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+
+        {/* Action buttons */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 w-full sm:w-auto">
+          {/* Upload / Replace button */}
+          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors min-h-[44px] w-full sm:w-auto" style={{ touchAction: 'manipulation' }}>
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy} className="sr-only" />
-            {busy ? "Uploading…" : value ? "Replace image" : "Upload image"}
+            <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>{busy ? "Uploading…" : hasImage ? "Replace" : "Upload"}</span>
           </label>
-          {value ? (
-            <button type="button" onClick={() => onChange("", "")} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50">
-              Remove
+
+          {/* Remove button - only shown when image exists */}
+          {hasImage && (
+            <button
+              type="button"
+              onClick={remove}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-100 transition-colors min-h-[44px] w-full sm:w-auto"
+              style={{ touchAction: 'manipulation' }}
+            >
+              <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>Remove</span>
             </button>
-          ) : null}
-          {hint ? <p className="max-w-[16rem] text-xs text-slate-400">{hint}</p> : null}
+          )}
         </div>
       </div>
-      {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+
+      {hint && <p className="mt-2 text-xs text-slate-400 max-w-xs sm:max-w-[16rem]">{hint}</p>}
+      {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
     </div>
   );
 }

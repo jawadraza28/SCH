@@ -212,34 +212,7 @@ export default async function Home() {
         </section>
       ) : null}
 
-      <section className="border-t border-white/10 bg-slate-900/70">
-        <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
-          <div className="max-w-2xl">
-            <p className="landing-eyebrow text-blue-300">One connected school</p>
-            <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Built for everyone</h2>
-          </div>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <Link href="/login" className="landing-feature">
-              <span className="landing-feature-number">01</span>
-              <p className="text-sm font-semibold text-white">For administrators</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">See the whole school, make decisions faster, and keep records organized.</p>
-              <span className="mt-5 block text-xs font-semibold text-blue-300">Open workspace →</span>
-            </Link>
-            <Link href="/login" className="landing-feature">
-              <span className="landing-feature-number">02</span>
-              <p className="text-sm font-semibold text-white">For teachers</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Spend less time on paperwork and more time with your classes.</p>
-              <span className="mt-5 block text-xs font-semibold text-emerald-300">Open workspace →</span>
-            </Link>
-            <Link href="/login" className="landing-feature">
-              <span className="landing-feature-number">03</span>
-              <p className="text-sm font-semibold text-white">For students</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Keep attendance, homework, results, notices, and fees close at hand.</p>
-              <span className="mt-5 block text-xs font-semibold text-amber-300">Open workspace →</span>
-            </Link>
-          </div>
-        </div>
-      </section>
+     
 
       <section className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
