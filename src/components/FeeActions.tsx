@@ -8,6 +8,12 @@
  * stays as a balance). Money recorded this way shows in the student portal at
  * once, as "paid so far" plus what still remains.
  *
+ * Only the moves that apply to the row are rendered — an untouched month offers
+ * Mark paid + Custom pay, a settled one offers Mark unpaid, a part-paid one all
+ * three — so no disabled buttons clutter the action cell on any screen size.
+ * Anything extra the row wants on the same line (the WhatsApp voucher button)
+ * is passed in as `extra` and wraps with the rest.
+ *
  * Whenever an action actually brings money in, the matching payment receipt is
  * opened in WhatsApp, pre-typed and addressed to the student's guardian. The
  * browser cannot send the message by itself — the admin presses send there —
@@ -15,7 +21,7 @@
  * WhatsApp button, so nothing is ever lost.
  */
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { buildReceiptMessage, normalizePhone, whatsappVoucherLink } from "@/lib/voucher";
 import { formatMoney } from "@/components/charts/palette";
@@ -51,6 +57,8 @@ type Props = {
   paidAmount?: number;
   /** Present where the screen knows the student's guardian number. */
   receipt?: FeeReceipt;
+  /** Extra controls that share the action row, e.g. the voucher button. */
+  extra?: ReactNode;
   /** Called after a successful update. Defaults to refreshing server data. */
   onUpdated?: (update: FeeUpdate) => void | Promise<void>;
 };
@@ -63,6 +71,7 @@ export default function FeeActions({
   amount = 0,
   paidAmount = 0,
   receipt,
+  extra,
   onUpdated,
 }: Props) {
   const router = useRouter();
@@ -161,53 +170,67 @@ export default function FeeActions({
   const resend = receiptLink(amount, paidAmount);
   const canResend = Boolean(resend) && paidAmount > 0;
 
+  // Which moves this row offers: an untouched month can be settled or part
+  // paid, a settled month can be reversed, a part-paid month can do either.
+  // Nothing disabled is ever rendered — that is what keeps the cell tidy on
+  // both the desktop table and the stacked mobile cards.
+  const canSettle = status !== "paid" && !fullyPaid;
+  const canCustom = amount > 0 && !fullyPaid;
+  const canReverse = status !== "unpaid" || paidAmount > 0;
+
   return (
-    <div className="flex flex-col items-end gap-1.5">
-      <div className="flex flex-wrap items-center justify-end gap-1.5">
+    <div className="flex w-full flex-wrap items-center justify-start gap-1.5 sm:justify-end">
+      {canSettle ? (
         <button
           type="button"
-          disabled={saving || status === "paid"}
+          disabled={saving}
           onClick={() => void update("paid")}
-          className="min-w-[5.25rem] whitespace-nowrap rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"
+          className="h-8 whitespace-nowrap rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
         >
           Mark paid
         </button>
+      ) : null}
+      {canCustom ? (
         <button
           type="button"
-          disabled={saving || fullyPaid}
+          disabled={saving}
           onClick={() => {
             setError("");
             setNote("");
             setCustomOpen((open) => !open);
           }}
           aria-expanded={customOpen}
-          title={fullyPaid ? "Nothing left due for this month" : "Record a part payment, for example 1500 of 3000"}
-          className="min-w-[5.25rem] whitespace-nowrap rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:border-blue-300 disabled:opacity-40"
+          title="Record a part payment, for example 1500 of 3000"
+          className="h-8 whitespace-nowrap rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:border-blue-300 disabled:opacity-50"
         >
           Custom pay
         </button>
+      ) : null}
+      {canReverse ? (
         <button
           type="button"
-          disabled={saving || (status === "unpaid" && paidAmount <= 0)}
+          disabled={saving}
           onClick={() => void update("unpaid")}
-          className="min-w-[5.25rem] whitespace-nowrap rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-300 disabled:opacity-40"
+          title="Reverse this payment — the month becomes unpaid again"
+          className="h-8 whitespace-nowrap rounded-lg bg-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-300 disabled:opacity-50"
         >
           Mark unpaid
         </button>
-        {canResend ? (
-          <button
-            type="button"
-            onClick={() => resend && window.open(resend, "_blank", "noopener,noreferrer")}
-            title={`Send the payment receipt to WhatsApp ${recipient}`}
-            aria-label="Send payment receipt on WhatsApp"
-            className="inline-flex h-[1.9rem] w-[1.9rem] shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.16c-.25.69-1.43 1.32-1.98 1.37-.53.05-1.02.23-3.45-.72-2.9-1.13-4.74-4.09-4.88-4.29-.14-.19-1.16-1.54-1.16-2.94 0-1.4.73-2.08.99-2.37.26-.28.57-.36.76-.36.19 0 .38 0 .55.01.19.01.44-.07.69.53.25.6.86 2.06.94 2.21.08.15.13.32.03.52-.11.19-.16.31-.32.48-.16.16-.33.36-.47.48-.15.13-.31.28-.13.54.18.27.79 1.3 1.69 2.11 1.16 1.03 2.13 1.35 2.43 1.5.3.15.47.13.65-.08.18-.21.75-.87.95-1.17.2-.3.4-.25.66-.15.27.1 1.71.81 2 .96.3.15.5.22.57.35.08.12.08.71-.17 1.4Z" />
-            </svg>
-          </button>
-        ) : null}
-      </div>
+      ) : null}
+      {canResend ? (
+        <button
+          type="button"
+          onClick={() => resend && window.open(resend, "_blank", "noopener,noreferrer")}
+          title={`Send the payment receipt to WhatsApp ${recipient}`}
+          aria-label="Send payment receipt on WhatsApp"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+            <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm5.8 14.16c-.25.69-1.43 1.32-1.98 1.37-.53.05-1.02.23-3.45-.72-2.9-1.13-4.74-4.09-4.88-4.29-.14-.19-1.16-1.54-1.16-2.94 0-1.4.73-2.08.99-2.37.26-.28.57-.36.76-.36.19 0 .38 0 .55.01.19.01.44-.07.69.53.25.6.86 2.06.94 2.21.08.15.13.32.03.52-.11.19-.16.31-.32.48-.16.16-.33.36-.47.48-.15.13-.31.28-.13.54.18.27.79 1.3 1.69 2.11 1.16 1.03 2.13 1.35 2.43 1.5.3.15.47.13.65-.08.18-.21.75-.87.95-1.17.2-.3.4-.25.66-.15.27.1 1.71.81 2 .96.3.15.5.22.57.35.08.12.08.71-.17 1.4Z" />
+          </svg>
+        </button>
+      ) : null}
+      {extra}
 
       {customOpen ? (
         <form onSubmit={submitCustom} className="flex items-center gap-1.5">
@@ -246,8 +269,8 @@ export default function FeeActions({
         </form>
       ) : null}
 
-      {error ? <p className="max-w-[15rem] text-right text-xs text-red-600">{error}</p> : null}
-      {note ? <p className="max-w-[15rem] text-right text-xs text-slate-500">{note}</p> : null}
+      {error ? <p className="basis-full text-xs text-red-600 sm:text-right">{error}</p> : null}
+      {note ? <p className="basis-full text-xs text-slate-500 sm:text-right">{note}</p> : null}
     </div>
   );
 }

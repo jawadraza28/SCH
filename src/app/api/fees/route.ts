@@ -89,9 +89,15 @@ export async function GET(request: Request) {
     // One bucket per student for the selected month: unpaid, partly paid, or
     // paid. A student with no row yet is simply unpaid. The buckets are
     // mutually exclusive, so the summary counts always add up to the scope.
+    // A stored row with amount 0 is a leftover from before a fee was configured;
+    // it is re-priced with the live class/school fee here, so every student of
+    // the same class shows the same fee and the same balance everywhere.
+    const studentScopeById = new Map(sortedStudents.map((student) => [String(student._id), student]));
     const stateByStudent = new Map<string, { status: FeeStatus; due: number; paid: number }>();
     for (const fee of fees) {
-      const due = Number(fee.amount ?? 0);
+      const stored = Number(fee.amount ?? 0);
+      const scopeStudent = studentScopeById.get(String(fee.student));
+      const due = stored > 0 ? stored : scopeStudent ? feeForStudent(scopeStudent) : stored;
       const paid = feePaidAmount(fee);
       stateByStudent.set(String(fee.student), { status: feeStatusOf(due, paid), due, paid });
     }
@@ -110,14 +116,20 @@ export async function GET(request: Request) {
     const total = visibleIds.length;
     const pages = countPages(total, limit);
     const page = clampPage(parsePageNumber(params.get("page")), pages);
-    const pageIds = visibleIds.slice((page - 1) * limit, page * limit);
+    // `all=1` hands back every row in scope instead of one page — the bulk
+    // "Send all vouchers" action needs phone numbers and balances for the
+    // whole view, not just the twenty rows on screen.
+    const pageIds = params.get("all") === "1" ? visibleIds : visibleIds.slice((page - 1) * limit, page * limit);
     const pageStudents = pageIds.length ? await Student.find({ _id: { $in: pageIds } }).lean() : [];
     const studentById = new Map(pageStudents.map((student) => [String(student._id), student]));
     const rows = pageIds.flatMap((id) => {
       const student = studentById.get(String(id));
       if (!student) return [];
       const record = feeByStudent.get(String(id));
-      const due = Number(record?.amount ?? feeForStudent(student));
+      // A stored amount of 0 is stale (written before a fee existed) — fall
+      // back to the live class/school fee so the row matches the buckets above.
+      const storedDue = Number(record?.amount ?? 0);
+      const due = storedDue > 0 ? storedDue : feeForStudent(student);
       const paid = feePaidAmount(record);
       return [{
         id: String(student._id),
@@ -157,7 +169,6 @@ export async function GET(request: Request) {
 
     // Counts and money across the whole scope, not just this page, so the tiles
     // never jump as the admin pages through.
-    const studentScopeById = new Map(sortedStudents.map((student) => [String(student._id), student]));
     const counts: Record<FeeStatus, number> = { paid: 0, partial: 0, unpaid: 0 };
     let collected = 0;
     let outstanding = 0;
@@ -225,10 +236,12 @@ export async function POST(request: Request) {
         : [];
       const paidByStudent = new Map(existing.map((fee) => [String(fee.student), feePaidAmount(fee)]));
 
-      let updated = 0;
-    // Captured outside the callbacks: TypeScript (and the closure) both see a
-    // plain string, and the role check above has already proved it exists.
-    const markedBy = session.user.id;
+      // Ids actually settled in this run: the receipt queue lists only the
+      // students whose payment changed, not everyone in scope.
+      const updatedIds = new Set<string>();
+      // Captured outside the callbacks: TypeScript (and the closure) both see a
+      // plain string, and the role check above has already proved it exists.
+      const markedBy = session.user.id;
     for (let index = 0; index < students.length; index += 20) {
       const chunk = students.slice(index, index + 20);
       await Promise.all(chunk.map(async (student) => {
@@ -242,12 +255,24 @@ export async function POST(request: Request) {
           { upsert: true, new: true, setDefaultsOnInsert: true },
         );
         await syncFeeIncome(fee, student, schoolId, markedBy);
-        updated += 1;
+        updatedIds.add(String(student._id));
       }));
     }
 
       await pruneRetentionIfDue();
-      return NextResponse.json({ success: true, updated, total: students.length });
+      // Reported in scope order so the panel lists classes as the table does,
+      // with the phone the receipt would go to and the fee that was settled.
+      const settled = students
+        .filter((student) => updatedIds.has(String(student._id)))
+        .map((student) => ({
+          fullName: student.fullName,
+          className: student.class,
+          section: student.section,
+          rollNumber: student.rollNumber ?? "",
+          phone: voucherRecipient(student),
+          amount: dueFor(student),
+        }));
+      return NextResponse.json({ success: true, updated: updatedIds.size, total: students.length, settled });
     }
 
     if (!studentId) return NextResponse.json({ error: "Student, month, and year are required" }, { status: 400 });

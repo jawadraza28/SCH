@@ -13,10 +13,10 @@ import {
   homeworkByClass,
   recentMonths,
   schoolSnapshot,
-  todayStudentAttendance,
-  todayTeacherAttendance,
-  type TrendRange,
-} from "@/lib/analytics";
+    todayStudentAttendance,
+    todayTeacherAttendance,
+    type TrendRange,
+  } from "@/lib/analytics";
 import {
   SERIES_COLORS,
   STATUS_COLOR,
@@ -150,13 +150,13 @@ export default async function AnalyticsPage({
             href="/dashboard/students"
             accent="bg-blue-500"
           />
-          <SnapshotTile
-            label="Attendance today"
-            value={`${studentRate}%`}
-            hint={`${formatCount(studentsIn)} of ${formatCount(studentsToday.roster)} students in`}
-            href="/dashboard/attendance"
-            accent="bg-emerald-500"
-          />
+           <SnapshotTile
+             label="Attendance today"
+             value={`${studentRate}%`}
+             hint={`${formatCount(studentsIn)} present · ${formatCount(studentsToday.counts.absent + studentsToday.counts.late + studentsToday.counts.leave)} absent · ${formatCount(studentsToday.counts.unmarked)} not marked`}
+             href="/dashboard/analytics/today?view=unmarked"
+             accent="bg-emerald-500"
+           />
           <SnapshotTile
             label="Fees outstanding"
             value={formatMoney(outstanding)}
@@ -180,11 +180,30 @@ export default async function AnalyticsPage({
             title="Student attendance"
             subtitle={`${formatCount(studentsToday.marked)} of ${formatCount(studentsToday.roster)} students marked · ${studentRate}% attendance`}
             action={{ href: "/dashboard/attendance", label: "Mark attendance" }}
+            footer={
+              studentsToday.counts.unmarked > 0
+                ? <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">{studentsToday.counts.unmarked} students still not marked</span>
+                    <Link href="/dashboard/analytics/today?view=unmarked" className="font-semibold text-blue-700 hover:underline">
+                      Unmarked classes →
+                    </Link>
+                  </div>
+                : undefined
+            }
           >
             {studentsToday.roster === 0 ? (
               <EmptyChart message="No students on the roster yet. Add students to see today's attendance." />
             ) : (
-              <DonutChart slices={statusSlices(studentsToday.counts)} centerLabel="Students" centerHint={`${studentRate}% attended`} />
+              <DonutChart
+                slices={statusSlices(studentsToday.counts)}
+                centerLabel="Students"
+                centerHint={`${studentRate}% attended`}
+                sliceHref={STATUS_ORDER.map((status) => {
+                  if (status === "present" || status === "late") return "/dashboard/analytics/today?view=present";
+                  if (status === "unmarked") return "/dashboard/analytics/today?view=unmarked";
+                  return undefined;
+                })}
+              />
             )}
           </ChartCard>
 

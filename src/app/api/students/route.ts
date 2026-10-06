@@ -5,6 +5,7 @@ import { Student, Teacher } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 import { fullClassMessage, seatAvailability } from "@/lib/seats";
 import { buildVoucherNo } from "@/lib/voucher";
+import { backfillPaidPastMonths } from "@/lib/fee-backfill";
 
 const cnicPattern = /^\d{5}-\d{7}-\d$/;
 
@@ -141,6 +142,9 @@ export async function POST(request: Request) {
         isActive: true,
         school: session.user.school,
       });
+      // A fresh admission settles every previous month of the fee window up
+      // front (paid by default, still reversible from the fees screen).
+      await backfillPaidPastMonths(student, session.user.school, session.user.id);
     }
     return NextResponse.json({ success: true, student: { id: student._id, studentId: student.studentId, voucherNo: student.voucherNo, fullName: student.fullName, accountStatus: student.accountStatus } }, { status: 201 });
   } catch (error) {
@@ -169,6 +173,11 @@ export async function PATCH(request: Request) {
     if (approvalSeats.full) return NextResponse.json({ error: fullClassMessage(student.class, student.section, approvalSeats) }, { status: 409 });
     student.accountStatus = "active";
     await student.save();
+    // Approval is the moment a teacher-requested student really joins, so the
+    // previous months are settled here for that path too. Activation of an
+    // already-admitted student (action "activate") must not backfill again —
+    // existing months are skipped by the helper anyway.
+    if (action === "approve") await backfillPaidPastMonths(student, access.user.school, access.user.id);
     const existingUser = await (await import("@/Models")).User.findOne({ cnic: student.cnic });
     if (!existingUser) {
       await (await import("@/Models")).User.create({ name: student.fullName, email: `${student.studentId.toLowerCase()}@student.local`, cnic: student.cnic, role: "student", password: await hashPassword(DEFAULT_STUDENT_PASSWORD), firstLoginCompleted: true, isActive: true, school: access.user.school });

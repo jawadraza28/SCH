@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Attendance, Fee, SchoolConfiguration, Student } from "@/Models";
+import { Attendance, ClassSection, Fee, SchoolConfiguration, Student } from "@/Models";
 import { feePaidAmount, feeRemaining, feeStatusOf, lastTwelveMonthsNewestFirst } from "@/lib/fees";
 import FeeActions from "@/components/FeeActions";
 import { formatMoney } from "@/components/charts/palette";
@@ -45,12 +45,24 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
   };
   const school = session.user.school ? await SchoolConfiguration.findById(session.user.school).lean() : null;
   const monthlyFee = Number(school?.monthlyFee ?? 0);
+  // Priced exactly like the fees screen: the class's own fee when it has one,
+  // school-wide fee otherwise — so the same student never shows two amounts.
+  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const classSection = await ClassSection.findOne({
+    className: { $regex: `^${escapeRegex(String(student.class))}$`, $options: "i" },
+    sectionName: { $regex: `^${escapeRegex(String(student.section))}$`, $options: "i" },
+  }).select("fee").lean();
+  const classFee = Number(classSection?.fee ?? 0);
+  const pricedFee = classFee > 0 ? classFee : monthlyFee;
   const feeByMonth = new Map(fees.map((fee) => [`${fee.month}-${fee.year}`, fee]));
   // Every student always shows the full one year window, most recent month first,
   // priced with what has been received and what still remains on each month.
   const feeRows = lastTwelveMonthsNewestFirst().map((entry) => {
     const record = feeByMonth.get(entry.key);
-    const amount = Number(record?.amount ?? monthlyFee);
+    // A stored amount of 0 predates the fee being configured — fall back to the
+    // live price instead of showing Rs 0 next to a paid-out history.
+    const stored = Number(record?.amount ?? 0);
+    const amount = stored > 0 ? stored : pricedFee;
     const paidAmount = record ? feePaidAmount(record) : 0;
     return {
       ...entry,
@@ -138,14 +150,16 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
                     <td data-label="Status" className="px-4 py-3 sm:px-6 sm:py-4">
                       <span
                         className={
-                          row.status === "paid"
-                            ? "whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
-                            : row.status === "partial"
-                              ? "whitespace-nowrap rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
-                              : "whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
+                          row.amount <= 0
+                            ? "whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500"
+                            : row.status === "paid"
+                              ? "whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+                              : row.status === "partial"
+                                ? "whitespace-nowrap rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                                : "whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700"
                         }
                       >
-                        {row.status === "paid" ? "Paid" : row.status === "partial" ? "Partly paid" : "Unpaid"}
+                        {row.amount <= 0 ? "No fee" : row.status === "paid" ? "Paid" : row.status === "partial" ? "Partly paid" : "Unpaid"}
                       </span>
                     </td>
                     <td data-label="Action" data-full className="px-4 py-3 sm:px-6 sm:py-4">

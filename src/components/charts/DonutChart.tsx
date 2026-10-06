@@ -44,7 +44,7 @@ export default function DonutChart({
   thickness?: number;
   className?: string;
   /** Optional link per slice (index-aligned with `slices`). When present, clicking a slice or its legend row navigates to that URL. */
-  sliceHref?: string[];
+  sliceHref?: (string | undefined)[];
 }) {
   const router = useRouter();
   const [active, setActive] = useState<number | null>(null);

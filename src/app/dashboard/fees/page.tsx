@@ -6,10 +6,12 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import FeeActions from "@/components/FeeActions";
 import VoucherSendButton from "@/components/VoucherSendButton";
+import WhatsAppBulkSend, { type WhatsAppMessage } from "@/components/WhatsAppBulkSend";
 import { SkeletonRows } from "@/components/Loaders";
 import Pagination from "@/components/Pagination";
 import BackLink from "@/components/BackLink";
 import { formatMoney } from "@/components/charts/palette";
+import { buildReceiptMessage, buildVoucherMessage } from "@/lib/voucher";
 
 type Row = {
   id: string;
@@ -43,11 +45,30 @@ type Summary = {
 };
 type Filters = { search: string; className: string; section: string; month: string; year: string; status: string };
 
+/** One student the bulk "mark all paid" run settled, as the API reports it. */
+type SettledStudent = {
+  fullName: string;
+  className: string;
+  section: string;
+  rollNumber: string;
+  phone: string;
+  amount: number;
+};
+
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const EMPTY_SUMMARY: Summary = { total: 0, paid: 0, partial: 0, unpaid: 0, shown: 0, collected: 0, outstanding: 0 };
 
-/** The pill that names a row's state — paid, partly paid, or unpaid. */
-function StatusBadge({ status }: { status: Row["status"] }) {
+/** The pill that names a row's state — paid, partly paid, unpaid, or no fee. */
+function StatusBadge({ status, amount }: { status: Row["status"]; amount: number }) {
+  // Nothing configured to charge is not "unpaid" in any useful sense; a
+  // neutral pill says so instead of crying wolf on every open month.
+  if (amount <= 0) {
+    return (
+      <span className="whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+        No fee
+      </span>
+    );
+  }
   const look =
     status === "paid"
       ? "bg-emerald-50 text-emerald-700"
@@ -67,7 +88,9 @@ function MoneyBreakdown({ row }: { row: Row }) {
       <p className={`text-xs tabular-nums ${row.remaining > 0 ? "text-rose-600" : "text-slate-400"}`}>
         {row.remaining > 0 ? `Balance ${formatMoney(row.remaining)}` : "Nothing due"}
       </p>
-      {row.paidDate ? (
+      {/* A date only means something when money actually arrived — a stale
+          paidDate on an untouched row must not read as "Paid on …". */}
+      {row.paidDate && row.paidAmount > 0 ? (
         <p className="mt-1 text-[0.7rem] text-slate-400">
           {row.remaining > 0 ? "Last payment " : "Paid on "}
           {new Date(row.paidDate).toLocaleDateString()}
@@ -100,6 +123,10 @@ export default function FeesPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [voucherBusy, setVoucherBusy] = useState(false);
+  // Pre-typed WhatsApp texts waiting to be opened — filled by a bulk action,
+  // cleared when the queue panel closes.
+  const [queue, setQueue] = useState<{ title: string; messages: WhatsAppMessage[] } | null>(null);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -199,7 +226,7 @@ export default function FeesPage() {
     const confirmed = window.confirm(
       `Mark ${settled} student${settled === 1 ? "" : "s"} as fully paid for ${filters.month} ${filters.year}?\n\n` +
         `This covers the current filters${summary.total > settled ? ` — ${summary.total} students in scope` : ""}. ` +
-        `WhatsApp receipts can be sent afterwards from any row.`,
+        `A WhatsApp receipt is queued for every student marked — the send panel opens when this finishes.`,
     );
     if (!confirmed) return;
 
@@ -226,16 +253,102 @@ export default function FeesPage() {
       }
       const updated = Number(result.updated ?? 0);
       const skipped = Number(result.total ?? 0) - updated;
+      const settledRows = (Array.isArray(result.settled) ? result.settled : []) as SettledStudent[];
       setMessage(
         `Marked ${updated} student${updated === 1 ? "" : "s"} paid for ${filters.month} ${filters.year}` +
           (skipped > 0 ? ` · ${skipped} already paid` : "") +
-          ". Open any row's WhatsApp button to send the receipt.",
+          ". Send each receipt from the WhatsApp panel.",
       );
+      // Every student settled in this run gets a pre-typed receipt queued;
+      // those without a number stay listed so the office knows who to chase.
+      if (settledRows.length > 0) {
+        setQueue({
+          title: `Payment receipts — ${filters.month} ${filters.year}`,
+          messages: settledRows.map((student) => ({
+            name: student.fullName,
+            phone: student.phone,
+            message: buildReceiptMessage({
+              schoolName,
+              studentName: student.fullName,
+              className: student.className,
+              section: student.section,
+              rollNumber: student.rollNumber,
+              month: filters.month,
+              year: filters.year,
+              fee: student.amount,
+              paid: student.amount,
+            }),
+          })),
+        });
+      }
       await load();
     } catch {
       setError("Unable to connect to the server");
     } finally {
       setBulkBusy(false);
+    }
+  }
+
+  /**
+   * Queues this month's voucher for every student in the current filters who
+   * still owes something. `all=1` asks the API for the whole scope rather than
+   * one page, so students below the fold are covered exactly as "Mark all paid"
+   * covers them.
+   */
+  async function sendAllVouchers() {
+    if (summary.unpaid + summary.partial <= 0) {
+      setMessage(`Nothing outstanding for ${filters.month} ${filters.year} — no vouchers to send.`);
+      return;
+    }
+    setVoucherBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const params = new URLSearchParams({
+        search: filters.search,
+        class: filters.className,
+        section: filters.section,
+        month: filters.month,
+        year: filters.year,
+        status: filters.status,
+        all: "1",
+      });
+      const response = await fetch(`/api/fees?${params.toString()}`);
+      const result = await response.json();
+      if (!response.ok) {
+        setError(result.error ?? "Unable to load students");
+        return;
+      }
+      const students = (Array.isArray(result.students) ? result.students : []) as Row[];
+      // Vouchers ask for what is owed, so a settled row never gets a "please pay".
+      const targets = students.filter((row) => row.remaining > 0);
+      if (targets.length === 0) {
+        setMessage(`Nothing outstanding for ${filters.month} ${filters.year} — no vouchers to send.`);
+        return;
+      }
+      setQueue({
+        title: `Fee vouchers — ${filters.month} ${filters.year}`,
+        messages: targets.map((row) => ({
+          name: row.fullName,
+          phone: row.voucherPhone,
+          message: buildVoucherMessage({
+            schoolName,
+            studentName: row.fullName,
+            className: row.className,
+            section: row.section,
+            rollNumber: row.rollNumber,
+            voucherNo: row.voucherNo,
+            month: filters.month,
+            year: filters.year,
+            amount: row.remaining,
+            issuedOn: new Date(),
+          }),
+        })),
+      });
+    } catch {
+      setError("Unable to connect to the server");
+    } finally {
+      setVoucherBusy(false);
     }
   }
 
@@ -349,7 +462,10 @@ export default function FeesPage() {
         {error && <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
         {message && <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>}
 
-        <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+        {/* Counts answer "who has paid"; the money row underneath answers
+            "how much was billed, received and still owed" for the current
+            filters — Total fees = Collected + Outstanding. */}
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm text-slate-500">Students in list</p>
             <p className="mt-2 text-xl font-bold sm:text-2xl">{summary.total}</p>
@@ -369,6 +485,15 @@ export default function FeesPage() {
             <p className="text-sm text-slate-500">Unpaid</p>
             <p className="mt-2 text-xl font-bold text-amber-600 sm:text-2xl">{summary.unpaid}</p>
             <p className="mt-1 text-xs text-slate-400">Nothing received</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+            <p className="text-sm text-slate-500">Total fees</p>
+            <p className="mt-2 text-xl font-bold sm:text-2xl">{formatMoney(summary.collected + summary.outstanding)}</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Billed for {filters.month} · {summary.total} students
+            </p>
           </div>
           <div className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm text-slate-500">Collected</p>
@@ -393,19 +518,31 @@ export default function FeesPage() {
                 history.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
               <p className="text-sm text-slate-500">
                 {summary.shown} of {summary.total} students shown{total > 0 ? ` · page ${page} of ${pages}` : ""}
               </p>
-              <button
-                type="button"
-                onClick={() => void markAllPaid()}
-                disabled={bulkBusy || loading}
-                title="Settle every student the current filters point at"
-                className="whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-              >
-                {bulkBusy ? "Marking…" : "Mark all paid"}
-              </button>
+              {/* Stacked full-width on phones, side by side from sm up. */}
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => void markAllPaid()}
+                  disabled={bulkBusy || loading}
+                  title="Settle every student the current filters point at"
+                  className="w-full whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 sm:w-auto"
+                >
+                  {bulkBusy ? "Marking…" : "Mark all paid"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void sendAllVouchers()}
+                  disabled={voucherBusy || loading}
+                  title="Queue this month's voucher for every student who still owes"
+                  className="w-full whitespace-nowrap rounded-xl border border-emerald-600 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 sm:w-auto"
+                >
+                  {voucherBusy ? "Loading…" : "Send all vouchers"}
+                </button>
+              </div>
             </div>
           </div>
           {loading ? (
@@ -457,42 +594,49 @@ export default function FeesPage() {
                         <MoneyBreakdown row={row} />
                       </td>
                       <td data-label="Status" data-full className="px-4 py-3 sm:px-6 sm:py-4">
-                        <StatusBadge status={row.status} />
+                        <StatusBadge status={row.status} amount={row.amount} />
                       </td>
                       <td data-label="Action" data-full className="px-4 py-3 sm:px-6 sm:py-4">
-                        <div className="flex flex-col items-end gap-2">
-                          <FeeActions
-                            studentId={row.id}
-                            month={filters.month}
-                            year={Number(filters.year) || now.getFullYear()}
-                            status={row.status}
-                            amount={row.amount}
-                            paidAmount={row.paidAmount}
-                            receipt={receiptFor(row)}
-                            onUpdated={async (update) => {
-                              setMessage(
-                                update.status === "paid"
-                                  ? `${row.fullName} marked paid for ${filters.month} ${filters.year}.`
-                                  : update.status === "partial"
-                                    ? `${formatMoney(update.received)} received from ${row.fullName} — ${formatMoney(update.remaining)} still due for ${filters.month} ${filters.year}.`
-                                    : `Payment reversed for ${row.fullName} — ${filters.month} ${filters.year} is unpaid again.`,
-                              );
-                              await load();
-                            }}
-                          />
-                          <VoucherSendButton
-                            schoolName={schoolName}
-                            studentName={row.fullName}
-                            className={row.className}
-                            section={row.section}
-                            rollNumber={row.rollNumber}
-                            voucherNo={row.voucherNo}
-                            phone={row.voucherPhone}
-                            month={filters.month}
-                            year={filters.year}
-                            amount={row.amount}
-                          />
-                        </div>
+                        {/* One wrap row: only the moves that apply to this row, plus
+                            the voucher icon while money is still owed — left-aligned
+                            on the stacked mobile cards, right-aligned on the table. */}
+                        <FeeActions
+                          studentId={row.id}
+                          month={filters.month}
+                          year={Number(filters.year) || now.getFullYear()}
+                          status={row.status}
+                          amount={row.amount}
+                          paidAmount={row.paidAmount}
+                          receipt={receiptFor(row)}
+                          onUpdated={async (update) => {
+                            setMessage(
+                              update.status === "paid"
+                                ? `${row.fullName} marked paid for ${filters.month} ${filters.year}.`
+                                : update.status === "partial"
+                                  ? `${formatMoney(update.received)} received from ${row.fullName} — ${formatMoney(update.remaining)} still due for ${filters.month} ${filters.year}.`
+                                  : `Payment reversed for ${row.fullName} — ${filters.month} ${filters.year} is unpaid again.`,
+                            );
+                            await load();
+                          }}
+                          extra={
+                            // The voucher quotes the balance after a part-payment;
+                            // a settled row never gets a "please pay" icon.
+                            row.remaining > 0 ? (
+                              <VoucherSendButton
+                                schoolName={schoolName}
+                                studentName={row.fullName}
+                                className={row.className}
+                                section={row.section}
+                                rollNumber={row.rollNumber}
+                                voucherNo={row.voucherNo}
+                                phone={row.voucherPhone}
+                                month={filters.month}
+                                year={filters.year}
+                                amount={row.remaining}
+                              />
+                            ) : null
+                          }
+                        />
                       </td>
                     </tr>
                   ))}
@@ -507,6 +651,9 @@ export default function FeesPage() {
           )}
         </section>
       </div>
+      {queue ? (
+        <WhatsAppBulkSend title={queue.title} messages={queue.messages} onClose={() => setQueue(null)} />
+      ) : null}
     </main>
   );
 }
