@@ -209,6 +209,7 @@ export default function FeesPage() {
       section: row.section,
       rollNumber: row.rollNumber,
       phone: row.voucherPhone,
+      voucherNo: row.voucherNo,
     };
   }
 

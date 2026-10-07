@@ -23,7 +23,7 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { buildReceiptMessage, normalizePhone, whatsappVoucherLink } from "@/lib/voucher";
+import { buildCustomPayMessage, buildReceiptMessage, normalizePhone, whatsappVoucherLink } from "@/lib/voucher";
 import { formatMoney } from "@/components/charts/palette";
 
 /** What the fees API reports back after a save. */
@@ -44,6 +44,8 @@ export type FeeReceipt = {
   section: string;
   rollNumber: string;
   phone: string;
+  /** Fee voucher reference, shown on custom-pay messages when available. */
+  voucherNo?: string;
 };
 
 type Props = {
@@ -103,6 +105,30 @@ export default function FeeActions({
     return whatsappVoucherLink(recipient, message);
   }
 
+  /**
+   * The wa.me link for a custom payment, which quotes the whole picture: the
+   * month's total fee, what has been paid so far, the amount received now and
+   * what is still due — more detail than the plain receipt, because a part
+   * payment is the case parents ask about most.
+   */
+  function customPayLink(fee: number, paid: number, received: number) {
+    if (!receipt || !recipient || fee <= 0 || received <= 0) return null;
+    const message = buildCustomPayMessage({
+      schoolName: receipt.schoolName,
+      studentName: receipt.studentName,
+      className: receipt.className,
+      section: receipt.section,
+      rollNumber: receipt.rollNumber,
+      voucherNo: receipt.voucherNo ?? "",
+      month,
+      year,
+      fee,
+      paid,
+      received,
+    });
+    return whatsappVoucherLink(recipient, message);
+  }
+
   async function update(action: "paid" | "unpaid" | "pay", received?: number) {
     setSaving(true);
     setError("");
@@ -129,9 +155,14 @@ export default function FeeActions({
       else router.refresh();
 
       // Money came in: hand the receipt to WhatsApp straight away, and keep a
-      // button behind it in case the browser refused to open the tab.
+      // button behind it in case the browser refused to open the tab. A custom
+      // pay quotes fee / paid / received / still due; a full payment quotes
+      // the plain receipt.
       if ((action === "paid" || action === "pay") && info.received > 0) {
-        const link = receiptLink(info.amount, info.paidAmount);
+        const link =
+          action === "pay"
+            ? customPayLink(info.amount, info.paidAmount, info.received)
+            : receiptLink(info.amount, info.paidAmount);
         if (link) {
           const opened = window.open(link, "_blank", "noopener,noreferrer");
           setNote(

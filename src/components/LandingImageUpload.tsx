@@ -65,7 +65,7 @@ export default function LandingImageUpload({ kind, value, onChange, label = "Ima
   return (
     <div className="w-full">
       <p className="text-sm font-medium text-slate-700">{label}</p>
-      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start">
+      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
         {/* Preview frame */}
         <div className={`grid shrink-0 place-items-center overflow-hidden bg-slate-100 text-xs text-slate-400 ${frameClass}`}>
           {hasImage ? (

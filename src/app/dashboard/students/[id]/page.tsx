@@ -83,6 +83,7 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
     section: String(student.section),
     rollNumber: student.rollNumber ? String(student.rollNumber) : "",
     phone: voucherRecipient(student),
+    voucherNo: student.voucherNo ? String(student.voucherNo) : "",
   };
 
   return (
@@ -100,7 +101,7 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
             </div>
           </div>
           <div className="grid gap-8 p-8 sm:grid-cols-2">
-            <div><h2 className="font-semibold">Student information</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-slate-500">CNIC</dt><dd>{student.cnic}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Gender</dt><dd className="capitalize">{student.gender ?? "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Status</dt><dd className="capitalize">{student.accountStatus}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Admission</dt><dd>{new Date(student.admissionDate).toLocaleDateString()}</dd></div></dl></div>
+            <div><h2 className="font-semibold">Student information</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-slate-500">CNIC</dt><dd>{student.cnic}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Gender</dt><dd className="capitalize">{student.gender ?? "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Status</dt><dd className="capitalize">{student.accountStatus}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Admission</dt><dd>{new Date(student.admissionDate).toLocaleDateString()}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Date of birth</dt><dd>{student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : '—'}</dd></div></dl></div>
             <div><h2 className="font-semibold">Parent information</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-slate-500">Father</dt><dd>{student.fatherName ?? "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Phone</dt><dd>{student.fatherPhone ?? "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Address</dt><dd className="text-right">{student.homeAddress ?? "-"}</dd></div></dl></div>
           </div>
           <div className="px-8 pb-8"><AdminPasswordResetButton id={studentId} role="student" /></div>
