@@ -82,6 +82,19 @@ The fees screen shows the voucher number and a **Send voucher** button on every 
 
 Pakistani numbers are stored as `0300…` and are converted to the international `92300…` form WhatsApp expects. When a student has no usable number the button is disabled and explains what to add, rather than opening an empty WhatsApp chat.
 
+## WhatsApp auto-send bot (free, no official API)
+
+Bulk lists ("Send all vouchers" / "Send receipts") can be delivered automatically without the official paid WhatsApp API, using a linked-device bot:
+
+1. Set `WA_BOT_URL=http://127.0.0.1:3099` in `.env` (and `WA_BOT_TOKEN` if the bot is not on the same machine).
+2. Start the bot on a machine that stays on: `npm run bot`.
+3. Open **Fees → Send all vouchers** in the portal, press **Connect** in the bot card, and scan the QR once with the school phone (WhatsApp → Linked devices). The session is saved under `bot/auth/` (git-ignored) so future runs need no rescan.
+4. Press **Send automatically** — every parent receives their own personalised voucher (name, roll no, amount, due date) without further clicks. Progress and per-parent outcomes (Sent / Failed / Not on WhatsApp) show live; **Stop** halts between messages.
+
+Risk controls (env-tunable in `.env`): a random 6–15 s delay per message, a 1–2 minute pause every 25 messages, an existence check before sending, and a 500-message cap per run. Keep the delays conservative — sending too fast is what gets a number banned. The bot uses your own WhatsApp account, so treat it like a person: warm the number up gradually and never send hundreds in one sitting on the first day.
+
+When the dashboard runs on Vercel while the bot runs locally, point `WA_BOT_URL` at a publicly reachable address (e.g. a Cloudflare tunnel) and always set `WA_BOT_TOKEN`; the bot binds to localhost unless `WA_BOT_HOST` says otherwise.
+
 ## Validation
 
 ```powershell

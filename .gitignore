@@ -38,6 +38,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# WhatsApp bot session (device pairing keys — never commit)
+/bot/auth/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
