@@ -131,15 +131,22 @@ export default function FinanceWorkspace({
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+      <div
+        role="tablist"
+        aria-label="Finance sections"
+        className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm"
+      >
         {TABS.map((item) => (
           <button
             key={item.key}
             type="button"
+            role="tab"
             onClick={() => selectTab(item.key)}
-            aria-pressed={tab === item.key}
-            className={`min-w-0 flex-1 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition sm:flex-none sm:px-4 sm:text-sm ${
-              tab === item.key ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+            aria-selected={tab === item.key}
+            className={`min-w-0 flex-1 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-300 active:scale-95 sm:flex-none sm:px-5 sm:text-sm ${
+              tab === item.key
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
+                : "text-slate-600 hover:-translate-y-0.5 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
             {item.label}
@@ -147,27 +154,32 @@ export default function FinanceWorkspace({
         ))}
       </div>
 
-      {tab === "overview" ? (
-        overview
-      ) : tab === "salaries" ? (
-        <SalaryPanel />
-      ) : (
-        <LedgerPanel
-          type={tab}
-          filters={filters}
-          updateFilter={(key, value) => setFilters((current) => ({ ...current, [key]: value }))}
-          clearFilters={() => setFilters(EMPTY_FILTERS)}
-          categoryOptions={tab === "income" ? data.categoryOptions.income : data.categoryOptions.expense}
-          data={data}
-          loading={loading}
-          error={error}
-          message={message}
-          setMessage={setMessage}
-          onChanged={() => void load(1)}
-          onPage={(page) => void load(page)}
-          onOpenSalaries={() => selectTab("salaries")}
-        />
-      )}
+      {/* Keyed on the tab so each switch remounts the panel and replays the fade-up. */}
+      <div role="tabpanel">
+        <div key={tab} className="tab-enter">
+          {tab === "overview" ? (
+            overview
+          ) : tab === "salaries" ? (
+            <SalaryPanel />
+          ) : (
+            <LedgerPanel
+              type={tab}
+              filters={filters}
+              updateFilter={(key, value) => setFilters((current) => ({ ...current, [key]: value }))}
+              clearFilters={() => setFilters(EMPTY_FILTERS)}
+              categoryOptions={tab === "income" ? data.categoryOptions.income : data.categoryOptions.expense}
+              data={data}
+              loading={loading}
+              error={error}
+              message={message}
+              setMessage={setMessage}
+              onChanged={() => void load(1)}
+              onPage={(page) => void load(page)}
+              onOpenSalaries={() => selectTab("salaries")}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

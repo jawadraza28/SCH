@@ -74,14 +74,15 @@ function activeHref(pathname: string, items: NavItem[]) {
 }
 
 /**
- * Nav link. On the desktop rail `fill` makes every tab stretch so the menu
- * shares the rail's height evenly — the tabs fill the sidebar instead of being
- * cramped at the top, and they shrink gracefully (never overflowing). The mobile
- * drawer keeps natural-height tabs for comfortable tapping.
+ * Nav link. The active tab gets a tinted background plus an accent bar on the
+ * left edge; idle tabs nudge right on hover. Tabs keep their natural height —
+ * groups expand in the flow, so the rail scrolls rather than squeezing tabs.
  */
-const linkClass = (active: boolean, fill = false) =>
-  `relative flex items-center rounded-xl px-4 text-sm transition ${fill ? "min-h-10 max-h-16 flex-1" : "py-3"} ${
-    active ? "bg-blue-50 font-semibold text-blue-700" : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+const linkClass = (active: boolean) =>
+  `relative flex items-center rounded-xl px-4 py-2.5 text-sm transition-all duration-200 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-1 before:rounded-full before:bg-blue-600 before:transition-all before:duration-200 ${
+    active
+      ? "bg-blue-50 font-semibold text-blue-700 before:scale-y-100 before:opacity-100"
+      : "font-medium text-slate-600 before:scale-y-0 before:opacity-0 hover:translate-x-0.5 hover:bg-slate-50 hover:text-slate-900"
   }`;
 
 function NavIcon({ label }: { label: string }) {
@@ -100,6 +101,9 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
    */
   const [openedOn, setOpenedOn] = useState(pathname);
   const drawerOpen = open && openedOn === pathname;
+  /* Manual open/closed overrides for the sub-menu groups, keyed by href. A group
+     with no entry follows whether it contains the current page. */
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   function openDrawer() {
     setOpenedOn(pathname);
@@ -138,7 +142,7 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
     );
   }
 
-  function links(onNavigate: () => void, fill = false) {
+  function links(onNavigate: () => void) {
     const current = activeHref(pathname, items);
     /* A child whose href carries a query string (?tab=…) never lights up — the
        pathname alone cannot tell two of its siblings apart. */
@@ -148,70 +152,91 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
       return pathname === child.href || pathname.startsWith(`${child.href}/`);
     };
     return (
-      <nav className={fill ? "flex flex-1 flex-col gap-1" : "space-y-1"} aria-label="Main navigation">
+      <nav className="flex flex-col gap-1" aria-label="Main navigation">
         {items.map((item) => {
           const active =
             item.href === current || Boolean(item.children?.some((child) => childActive(child)));
-          const link = (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
-              className={linkClass(active, fill)}
-            >
-              <NavIcon label={item.label} />
-              <span className="min-w-0 flex-1 truncate">{item.label}</span>
-              {item.children ? (
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 group-hover:rotate-180"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              ) : null}
-            </Link>
-          );
-          if (!item.children) return link;
-          return (
-            <div key={item.href} className={`group relative ${fill ? "flex max-h-16 min-h-10 flex-1" : ""}`}>
-              {link}
-              {/*
-                Desktop: the panel opens on hover with NO gap under the parent —
-                even 4px of dead space made the menu close mid-travel, forcing a
-                click on the tab first. The panel's own top padding provides the
-                visual breathing room, and closing is delayed 150ms so a fast or
-                slightly wobbly cursor never loses the menu. Mobile drawer: the
-                children render as an always-visible indented sublist.
-              */}
-              <div
-                className={
-                  fill
-                    ? "invisible absolute left-0 top-full z-50 w-full rounded-b-xl border border-slate-200 bg-white p-1.5 pt-2 opacity-0 shadow-lg transition-all delay-150 duration-150 group-focus-within:visible group-focus-within:delay-0 group-focus-within:opacity-100 group-hover:visible group-hover:delay-0 group-hover:opacity-100"
-                    : "mt-1 flex flex-col gap-1 pl-9"
-                }
+
+          if (!item.children) {
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                className={linkClass(active)}
               >
-                {item.children.map((child) => (
-                  <Link
-                    key={`${child.href}-${child.label}`}
-                    href={child.href}
-                    onClick={onNavigate}
-                    aria-current={childActive(child) ? "page" : undefined}
-                    className={`flex items-center rounded-lg px-3 py-2 text-[0.8rem] transition ${
-                      childActive(child)
-                        ? "bg-blue-50 font-semibold text-blue-700"
-                        : "font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-                    }`}
+                <NavIcon label={item.label} />
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              </Link>
+            );
+          }
+
+          /* A group opens by itself when it holds the current page, and the
+             user can flip it either way with the chevron. The sub-list sits IN
+             the flow, so opening it pushes every tab below it down — nothing is
+             covered — and the height animates via the grid-rows trick. */
+          const isOpen = expanded[item.href] ?? active;
+          const panelId = `nav-group-${item.href.replace(/[^a-z0-9]+/gi, "-")}`;
+          return (
+            <div key={item.href} className="nav-group">
+              <div className="flex items-center gap-1">
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={`${linkClass(active)} min-w-0 flex-1`}
+                >
+                  <NavIcon label={item.label} />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setExpanded((previous) => ({ ...previous, [item.href]: !isOpen }))}
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  aria-label={`${isOpen ? "Collapse" : "Expand"} ${item.label} menu`}
+                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors duration-200 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    isOpen ? "bg-slate-50 text-blue-600" : "text-slate-400"
+                  }`}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className={`h-4 w-4 transition-transform duration-300 ease-out ${isOpen ? "rotate-180" : "rotate-0"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
                   >
-                    {child.label}
-                  </Link>
-                ))}
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+              <div id={panelId} className={`nav-collapse ${isOpen ? "is-open" : ""}`} inert={!isOpen}>
+                <div className="nav-collapse__inner">
+                  <div className="ml-6 mt-1 flex flex-col gap-0.5 border-l border-slate-200 pb-1 pl-2.5">
+                    {item.children.map((child, index) => (
+                      <Link
+                        key={`${child.href}-${child.label}`}
+                        href={child.href}
+                        onClick={onNavigate}
+                        aria-current={childActive(child) ? "page" : undefined}
+                        style={{ transitionDelay: isOpen ? `${index * 35}ms` : "0ms" }}
+                        className={`nav-child flex items-center rounded-lg px-3 py-2 text-[0.8rem] transition-all duration-200 ${
+                          isOpen ? "translate-x-0 opacity-100" : "-translate-x-2 opacity-0"
+                        } ${
+                          childActive(child)
+                            ? "bg-blue-50 font-semibold text-blue-700"
+                            : "font-medium text-slate-500 hover:translate-x-1 hover:bg-slate-50 hover:text-slate-800"
+                        }`}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -255,7 +280,7 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
       <aside className="print:hidden fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 lg:flex">
         {brand(false)}
         <div className="mt-5">{signedIn}</div>
-        <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">{links(() => undefined, true)}</div>
+        <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">{links(() => undefined)}</div>
         <div className="pt-4">{signOut(true)}</div>
       </aside>
 

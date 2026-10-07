@@ -13,7 +13,7 @@
  * one-year retention keeps — older months are deleted from the database.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { formatCount, formatMoney } from "@/components/charts/palette";
 import { MoneyTile } from "./LedgerPanel";
@@ -38,6 +38,120 @@ type SalaryPayload = {
   summary: { paid: number; unpaid: number; teachers: number };
   history: Array<{ month: string; year: number; key: string; value: string; paid: number; unpaid: number }>;
 };
+
+type DropdownOption = { value: string; label: string };
+
+/**
+ * Dropdown — custom picker replacing the native select.
+ *
+ * The option list is IN the page flow (not absolutely positioned), so opening
+ * it pushes the content underneath down instead of covering it. The height
+ * animates via the `.nav-collapse` grid-rows transition, the chevron rotates,
+ * and each option staggers in with a hover/selected highlight. Closes on
+ * outside click, Escape, or selection.
+ */
+function Dropdown({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: DropdownOption[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: MouseEvent | TouchEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <div ref={containerRef} className="mt-1 w-full min-w-[12rem] text-left sm:w-60">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={label}
+        onClick={() => setOpen((current) => !current)}
+        className={`flex w-full items-center justify-between gap-3 rounded-xl border bg-white px-3.5 py-2.5 text-left text-sm font-medium text-slate-900 shadow-sm transition duration-200 hover:border-blue-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+          open ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200"
+        }`}
+      >
+        <span className={`truncate ${selected ? "" : "text-slate-400"}`}>{selected?.label ?? "Select…"}</span>
+        <svg
+          className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-300 ease-out ${open ? "rotate-180 text-blue-600" : "rotate-0"}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      <div className={`nav-collapse ${open ? "is-open" : ""}`} inert={!open}>
+        <div className="nav-collapse__inner">
+          <div
+            role="listbox"
+            aria-label={label}
+            className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+          >
+            {options.map((option, index) => {
+              const active = option.value === value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => {
+                    setOpen(false);
+                    if (!active) onChange(option.value);
+                  }}
+                  style={{ transitionDelay: open ? `${Math.min(index, 8) * 30}ms` : "0ms" }}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-normal transition-all duration-200 hover:bg-blue-50 hover:pl-4 hover:text-blue-700 focus-visible:bg-blue-50 focus-visible:outline-none ${
+                    open ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
+                  } ${active ? "bg-blue-50 font-semibold text-blue-700" : "text-slate-700"}`}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {active ? (
+                    <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="m5 12 5 5 9-10" />
+                    </svg>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function SalaryPanel() {
   const [data, setData] = useState<SalaryPayload | null>(null);
@@ -104,7 +218,6 @@ export default function SalaryPanel() {
     }
   }
 
-  const field = "mt-1 block rounded-xl border border-slate-200 bg-white px-3 py-2.5";
   const rows = data?.rows ?? [];
   const summary = data?.summary;
 return (
@@ -125,22 +238,19 @@ return (
                 Marking a salary paid adds it to the expense tab automatically. Only the last year is kept.
               </p>
             </div>
-            <label className="text-sm font-medium text-slate-600">
+            <div className="text-sm font-medium text-slate-600">
               Month
-              <select
+              <Dropdown
+                label="Month"
                 value={month ? `${month}-${year}` : ""}
-                onChange={(event) => {
-                  const [nextMonth, nextYear] = event.target.value.split("-");
+                options={(data?.months ?? []).map((item) => ({ value: item.key, label: item.key }))}
+                onChange={(next) => {
+                  const [nextMonth, nextYear] = next.split("-");
                   setMessage("");
                   void load({ month: nextMonth, year: Number(nextYear) });
                 }}
-                className={field}
-              >
-                {(data?.months ?? []).map((item) => (
-                  <option key={item.key} value={item.key}>{item.key}</option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
           </div>
           {message ? <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p> : null}
           {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
