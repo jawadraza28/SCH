@@ -15,20 +15,59 @@ export const dynamic = "force-dynamic";
 const navigation: NavItem[] = [
   { label: "Overview", href: "/dashboard", exact: true },
   { label: "Analytics", href: "/dashboard/analytics", exact: true },
-  { label: "Finance", href: "/dashboard/finance", exact: true },
+  {
+    label: "Finance",
+    href: "/dashboard/finance",
+    exact: true,
+    children: [
+      { label: "Overview & charts", href: "/dashboard/finance", exact: true },
+      { label: "Add custom income", href: "/dashboard/finance?tab=income" },
+      { label: "Add custom expense", href: "/dashboard/finance?tab=expenses" },
+      { label: "Teacher salaries (paid / unpaid)", href: "/dashboard/finance?tab=salaries" },
+    ],
+  },
   { label: "Exam seating", href: "/dashboard/exam-seating", exact: true },
-  { label: "Students", href: "/dashboard/students" },
-  { label: "Teachers", href: "/dashboard/teachers" },
-  { label: "Teacher attendance", href: "/dashboard/teacher-attendance", exact: true },
+  {
+    label: "Students",
+    href: "/dashboard/students",
+    children: [
+      { label: "All students (search & filters)", href: "/dashboard/students", exact: true },
+      { label: "Add student · New admission", href: "/dashboard/students/new", exact: true },
+      { label: "Student requests", href: "/dashboard/students/requests", exact: true },
+    ],
+  },
+  {
+    label: "Teachers",
+    href: "/dashboard/teachers",
+    children: [
+      { label: "All teachers (search & profiles)", href: "/dashboard/teachers", exact: true },
+      { label: "Teacher attendance", href: "/dashboard/teacher-attendance", exact: true },
+      { label: "Teacher salaries (paid / unpaid)", href: "/dashboard/finance?tab=salaries" },
+      { label: "Assign classes", href: "/dashboard/teachers/assign", exact: true },
+    ],
+  },
   { label: "Timetable", href: "/dashboard/timetable", exact: true },
   { label: "Attendance reports", href: "/dashboard/reports/attendance", exact: true },
-  { label: "Assign classes", href: "/dashboard/teachers/assign", exact: true },
-  { label: "Classes & sections", href: "/dashboard/classes" },
+  {
+    label: "Classes & sections",
+    href: "/dashboard/classes",
+    children: [
+      { label: "All classes", href: "/dashboard/classes", exact: true },
+      { label: "Add class", href: "/dashboard/classes/new", exact: true },
+      { label: "Assign class to teacher", href: "/dashboard/teachers/assign", exact: true },
+    ],
+  },
   { label: "Fees", href: "/dashboard/fees" },
-  { label: "Landing page", href: "/dashboard/landing", exact: true },
   { label: "Notices", href: "/dashboard/notices" },
-  { label: "Student requests", href: "/dashboard/students/requests", exact: true },
-  { label: "School settings", href: "/dashboard/school-settings", exact: true },
+  {
+    label: "School settings",
+    href: "/dashboard/school-settings",
+    exact: true,
+    children: [
+      { label: "Settings", href: "/dashboard/school-settings", exact: true },
+      { label: "Landing page", href: "/dashboard/landing", exact: true },
+    ],
+  },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

@@ -65,7 +65,7 @@ export default function LandingImageUpload({ kind, value, onChange, label = "Ima
   return (
     <div className="w-full">
       <p className="text-sm font-medium text-slate-700">{label}</p>
-      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
+      <div className="mt-2 flex flex-col items-start gap-3">
         {/* Preview frame */}
         <div className={`grid shrink-0 place-items-center overflow-hidden bg-slate-100 text-xs text-slate-400 ${frameClass}`}>
           {hasImage ? (
@@ -81,10 +81,12 @@ export default function LandingImageUpload({ kind, value, onChange, label = "Ima
           )}
         </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 w-full sm:w-auto">
+        {/* Action buttons — stacked full-width below the preview so the narrow
+            photo columns of the landing editor can never squeeze the labels
+            into letter towers (they used to break "Replace" mid-word). */}
+        <div className="flex w-full flex-col gap-2 sm:max-w-56">
           {/* Upload / Replace button */}
-          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors min-h-[44px] w-full sm:w-auto" style={{ touchAction: 'manipulation' }}>
+          <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors min-h-[44px] w-full whitespace-nowrap" style={{ touchAction: 'manipulation' }}>
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy} className="sr-only" />
             <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeLinecap="round" strokeLinejoin="round" />
@@ -98,7 +100,7 @@ export default function LandingImageUpload({ kind, value, onChange, label = "Ima
               type="button"
               onClick={remove}
               disabled={busy}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-100 transition-colors min-h-[44px] w-full sm:w-auto"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-100 transition-colors min-h-[44px] w-full whitespace-nowrap"
               style={{ touchAction: 'manipulation' }}
             >
               <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">

@@ -180,16 +180,6 @@ export default async function AnalyticsPage({
             title="Student attendance"
             subtitle={`${formatCount(studentsToday.marked)} of ${formatCount(studentsToday.roster)} students marked · ${studentRate}% attendance`}
             action={{ href: "/dashboard/attendance", label: "Mark attendance" }}
-            footer={
-              studentsToday.counts.unmarked > 0
-                ? <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">{studentsToday.counts.unmarked} students still not marked</span>
-                    <Link href="/dashboard/analytics/today?view=unmarked" className="font-semibold text-blue-700 hover:underline">
-                      Unmarked classes →
-                    </Link>
-                  </div>
-                : undefined
-            }
           >
             {studentsToday.roster === 0 ? (
               <EmptyChart message="No students on the roster yet. Add students to see today's attendance." />

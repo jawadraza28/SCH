@@ -17,11 +17,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+export type NavChild = {
+  label: string;
+  href: string;
+  /** Match the pathname exactly — for index-style child pages. */
+  exact?: boolean;
+};
+
 export type NavItem = {
   label: string;
   href: string;
   /** Match the pathname exactly — for parent/child pairs like /dashboard and /dashboard/students. */
   exact?: boolean;
+  /**
+   * Hover dropdown (desktop) / always-visible sublist (mobile drawer).
+   * The parent link itself stays clickable and opens its own page.
+   */
+  children?: NavChild[];
 };
 
 type Props = {
@@ -128,15 +140,78 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
 
   function links(onNavigate: () => void, fill = false) {
     const current = activeHref(pathname, items);
+    /* A child whose href carries a query string (?tab=…) never lights up — the
+       pathname alone cannot tell two of its siblings apart. */
+    const childActive = (child: NavChild) => {
+      if (child.href.includes("?")) return false;
+      if (child.exact) return pathname === child.href;
+      return pathname === child.href || pathname.startsWith(`${child.href}/`);
+    };
     return (
       <nav className={fill ? "flex flex-1 flex-col gap-1" : "space-y-1"} aria-label="Main navigation">
         {items.map((item) => {
-          const active = item.href === current;
-          return (
-            <Link key={item.href} href={item.href} onClick={onNavigate} aria-current={active ? "page" : undefined} className={linkClass(active, fill)}>
+          const active =
+            item.href === current || Boolean(item.children?.some((child) => childActive(child)));
+          const link = (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              aria-current={active ? "page" : undefined}
+              className={linkClass(active, fill)}
+            >
               <NavIcon label={item.label} />
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {item.children ? (
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4 shrink-0 text-slate-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              ) : null}
             </Link>
+          );
+          if (!item.children) return link;
+          return (
+            <div key={item.href} className={`group relative ${fill ? "flex max-h-16 min-h-10 flex-1" : ""}`}>
+              {link}
+              {/*
+                Desktop: a dropdown panel drops under the parent on hover or
+                keyboard focus (kept inside the rail, so the rail's scroll never
+                clips it sideways). Mobile drawer: the same children render as an
+                always-visible indented sublist — thumbs have no hover.
+              */}
+              <div
+                className={
+                  fill
+                    ? "invisible absolute left-0 top-full z-50 mt-1 w-full rounded-xl border border-slate-200 bg-white p-1.5 opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+                    : "mt-1 flex flex-col gap-1 pl-9"
+                }
+              >
+                {item.children.map((child) => (
+                  <Link
+                    key={`${child.href}-${child.label}`}
+                    href={child.href}
+                    onClick={onNavigate}
+                    aria-current={childActive(child) ? "page" : undefined}
+                    className={`flex items-center rounded-lg px-3 py-2 text-[0.8rem] transition ${
+                      childActive(child)
+                        ? "bg-blue-50 font-semibold text-blue-700"
+                        : "font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                    }`}
+                  >
+                    {child.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           );
         })}
       </nav>

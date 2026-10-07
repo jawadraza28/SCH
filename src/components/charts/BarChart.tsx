@@ -67,6 +67,13 @@ export default function BarChart({
   const barWidth = Math.max((groupWidth - barGap * (series.length - 1)) / Math.max(series.length, 1), 4);
   const scale = (value: number) => (axisMax ? (value / axisMax) * plotHeight : 0);
 
+  // 30 daily labels printed side by side collide into unreadable mush. Show as
+  // many as have room (~64px of axis per label), always from the first bucket,
+  // and keep the last one only when it lands clear of the previous showing.
+  const labelStep = Math.max(1, Math.ceil(data.length / Math.max(1, Math.floor(VIEW_WIDTH / 64))));
+  const lastRemainder = (data.length - 1) % labelStep;
+  const showLast = lastRemainder !== 0 && lastRemainder * slot >= 56;
+
   // Tallest bar in the hovered group, so the tooltip can sit above it.
   const activeTop = active === null ? PADDING.top : PADDING.top + plotHeight - scale(Math.max(...data[active].values));
 
@@ -145,7 +152,7 @@ export default function BarChart({
                 fontWeight={500}
                 fill={active === groupIndex ? "var(--chart-ink)" : "var(--chart-axis)"}
               >
-                {datum.label}
+                {groupIndex % labelStep === 0 || (showLast && groupIndex === data.length - 1) ? datum.label : null}
               </text>
             </g>
           );
