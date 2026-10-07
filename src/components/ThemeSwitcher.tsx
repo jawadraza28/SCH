@@ -69,7 +69,7 @@ export default function ThemeSwitcher() {
       aria-pressed={dark}
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
-      className="print:hidden fixed bottom-5 right-5 z-50 grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-lg hover:text-blue-600 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+      className="theme-fab print:hidden fixed right-4 z-50 grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-lg hover:text-blue-600 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" }}
     >
       {/* Shows the mode you will switch TO: moon in light mode, sun in dark mode. */}
       {dark ? (

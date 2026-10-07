@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
@@ -88,12 +89,14 @@ export default async function FinancePage({
         </header>
 
         <div className="mt-5">
-          <FinanceWorkspace
-            initial={initial}
-            overview={<FinanceOverview bucket={params.bucket ?? "daily"} />}
-            initialTab={initialTab}
-            initialMonth={initialMonth}
-          />
+          <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-white shadow-sm" />}>
+            <FinanceWorkspace
+              initial={initial}
+              overview={<FinanceOverview bucket={params.bucket ?? "daily"} />}
+              initialTab={initialTab}
+              initialMonth={initialMonth}
+            />
+          </Suspense>
         </div>
       </div>
     </div>

@@ -900,8 +900,27 @@ main .shadow-sm {
     overflow-x: hidden;
   }
 
-  .app-page {
+  .app-shell,
+  .app-page,
+  .landing-page {
     overflow-x: clip;
+    max-width: 100%;
+  }
+
+  .app-page img,
+  .landing-page img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .app-page h1 {
+    font-size: clamp(1.35rem, 6vw, 1.875rem);
+    line-height: 1.2;
+  }
+
+  .app-page .flex-wrap > a,
+  .app-page .flex-wrap > button {
+    max-width: 100%;
   }
 
   .app-page form button,
@@ -941,6 +960,12 @@ main .shadow-sm {
   .app-page table th,
   .app-page table td {
     white-space: nowrap;
+  }
+
+  .app-page .stack-table td,
+  .app-page .stack-table th {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -1550,7 +1575,19 @@ main .shadow-sm {
 /* --- Mobile tab bar (AppNav bottomItems) ---------------------------------
    The global theme toggle must clear the fixed tab bar so it never overlaps. */
 body:has(.app-bottom-nav) .theme-fab {
-  bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body:has(.app-bottom-nav) .app-page {
+  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.app-bottom-nav {
+  box-shadow: 0 -12px 32px -18px rgb(15 23 42 / 0.35);
+}
+
+.app-bottom-nav svg {
+  margin: 0;
 }
 
 /* Touch screens keep "sticky hover" after a tap — cancel card lift there. */

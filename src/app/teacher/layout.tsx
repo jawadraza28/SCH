@@ -8,14 +8,14 @@ export const dynamic = "force-dynamic";
 
 /** Teacher shell: same responsive menu as the admin panel (see AppNav). */
 const navigation: NavItem[] = [
-  { label: "Overview", href: "/teacher", exact: true },
+  { label: "Overview", href: "/teacher", exact: true, quick: true },
   { label: "My profile", href: "/teacher/profile", exact: true },
-  { label: "My students", href: "/teacher/students" },
-  { label: "Mark attendance", href: "/teacher/attendance", exact: true },
+  { label: "My students", href: "/teacher/students", quick: true },
+  { label: "Mark attendance", href: "/teacher/attendance", exact: true, quick: true },
   { label: "Timetable", href: "/teacher/timetable", exact: true },
-  { label: "Homework", href: "/teacher/homework", exact: true },
+  { label: "Homework", href: "/teacher/homework", exact: true, quick: true },
   { label: "Results", href: "/teacher/results", exact: true },
-  { label: "Notices", href: "/teacher/notices", exact: true },
+  { label: "Notices", href: "/teacher/notices", exact: true, quick: true },
 ];
 
 export default async function TeacherLayout({ children }: { children: React.ReactNode }) {

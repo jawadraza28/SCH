@@ -84,10 +84,10 @@ export default function LoginPage() {
           <p className="relative text-sm text-blue-200">Secure, focused, and ready for your school.</p>
         </section>
 
-        <section className="flex min-w-0 items-center justify-center p-6 sm:p-12">
+        <section className="flex min-w-0 items-center justify-center p-4 sm:p-12">
           <div className="w-full max-w-md">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">Welcome back</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Sign in to your school</h2>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">Sign in to your school</h2>
             <p className="mt-2 text-slate-400">Choose your account type to continue.</p>
             <Link href="/" prefetch className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-white/25 hover:bg-white/5 hover:text-white">
               <span aria-hidden="true">←</span>

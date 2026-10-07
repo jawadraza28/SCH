@@ -20,6 +20,7 @@
  */
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import LedgerPanel, { type LedgerFilters } from "./LedgerPanel";
 import SalaryPanel from "./SalaryPanel";
 
@@ -87,7 +88,11 @@ export default function FinanceWorkspace({
   /** `YYYY-MM`, pre-applied to the ledger month filter. */
   initialMonth?: string;
 }) {
-  const [tab, setTab] = useState<TabKey>(initialTab);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get("tab") ?? initialTab;
+  const tab: TabKey = TABS.some((item) => item.key === rawTab) ? (rawTab as TabKey) : "overview";
   const [filters, setFilters] = useState<LedgerFilters>({ ...EMPTY_FILTERS, month: initialMonth });
   const [data, setData] = useState<FinancePayload>(initial);
   const [loading, setLoading] = useState(false);
@@ -95,7 +100,12 @@ export default function FinanceWorkspace({
   const [message, setMessage] = useState("");
 
   function selectTab(next: TabKey) {
-    setTab(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "overview") params.delete("tab");
+    else params.set("tab", next);
+    if (next !== "expenses") params.delete("month");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     // Filters belong to one tab; carrying them across would silently hide rows.
     setFilters(EMPTY_FILTERS);
     setMessage("");
@@ -134,7 +144,7 @@ export default function FinanceWorkspace({
       <div
         role="tablist"
         aria-label="Finance sections"
-        className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm"
+        className="no-scrollbar mb-5 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm"
       >
         {TABS.map((item) => (
           <button
@@ -143,10 +153,10 @@ export default function FinanceWorkspace({
             role="tab"
             onClick={() => selectTab(item.key)}
             aria-selected={tab === item.key}
-            className={`min-w-0 flex-1 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-300 active:scale-95 sm:flex-none sm:px-5 sm:text-sm ${
+            className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-300 sm:px-5 sm:text-sm ${
               tab === item.key
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
-                : "text-slate-600 hover:-translate-y-0.5 hover:bg-slate-50 hover:text-slate-900"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
             {item.label}

@@ -8,14 +8,14 @@ export const dynamic = "force-dynamic";
 
 /** Student shell: same responsive menu as the admin panel (see AppNav). */
 const navigation: NavItem[] = [
-  { label: "Overview", href: "/student", exact: true },
+  { label: "Overview", href: "/student", exact: true, quick: true },
   { label: "My profile", href: "/student/profile", exact: true },
   { label: "Performance", href: "/student/performance", exact: true },
-  { label: "Attendance", href: "/student/attendance", exact: true },
+  { label: "Attendance", href: "/student/attendance", exact: true, quick: true },
   { label: "Class timetable", href: "/student/timetable", exact: true },
-  { label: "Homework", href: "/student/homework", exact: true },
-  { label: "Results", href: "/student/results", exact: true },
-  { label: "Fees", href: "/student/fees", exact: true },
+  { label: "Homework", href: "/student/homework", exact: true, quick: true },
+  { label: "Results", href: "/student/results", exact: true, quick: true },
+  { label: "Fees", href: "/student/fees", exact: true, quick: true },
   { label: "Notices", href: "/student/notices", exact: true },
 ];
 

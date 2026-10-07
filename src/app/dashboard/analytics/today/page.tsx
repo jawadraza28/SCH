@@ -199,7 +199,7 @@ export default async function TodayAttendanceDetail({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[820px] text-left text-sm">
+                <table className="stack-table w-full text-left text-sm md:min-w-[820px]">
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-4 py-3 sm:px-6 sm:py-4">Student</th>
@@ -212,7 +212,7 @@ export default async function TodayAttendanceDetail({
                   <tbody className="divide-y divide-slate-100">
                     {filteredStudents.map((student) => (
                       <tr key={student.id}>
-                        <td className="px-4 py-3 sm:px-6 sm:py-4">
+                        <td data-label="Student" data-full className="px-4 py-3 sm:px-6 sm:py-4">
                           <Link
                             href={`/dashboard/students/${student.id}`}
                             className="font-semibold text-blue-700 hover:underline"
@@ -220,10 +220,10 @@ export default async function TodayAttendanceDetail({
                             {student.fullName}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 sm:px-6 sm:py-4 tabular-nums">{student.studentId || "-"}</td>
-                        <td className="px-4 py-3 sm:px-6 sm:py-4 tabular-nums">{student.rollNumber}</td>
-                        <td className="px-4 py-3 sm:px-6 sm:py-4">{student.classSection}</td>
-                        <td className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.gender ?? "-"}</td>
+                        <td data-label="Student ID" className="px-4 py-3 sm:px-6 sm:py-4 tabular-nums">{student.studentId || "-"}</td>
+                        <td data-label="Roll #" className="px-4 py-3 sm:px-6 sm:py-4 tabular-nums">{student.rollNumber}</td>
+                        <td data-label="Class" className="px-4 py-3 sm:px-6 sm:py-4">{student.classSection}</td>
+                        <td data-label="Gender" className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.gender ?? "-"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -247,7 +247,7 @@ export default async function TodayAttendanceDetail({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[820px] text-left text-sm">
+                <table className="stack-table w-full text-left text-sm md:min-w-[820px]">
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-4 py-3 sm:px-6 sm:py-4">Class section</th>
@@ -265,14 +265,14 @@ export default async function TodayAttendanceDetail({
                       const rateColor = rate >= 85 ? "text-emerald-600" : rate >= 60 ? "text-amber-600" : "text-rose-600";
                       return (
                         <tr key={item.classSection}>
-                          <td className="px-4 py-3 sm:px-6 sm:py-4 font-semibold">{item.classSection}</td>
-                          <td className="px-4 py-3 sm:px-6 sm:py-4 text-right tabular-nums">{formatCount(item.students)}</td>
-                          <td className="px-4 py-3 sm:px-6 sm:py-4 text-right tabular-nums">{formatCount(item.marked)}</td>
-                          <td className="px-4 py-3 sm:px-6 sm:py-4 text-right tabular-nums text-rose-600">{formatCount(item.unmarked)}</td>
-                          <td className="px-4 py-3 sm:px-6 sm:py-4 text-right">
+                          <td data-label="Class" className="px-4 py-3 sm:px-6 sm:py-4 font-semibold">{item.classSection}</td>
+                          <td data-label="Students" className="px-4 py-3 sm:px-6 sm:py-4 text-right tabular-nums">{formatCount(item.students)}</td>
+                          <td data-label="Marked" className="px-4 py-3 sm:px-6 sm:py-4 text-right tabular-nums">{formatCount(item.marked)}</td>
+                          <td data-label="Unmarked" className="px-4 py-3 sm:px-6 sm:py-4 text-right tabular-nums text-rose-600">{formatCount(item.unmarked)}</td>
+                          <td data-label="Rate" className="px-4 py-3 sm:px-6 sm:py-4 text-right">
                             <span className={`font-semibold ${rateColor}`}>{rate}%</span>
                           </td>
-                          <td className="px-4 py-3 sm:px-6 sm:py-4">
+                          <td data-label="Action" className="px-4 py-3 sm:px-6 sm:py-4">
                             <Link
                               href={`/dashboard/attendance?class=${encodeURIComponent(className)}&section=${encodeURIComponent(section)}`}
                               className="font-semibold text-blue-700 hover:underline"

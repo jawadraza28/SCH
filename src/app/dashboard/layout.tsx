@@ -13,36 +13,39 @@ export const dynamic = "force-dynamic";
  * attendance from their own workspace.
  */
 const navigation: NavItem[] = [
-  { label: "Overview", href: "/dashboard", exact: true },
+  { label: "Overview", href: "/dashboard", exact: true, quick: true },
   { label: "Analytics", href: "/dashboard/analytics", exact: true },
   {
     label: "Finance",
     href: "/dashboard/finance",
     exact: true,
+    quick: true,
     children: [
       { label: "Overview & charts", href: "/dashboard/finance", exact: true },
-      { label: "Add custom income", href: "/dashboard/finance?tab=income" },
-      { label: "Add custom expense", href: "/dashboard/finance?tab=expenses" },
-      { label: "Teacher salaries (paid / unpaid)", href: "/dashboard/finance?tab=salaries" },
+      { label: "Custom income", href: "/dashboard/finance?tab=income" },
+      { label: "Custom expense", href: "/dashboard/finance?tab=expenses" },
+      { label: "Teacher salary", href: "/dashboard/finance?tab=salaries" },
     ],
   },
   { label: "Exam seating", href: "/dashboard/exam-seating", exact: true },
   {
     label: "Students",
     href: "/dashboard/students",
+    quick: true,
     children: [
-      { label: "All students (search & filters)", href: "/dashboard/students", exact: true },
-      { label: "Add student · New admission", href: "/dashboard/students/new", exact: true },
+      { label: "All students", href: "/dashboard/students", exact: true },
+      { label: "Add student", href: "/dashboard/students/new", exact: true },
       { label: "Student requests", href: "/dashboard/students/requests", exact: true },
     ],
   },
   {
     label: "Teachers",
     href: "/dashboard/teachers",
+    quick: true,
     children: [
-      { label: "All teachers (search & profiles)", href: "/dashboard/teachers", exact: true },
+      { label: "All teachers", href: "/dashboard/teachers", exact: true },
       { label: "Teacher attendance", href: "/dashboard/teacher-attendance", exact: true },
-      { label: "Teacher salaries (paid / unpaid)", href: "/dashboard/finance?tab=salaries" },
+      { label: "Teacher salary", href: "/dashboard/finance?tab=salaries" },
       { label: "Assign classes", href: "/dashboard/teachers/assign", exact: true },
     ],
   },
@@ -57,7 +60,7 @@ const navigation: NavItem[] = [
       { label: "Assign class to teacher", href: "/dashboard/teachers/assign", exact: true },
     ],
   },
-  { label: "Fees", href: "/dashboard/fees" },
+  { label: "Fees", href: "/dashboard/fees", quick: true },
   { label: "Notices", href: "/dashboard/notices" },
   {
     label: "School settings",

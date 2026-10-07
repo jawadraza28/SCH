@@ -70,7 +70,7 @@ export default async function Home() {
         <LandingNav schoolName={schoolName} logo={logo} />
         <div className="relative z-10 mx-auto max-w-7xl pt-10 sm:pt-16 lg:pt-24">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400 sm:text-sm sm:tracking-[0.22em]">Welcome to</p>
-          <h1 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.1] tracking-tight sm:mt-6 sm:text-6xl">{schoolName}</h1>
+          <h1 className="mt-4 max-w-3xl text-[clamp(1.75rem,8vw,3.75rem)] font-bold leading-[1.1] tracking-tight sm:mt-6">{schoolName}</h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-slate-400 sm:mt-7 sm:text-lg sm:leading-8">{heroLead}</p>
           <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row">
             <Link href="/login" className="rounded-xl bg-blue-500 px-6 py-3.5 text-center font-semibold text-white hover:bg-blue-400">Open your workspace</Link>
@@ -90,7 +90,7 @@ export default async function Home() {
       </section>
       {(content.mission || content.vision) ? (
         <section className="border-t border-white/10 bg-slate-900/70">
-          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-10 sm:py-16">
             <div className="grid gap-5 sm:grid-cols-2 sm:gap-6">
               {content.mission ? (
                 <article className="landing-panel border-blue-300/20">
@@ -111,7 +111,7 @@ export default async function Home() {
 
       {(content.principalName || content.principalMessage || content.principalPhoto) ? (
         <section className="border-t border-white/10">
-          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-10 sm:py-16">
             <div className="grid gap-6 sm:grid-cols-[14rem_1fr] sm:items-start sm:gap-10">
               {content.principalPhoto ? (
                 <>
@@ -130,7 +130,7 @@ export default async function Home() {
       ) : null}
       {achievers.length ? (
         <section className="border-t border-white/10 bg-slate-900/70">
-          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-10 sm:py-16">
             <div className="max-w-2xl">
               <p className="landing-eyebrow text-amber-300">Our achievers</p>
               <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Top students</h2>
@@ -167,7 +167,7 @@ export default async function Home() {
 
       {news.length ? (
         <section className="border-t border-white/10">
-          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-10 sm:py-16">
             <div className="max-w-2xl">
               <p className="landing-eyebrow text-blue-300">Latest updates</p>
               <h2 className="mt-3 text-2xl font-bold sm:text-3xl">News &amp; announcements</h2>
@@ -194,7 +194,7 @@ export default async function Home() {
       ) : null}
       {gallery.length ? (
         <section className="border-t border-white/10 bg-slate-900/70">
-          <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-10 sm:py-16">
             <div className="max-w-2xl">
               <p className="landing-eyebrow text-emerald-300">Campus life</p>
               <h2 className="mt-3 text-2xl font-bold sm:text-3xl">Gallery</h2>
@@ -215,7 +215,7 @@ export default async function Home() {
      
 
       <section className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-10 sm:py-16">
           <div className="landing-panel flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-bold sm:text-2xl">Ready to see it in action?</h2>

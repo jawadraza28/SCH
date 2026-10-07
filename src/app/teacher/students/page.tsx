@@ -157,7 +157,7 @@ export default async function TeacherStudentsPage({
             <div className="px-4 py-16 sm:px-6 sm:py-20 text-center text-sm text-slate-400">No students match your search.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] text-left text-sm">
+              <table className="stack-table w-full text-left text-sm md:min-w-[820px]">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3 sm:px-6 sm:py-4">Student</th>
@@ -172,18 +172,18 @@ export default async function TeacherStudentsPage({
                 <tbody className="divide-y divide-slate-100">
                   {students.map((student) => (
                     <tr key={String(student._id)}>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4 font-semibold">
+                      <td data-label="Student" data-full className="px-4 py-3 sm:px-6 sm:py-4 font-semibold">
                         <Link href={`/teacher/students/${String(student._id)}`} className="text-blue-700 hover:underline">{student.fullName}</Link>
                         <p className="mt-1 text-xs font-normal text-slate-400">Roll {student.rollNumber}</p>
                       </td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4">{student.studentId}</td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                      <td data-label="Student ID" className="px-4 py-3 sm:px-6 sm:py-4">{student.studentId}</td>
+                      <td data-label="Class" className="px-4 py-3 sm:px-6 sm:py-4">
                         {student.class}-{student.section}
                       </td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.gender ?? "-"}</td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.accountStatus}</td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4"><PhotoUpload studentId={String(student._id)} /></td>
-                      <td className="px-4 py-3 sm:px-6 sm:py-4">
+                      <td data-label="Gender" className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.gender ?? "-"}</td>
+                      <td data-label="Status" className="px-4 py-3 sm:px-6 sm:py-4 capitalize">{student.accountStatus}</td>
+                      <td data-label="Photo" className="px-4 py-3 sm:px-6 sm:py-4"><PhotoUpload studentId={String(student._id)} /></td>
+                      <td data-label="Action" className="px-4 py-3 sm:px-6 sm:py-4">
                         <Link
                           href={`/teacher/students/${String(student._id)}/edit`}
                           className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700"

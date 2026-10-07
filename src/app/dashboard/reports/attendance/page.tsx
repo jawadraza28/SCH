@@ -387,7 +387,7 @@ export default async function AttendanceReportPage({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="stack-table w-full min-w-[820px] text-left text-sm">
+                <table className="stack-table w-full text-left text-sm md:min-w-[820px]">
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-4 py-3 sm:px-6 sm:py-4">Type</th>
