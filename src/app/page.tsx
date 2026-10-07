@@ -29,7 +29,7 @@ export default async function Home() {
     await connectToDatabase();
     school = await SchoolConfiguration.findOne()
       .sort({ updatedAt: -1, createdAt: -1 })
-      .select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail academicYear tagline mission vision principalName principalMessage principalPhoto coverImage logo topStudents newsPosts gallery")
+      .select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail socialMedia academicYear tagline mission vision principalName principalMessage principalPhoto coverImage logo topStudents newsPosts gallery")
       .lean();
     const [students, teachers, classes] = await Promise.all([
       Student.countDocuments({ accountStatus: { $in: ["active", "pending"] } }),
@@ -53,6 +53,14 @@ export default async function Home() {
   const achievers = visibleTopStudents(content);
   const gallery = visibleGallery(content);
   const heroLead = content.tagline || description;
+  const social = (school?.socialMedia ?? {}) as Record<string, unknown>;
+  const socialLinks = [
+    { label: "Facebook", value: text(social.facebook), icon: "f" },
+    { label: "Instagram", value: text(social.instagram), icon: "◎" },
+    { label: "YouTube", value: text(social.youtube), icon: "▶" },
+    { label: "WhatsApp", value: text(social.whatsapp), icon: "◔" },
+    { label: "LinkedIn", value: text(social.linkedin), icon: "in" },
+  ].filter((item) => item.value);
 
   const stats = [
     { label: "Students", value: studentCount },
@@ -62,10 +70,10 @@ export default async function Home() {
 
   return (
     <main className="landing-page min-h-screen overflow-hidden bg-slate-950 text-slate-100">
-      <section className="relative w-full overflow-hidden px-4 pb-14 sm:px-10 sm:pb-20 lg:pb-28">
+      <section className="landing-hero relative w-full overflow-hidden px-4 pb-14 sm:px-10 sm:pb-20 lg:pb-28">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={coverImage} alt="" aria-hidden className="landing-cover opacity-75" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/40" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgb(59_130_246_/_0.28),transparent_35%),linear-gradient(120deg,rgb(2_6_23_/_0.92),rgb(2_6_23_/_0.42),rgb(2_6_23_/_0.82))]" />
         <div aria-hidden className="landing-cover-fade" />
         <LandingNav schoolName={schoolName} logo={logo} />
         <div className="relative z-10 mx-auto max-w-7xl pt-10 sm:pt-16 lg:pt-24">
@@ -73,19 +81,43 @@ export default async function Home() {
           <h1 className="mt-4 max-w-3xl text-[clamp(1.75rem,8vw,3.75rem)] font-bold leading-[1.1] tracking-tight sm:mt-6">{schoolName}</h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-slate-400 sm:mt-7 sm:text-lg sm:leading-8">{heroLead}</p>
           <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row">
-            <Link href="/login" className="rounded-xl bg-blue-500 px-6 py-3.5 text-center font-semibold text-white hover:bg-blue-400">Open your workspace</Link>
-            <Link href="/about-us" className="rounded-xl border border-white/15 px-6 py-3.5 text-center font-semibold text-slate-200 hover:bg-white/5">Discover our school</Link>
+            <Link href="/login" className="landing-cta-primary rounded-2xl px-6 py-3.5 text-center font-semibold text-white">Open your workspace <span aria-hidden>→</span></Link>
+            <Link href="/about-us" className="landing-cta-secondary rounded-2xl px-6 py-3.5 text-center font-semibold text-slate-200">Discover our school</Link>
           </div>
           {stats.length ? (
             <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3 sm:mt-12">
               {stats.map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 px-3 py-4 text-center backdrop-blur sm:px-5">
+                <div key={stat.label} className="landing-stat rounded-2xl border border-white/10 bg-white/5 px-3 py-4 text-center backdrop-blur sm:px-5">
                   <p className="text-xl font-bold tabular-nums sm:text-2xl">{formatCount(stat.value)}</p>
                   <p className="mt-1 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400 sm:text-xs">{stat.label}</p>
                 </div>
               ))}
             </div>
           ) : null}
+        </div>
+      </section>
+      <section id="about" className="border-t border-white/10 bg-slate-900/70">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-10 sm:py-20">
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <p className="landing-eyebrow text-blue-300">A better school day</p>
+              <h2 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">A welcoming place to learn, grow, and belong.</h2>
+              <p className="mt-5 max-w-2xl text-base leading-8 text-slate-400">{description}</p>
+            </div>
+            <div id="highlights" className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              {[
+                ["01", "Clear communication", "Families stay connected to school life."],
+                ["02", "Focused learning", "Teachers help every learner make progress."],
+                ["03", "Confident futures", "Skills and character grow together."],
+              ].map(([number, title, detail]) => (
+                <article key={number} className="landing-feature landing-reveal">
+                  <span className="landing-feature-number">{number}</span>
+                  <h3 className="font-semibold text-white">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{detail}</p>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
       {(content.mission || content.vision) ? (
@@ -166,7 +198,7 @@ export default async function Home() {
       ) : null}
 
       {news.length ? (
-        <section className="border-t border-white/10">
+        <section id="news" className="border-t border-white/10">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-10 sm:py-16">
             <div className="max-w-2xl">
               <p className="landing-eyebrow text-blue-300">Latest updates</p>
@@ -193,7 +225,7 @@ export default async function Home() {
         </section>
       ) : null}
       {gallery.length ? (
-        <section className="border-t border-white/10 bg-slate-900/70">
+        <section id="gallery" className="border-t border-white/10 bg-slate-900/70">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-10 sm:py-16">
             <div className="max-w-2xl">
               <p className="landing-eyebrow text-emerald-300">Campus life</p>
@@ -232,10 +264,11 @@ export default async function Home() {
       <footer className="border-t border-white/10 px-6 py-8 sm:px-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>{schoolName} · A clearer school day.</p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Link href="/about-us" className="hover:text-white">About us</Link>
             <Link href="/contact" className="hover:text-white">Contact</Link>
             <Link href="/login" className="hover:text-white">Sign in</Link>
+            {socialLinks.map((item) => <a key={item.label} href={item.value} target="_blank" rel="noreferrer" aria-label={item.label} className="landing-social" title={item.label}>{item.icon}</a>)}
           </div>
         </div>
       </footer>

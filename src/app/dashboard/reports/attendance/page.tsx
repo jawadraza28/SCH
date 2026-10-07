@@ -213,12 +213,14 @@ export default async function AttendanceReportPage({
             <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Attendance report</h1>
             <p className="mt-2 text-slate-500">Review attendance totals for students and teachers over any date range, then drill into per-student records or export the raw data.</p>
           </div>
-          <a
-            href={exportUrl}
-            className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
-          >
-            Export CSV
-          </a>
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+            <a href={exportUrl} className="flex-1 rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-500 sm:flex-none">
+              Export CSV
+            </a>
+            <a href={`${exportUrl}&format=json`} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700 sm:flex-none">
+              Export JSON
+            </a>
+          </div>
         </div>
 
         {/* Filters */}
@@ -308,13 +310,13 @@ export default async function AttendanceReportPage({
         {activeFilters.length > 0 && <FilterChips items={activeFilters} clearHref={clearUrl} />}
 
         {/* Tab selector */}
-        <div className="mt-6 flex gap-1 rounded-xl bg-slate-100 p-1">
+        <div className="report-tabs mt-6 grid grid-cols-2 gap-1 rounded-2xl border border-slate-200 bg-slate-100 p-1.5">
           <Link
             href={reportHref({ ...params, tab: "summary" })}
             className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
               tab === "summary"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
+                ? "report-tab-active bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
             }`}
           >
             Summary
@@ -323,8 +325,8 @@ export default async function AttendanceReportPage({
             href={reportHref({ ...params, tab: "records", page: undefined })}
             className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
               tab === "records"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
+                ? "report-tab-active bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
             }`}
           >
             Detailed records
@@ -334,7 +336,7 @@ export default async function AttendanceReportPage({
         {/* Summary cards */}
         {tab === "summary" && (
           <>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {REPORT_STATUSES.map((s) => (
                 <SummaryCard
                   key={s}
@@ -345,7 +347,7 @@ export default async function AttendanceReportPage({
                 />
               ))}
             </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {REPORT_STATUSES.map((s) => (
                 <SummaryCard
                   key={s}
@@ -356,7 +358,7 @@ export default async function AttendanceReportPage({
                 />
               ))}
             </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
               <SummaryCard
                 label="Student rate"
                 value={`${studentTotalMarked ? Math.round((attended(studentCounts) / studentTotalMarked) * 100) : 0}%`}

@@ -17,6 +17,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import NoticeBell from "@/components/NoticeBell";
 
 export type NavChild = {
   label: string;
@@ -187,6 +188,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
   }, [drawerOpen]);
 
   const visibleItems = items;
+  const noticesHref = roleLabel === "admin" ? "/dashboard/notices" : roleLabel === "teacher" ? "/teacher/notices" : "/student/notices";
 
   const signedIn = (
     <div className="app-nav-account rounded-2xl border border-slate-200/70 bg-white/75 px-3.5 py-3 shadow-sm">
@@ -256,7 +258,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
                   <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
                   <svg
                     viewBox="0 0 24 24"
-                    className={`ml-1 h-4 w-4 shrink-0 text-slate-400 transition-transform duration-300 ease-out ${isOpen ? "rotate-180 text-blue-600" : "rotate-0"}`}
+                    className={`nav-chevron ml-1 h-4 w-4 shrink-0 transition-transform duration-300 ease-out ${isOpen ? "rotate-180" : "rotate-0"}`}
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.2"
@@ -280,7 +282,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
                             onClick={onNavigate}
                             aria-current={active ? "page" : undefined}
                             style={{ transitionDelay: isOpen ? `${index * 35}ms` : "0ms" }}
-                            className={`nav-child flex items-center rounded-xl px-3 py-2.5 text-[0.8rem] transition-all duration-200 ${
+                            className={`nav-child ${active ? "nav-child-active" : ""} flex items-center rounded-xl px-3 py-2.5 text-[0.8rem] transition-all duration-200 ${
                               isOpen ? "translate-x-0 opacity-100" : "-translate-x-2 opacity-0"
                             } ${
                               active
@@ -309,7 +311,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
       <a
         href="/api/auth/logout"
         onClick={() => setOpen(false)}
-        className={`shrink-0 rounded-xl border border-slate-200 px-4 py-2.5 text-center text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 ${fullWidth ? "w-full" : ""}`}
+        className={`app-nav-signout shrink-0 rounded-xl border border-slate-200 px-4 py-2.5 text-center text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 ${fullWidth ? "w-full" : ""}`}
       >
         Sign out
       </a>
@@ -335,7 +337,10 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
       </header>
 
       <aside className="app-nav-rail print:hidden fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-slate-200/80 bg-slate-50/90 px-4 py-5 lg:flex">
-        <div className="shrink-0">{brand(false)}</div>
+        <div className="flex shrink-0 items-center justify-between gap-3">
+          {brand(false)}
+          <NoticeBell href={noticesHref} />
+        </div>
         <div className="mt-5 shrink-0">{signedIn}</div>
         <div className="mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">{links(() => undefined)}</div>
         <div className="shrink-0 pt-4">{signOut(true)}</div>
@@ -353,6 +358,8 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
           >
             <div className="shrink-0 flex items-center justify-between gap-3">
               {brand(true, true)}
+              <div className="flex items-center gap-2">
+              <NoticeBell href={noticesHref} />
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -363,6 +370,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
                   <path d="M6 6l12 12M18 6L6 18" />
                 </svg>
               </button>
+              </div>
             </div>
             <div className="mt-5 shrink-0">{signedIn}</div>
             <div className="mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">{links(() => setOpen(false))}</div>

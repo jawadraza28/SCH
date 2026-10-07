@@ -11,6 +11,7 @@ import AttendanceHistory from "@/components/AttendanceHistory";
 import { buildAttendanceDateFilter } from "@/lib/attendance";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
 import AdminPasswordResetButton from "@/components/AdminPasswordResetButton";
+import SiblingsPanel from "@/components/SiblingsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,7 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
     <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-4xl">
         <div className="flex items-center justify-between"><Link href="/dashboard/students" className="text-sm font-medium text-blue-600">← Students</Link><Link href={`/dashboard/students/${String(student._id)}/edit`} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Edit profile</Link></div>
+        <SiblingsPanel studentId={studentId} basePath="/dashboard/students" />
         <section className="mt-6 overflow-hidden rounded-3xl bg-white shadow-sm">
           <div className="bg-blue-700 p-8 text-white">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-200">Student profile</p>

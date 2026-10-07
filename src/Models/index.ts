@@ -91,6 +91,13 @@ const schoolConfigurationSchema = new Schema({
     type: String,
     default: "Asia/Karachi",
   },
+  socialMedia: {
+    facebook: { type: String, trim: true, default: "" },
+    instagram: { type: String, trim: true, default: "" },
+    youtube: { type: String, trim: true, default: "" },
+    whatsapp: { type: String, trim: true, default: "" },
+    linkedin: { type: String, trim: true, default: "" },
+  },
   favicon: {
     type: String,
     default: "/favicon.ico",

@@ -7,6 +7,7 @@ import AttendanceHistory from "@/components/AttendanceHistory";
 import StudentBehaviorPanel from "@/components/StudentBehaviorPanel";
 import { buildAttendanceDateFilter } from "@/lib/attendance";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
+import SiblingsPanel from "@/components/SiblingsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,7 @@ export default async function TeacherStudentProfilePage({
             <div><h2 className="font-semibold">Student information</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-slate-500">CNIC</dt><dd>{student.cnic || "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Gender</dt><dd className="capitalize">{student.gender || "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Parent phone</dt><dd>{student.fatherPhone || student.motherPhone || "-"}</dd></div></dl></div>
           </div>
         </section>
+        <SiblingsPanel studentId={String(student._id)} basePath="/teacher/students" />
         <div className="mt-6 space-y-4">
           <StudentBehaviorPanel studentId={String(student._id)} initialRecords={behaviorRecords.map((record) => ({
             _id: String(record._id),

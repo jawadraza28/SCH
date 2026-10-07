@@ -5,6 +5,7 @@ import { SchoolConfiguration, User } from "@/Models";
 import { signedR2Url } from "@/lib/object-storage";
 
 const imageFields = ["logo", "schoolIcon", "coverImage"] as const;
+const socialFields = ["facebook", "instagram", "youtube", "whatsapp", "linkedin"] as const;
 
 async function withSignedImages<T extends Record<string, unknown> | null>(school: T) {
   if (!school) return null;
@@ -38,6 +39,16 @@ export async function PATCH(request: Request) {
     for (const field of ["schoolName", "schoolAddress", "schoolPhone", "schoolEmail", "schoolDescription", "schoolTimezone", "subscriptionPlan"]) {
       const value = form.get(field);
       if (typeof value === "string") school[field] = value.trim();
+    }
+    for (const field of socialFields) {
+      const value = form.get(`social${field[0].toUpperCase()}${field.slice(1)}`);
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed && !/^https?:\/\/\S+$/i.test(trimmed)) {
+          return NextResponse.json({ error: `Enter a valid https:// URL for ${field}` }, { status: 400 });
+        }
+        school.set(`socialMedia.${field}`, trimmed);
+      }
     }
     const monthlyFee = form.get("monthlyFee");
     if (typeof monthlyFee === "string" && monthlyFee.trim()) school.monthlyFee = Number(monthlyFee);
