@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { fullName, cnic, dateOfBirth, gender, className, section, rollNumber, fatherName, fatherPhone, homeAddress } = body;
+    const { fullName, cnic, dateOfBirth, gender, className, section, rollNumber, fatherName, fatherCNIC, fatherOccupation, fatherPhone, motherName, motherCNIC, motherOccupation, motherPhone, emergencyContact, homeAddress } = body;
     const normalizedCNIC = normalizeCNIC(String(cnic ?? ""));
     const missingFields = [
       !String(fullName ?? "").trim() ? "full name" : "",
@@ -72,9 +72,13 @@ export async function POST(request: Request) {
       !String(section ?? "").trim() ? "section" : "",
       !String(rollNumber ?? "").trim() ? "roll number" : "",
       !String(gender ?? "").trim() ? "gender" : "",
+      !String(fatherName ?? "").trim() ? "father name" : "",
+      !String(fatherCNIC ?? "").trim() ? "father CNIC" : "",
     ].filter(Boolean);
     if (missingFields.length) return NextResponse.json({ error: `Please complete: ${missingFields.join(", ")}.` }, { status: 400 });
     if (!cnicPattern.test(normalizedCNIC)) return NextResponse.json({ error: "CNIC is invalid. Use 42101-1234567-1 or 13 digits without separators." }, { status: 400 });
+    const normalizedFatherCNIC = normalizeCNIC(String(fatherCNIC ?? ""));
+    if (!cnicPattern.test(normalizedFatherCNIC)) return NextResponse.json({ error: "Father CNIC is invalid. Use 42101-1234567-1 or 13 digits without separators." }, { status: 400 });
 
     await connectToDatabase();
 
@@ -119,7 +123,7 @@ export async function POST(request: Request) {
           voucherNo,
           fullName: String(fullName).trim(), cnic: normalizedCNIC, dateOfBirth: dateOfBirth || undefined,
           gender: gender || undefined, class: normalizedClass, section: normalizedSection,
-          rollNumber: normalizedRoll, fatherName, fatherPhone, homeAddress,
+          rollNumber: normalizedRoll, fatherName: String(fatherName).trim(), fatherCNIC: normalizedFatherCNIC, fatherOccupation: String(fatherOccupation ?? "").trim(), fatherPhone: String(fatherPhone ?? "").trim(), motherName: String(motherName ?? "").trim(), motherCNIC: motherCNIC ? normalizeCNIC(String(motherCNIC)) : undefined, motherOccupation: String(motherOccupation ?? "").trim(), motherPhone: String(motherPhone ?? "").trim(), emergencyContact: String(emergencyContact ?? "").trim(), homeAddress: String(homeAddress ?? "").trim(),
           accountStatus: isAdminAdmission ? "active" : "pending",
         });
       } catch (error) {

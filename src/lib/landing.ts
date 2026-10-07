@@ -45,6 +45,14 @@ export type GalleryImage = {
   caption: string;
 };
 
+export type WhyUsItem = {
+  id: string;
+  number: string;
+  title: string;
+  description: string;
+  tone: string;
+};
+
 /** Everything the public landing page may show beyond the base school fields. */
 export type LandingContent = {
   tagline: string;
@@ -61,6 +69,7 @@ export type LandingContent = {
   topStudents: TopStudent[];
   newsPosts: NewsPost[];
   gallery: GalleryImage[];
+  whyUs: WhyUsItem[];
 };
 
 /** A blank landing, used before setup or when a field was never filled in. */
@@ -79,6 +88,7 @@ export const EMPTY_LANDING: LandingContent = {
   topStudents: [],
   newsPosts: [],
   gallery: [],
+  whyUs: [],
 };
 
 /** Coerces anything into a trimmed string. */
@@ -145,6 +155,10 @@ export function readLanding(raw: unknown): LandingContent {
       caption: text(item.caption),
     };
   });
+  const whyUs: WhyUsItem[] = list(source.whyUs).map((entry, index) => {
+    const item = (entry ?? {}) as Record<string, unknown>;
+    return { id: id(item._id ?? item.id), number: text(item.number) || String(index + 1).padStart(2, "0"), title: text(item.title), description: text(item.description), tone: text(item.tone) || "blue" };
+  });
 
   return {
     tagline: text(source.tagline),
@@ -161,6 +175,7 @@ export function readLanding(raw: unknown): LandingContent {
     topStudents,
     newsPosts,
     gallery,
+    whyUs,
   };
 }
 

@@ -42,7 +42,7 @@ export default function NoticeBell({ href }: { href: string }) {
         {notices.length > 0 ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-blue-600 ring-2 ring-white" /> : null}
       </button>
       {open ? (
-        <div className="app-nav-notice-popover absolute left-0 top-12 z-[80] w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:left-auto sm:right-0">
+        <div className="app-nav-notice-popover absolute right-0 top-12 z-[80] w-[min(22rem,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div><p className="text-sm font-bold text-slate-900">Latest notices</p><p className="text-xs text-slate-500">School updates for you</p></div>
             <Link href={href} className="text-xs font-semibold text-blue-600" onClick={() => setOpen(false)}>View all</Link>

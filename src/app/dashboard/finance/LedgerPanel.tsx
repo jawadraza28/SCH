@@ -146,6 +146,11 @@ export default function LedgerPanel({
 const rows = data.entries;
   const hasFilters = Object.values(filters).some(Boolean);
   const field = "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5";
+  function exportCsv() {
+    const params = new URLSearchParams({ type: entryType, format: "csv" });
+    for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
+    window.location.assign(`/api/finance?${params.toString()}`);
+  }
 
   return (
     <div className="space-y-5">
@@ -173,6 +178,9 @@ const rows = data.entries;
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={exportCsv} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Export CSV
+              </button>
               {type === "expenses" ? (
                 <button
                   type="button"

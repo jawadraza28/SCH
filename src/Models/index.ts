@@ -38,6 +38,13 @@ const galleryImageSchema = new Schema({
   caption: { type: String, trim: true, default: "" },
 });
 
+const whyUsSchema = new Schema({
+  number: { type: String, trim: true, default: "" },
+  title: { type: String, trim: true, default: "" },
+  description: { type: String, trim: true, default: "" },
+  tone: { type: String, trim: true, default: "blue" },
+});
+
 // ==========================================
 // School Configuration Schema
 // ==========================================
@@ -174,6 +181,10 @@ const schoolConfigurationSchema = new Schema({
   },
   gallery: {
     type: [galleryImageSchema],
+    default: [],
+  },
+  whyUs: {
+    type: [whyUsSchema],
     default: [],
   },
 }, { timestamps: true });
@@ -331,6 +342,10 @@ const studentSchema = new Schema({
       },
     },
   },
+  fatherOccupation: {
+    type: String,
+    trim: true,
+  },
   fatherPhone: {
     type: String,
     trim: true,
@@ -349,6 +364,10 @@ const studentSchema = new Schema({
     },
   },
   motherPhone: {
+    type: String,
+    trim: true,
+  },
+  motherOccupation: {
     type: String,
     trim: true,
   },

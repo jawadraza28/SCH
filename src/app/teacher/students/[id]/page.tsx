@@ -65,7 +65,7 @@ export default async function TeacherStudentProfilePage({
             </div>
           </div>
           <div className="grid gap-6 p-7 sm:grid-cols-2">
-            <div><h2 className="font-semibold">Student information</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-slate-500">CNIC</dt><dd>{student.cnic || "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Gender</dt><dd className="capitalize">{student.gender || "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Parent phone</dt><dd>{student.fatherPhone || student.motherPhone || "-"}</dd></div></dl></div>
+            <div><h2 className="font-semibold">Student information</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-slate-500">CNIC</dt><dd>{student.cnic || "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Gender</dt><dd className="capitalize">{student.gender || "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Father CNIC</dt><dd>{student.fatherCNIC || "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Father occupation</dt><dd>{student.fatherOccupation || "-"}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">Parent phone</dt><dd>{student.fatherPhone || student.motherPhone || "-"}</dd></div></dl></div>
           </div>
         </section>
         <SiblingsPanel studentId={String(student._id)} basePath="/teacher/students" />

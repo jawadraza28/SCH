@@ -89,8 +89,8 @@ export default function DonutChart({
     .map((slice) => `${slice.label} ${formatCount(slice.value)}`)
     .join(", ")}.`;
 return (
-    <div className={`flex flex-col items-center gap-6 sm:flex-row sm:items-center ${className}`}>
-      <div className="relative shrink-0" style={{ width: size, maxWidth: "100%", aspectRatio: "1 / 1" }}>
+    <div className={`flex min-w-0 flex-col items-center gap-5 ${className}`}>
+      <div className="relative w-full max-w-[220px] shrink-0" style={{ aspectRatio: "1 / 1" }}>
         <svg viewBox={`0 0 ${size} ${size}`} className="chart-enter block h-full w-full" role="img" aria-label={summary}>
           {/* Track: the empty remainder of the ring. */}
           <circle cx={center} cy={center} r={radius} fill="none" stroke="var(--chart-muted)" strokeWidth={thickness} />
@@ -140,7 +140,7 @@ return (
 
       {/* Legend doubles as a second way to inspect a slice on touch devices,
           where there is no hover. */}
-      <ul className="grid w-full gap-1.5 sm:w-auto sm:flex-1">
+      <ul className="grid w-full min-w-0 gap-1.5">
         {slices.map((slice, index) => {
           const share = total ? Math.round((Math.max(0, slice.value) / total) * 100) : 0;
           const isActive = active === index;
@@ -158,7 +158,7 @@ return (
                >
                 <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: slice.color }} aria-hidden="true" />
                 <span className="min-w-0 flex-1 truncate text-sm text-slate-600">{slice.label}</span>
-                <span className={`shrink-0 text-sm font-semibold tabular-nums ${isActive ? "text-slate-900" : "text-slate-500"}`}>
+                <span className={`shrink-0 text-right text-sm font-semibold tabular-nums ${isActive ? "text-slate-900" : "text-slate-500"}`}>
                   {formatCount(slice.value)}
                 </span>
                 <span className="w-11 shrink-0 text-right text-xs font-medium tabular-nums text-slate-400">{share}%</span>

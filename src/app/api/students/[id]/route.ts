@@ -108,7 +108,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const previousCNIC = student.cnic;
     student.fullName = fullName; student.cnic = cnic; student.class = className; student.section = section; student.rollNumber = rollNumber; student.gender = gender;
-    student.fatherName = String(body.fatherName ?? "").trim(); student.fatherPhone = String(body.fatherPhone ?? "").trim(); student.homeAddress = String(body.homeAddress ?? "").trim();
+    student.fatherName = String(body.fatherName ?? "").trim(); student.fatherCNIC = String(body.fatherCNIC ?? "").trim(); student.fatherOccupation = String(body.fatherOccupation ?? "").trim(); student.fatherPhone = String(body.fatherPhone ?? "").trim(); student.motherName = String(body.motherName ?? "").trim(); student.motherCNIC = String(body.motherCNIC ?? "").trim(); student.motherOccupation = String(body.motherOccupation ?? "").trim(); student.motherPhone = String(body.motherPhone ?? "").trim(); student.emergencyContact = String(body.emergencyContact ?? "").trim(); student.homeAddress = String(body.homeAddress ?? "").trim();
     // Absent keys leave the stored dates alone; a blank value clears them.
     if (Object.prototype.hasOwnProperty.call(body, "dateOfBirth")) student.dateOfBirth = dateOfBirth ?? null;
     if (Object.prototype.hasOwnProperty.call(body, "admissionDate")) student.admissionDate = admissionDate ?? null;

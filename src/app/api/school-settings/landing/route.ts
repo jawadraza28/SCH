@@ -24,6 +24,7 @@ const MAX_GALLERY = 40;
 const MAX_SHORT = 160;
 const MAX_MEDIUM = 600;
 const MAX_LONG = 4000;
+const MAX_WHY_US = 8;
 
 /** Trims a value to a string, capped at `max` characters. */
 function clean(value: unknown, max: number): string {
@@ -100,6 +101,15 @@ export async function PATCH(request: Request) {
         caption: clean(item.caption, MAX_SHORT),
       };
     });
+    const whyUs = asList(body.whyUs, MAX_WHY_US).map((entry, index) => {
+      const item = (entry ?? {}) as Record<string, unknown>;
+      return {
+        number: clean(item.number, 8) || String(index + 1).padStart(2, "0"),
+        title: clean(item.title, MAX_SHORT),
+        description: clean(item.description, MAX_MEDIUM),
+        tone: ["blue", "emerald", "violet", "amber"].includes(String(item.tone)) ? String(item.tone) : "blue",
+      };
+    });
 
     const update = {
       tagline: clean(body.tagline, MAX_SHORT),
@@ -116,6 +126,7 @@ export async function PATCH(request: Request) {
       topStudents,
       newsPosts,
       gallery,
+      whyUs,
     };
 
     const previous = readLanding(existing);

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BackLink from "@/components/BackLink";
 import LandingImageUpload from "@/components/LandingImageUpload";
-import { EMPTY_LANDING, type GalleryImage, type LandingContent, type NewsPost, type TopStudent } from "@/lib/landing";
+import { EMPTY_LANDING, type GalleryImage, type LandingContent, type NewsPost, type TopStudent, type WhyUsItem } from "@/lib/landing";
 
 /**
  * Landing-page editor for the admin.
@@ -20,6 +20,7 @@ import { EMPTY_LANDING, type GalleryImage, type LandingContent, type NewsPost, t
 const blankStudent = (): TopStudent => ({ id: "", name: "", className: "", section: "", achievement: "", year: "", photo: "", photoPublicId: "" });
 const blankNews = (): NewsPost => ({ id: "", title: "", description: "", image: "", imagePublicId: "", published: true, publishedAt: new Date().toISOString() });
 const blankGallery = (): GalleryImage => ({ id: "", image: "", imagePublicId: "", caption: "" });
+const blankWhyUs = (index: number): WhyUsItem => ({ id: "", number: String(index + 1).padStart(2, "0"), title: "", description: "", tone: "blue" });
 
 /** A labelled single-line text input. */
 function Field({ label, value, onChange, placeholder, className = "" }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; className?: string }) {
@@ -94,6 +95,7 @@ export default function LandingEditorPage() {
   const setStudent = (index: number, part: Partial<TopStudent>) => patch({ topStudents: content.topStudents.map((item, i) => (i === index ? { ...item, ...part } : item)) });
   const setNews = (index: number, part: Partial<NewsPost>) => patch({ newsPosts: content.newsPosts.map((item, i) => (i === index ? { ...item, ...part } : item)) });
   const setGallery = (index: number, part: Partial<GalleryImage>) => patch({ gallery: content.gallery.map((item, i) => (i === index ? { ...item, ...part } : item)) });
+  const setWhyUs = (index: number, part: Partial<WhyUsItem>) => patch({ whyUs: content.whyUs.map((item, i) => (i === index ? { ...item, ...part } : item)) });
 
   async function save() {
     setSaving(true);
@@ -142,6 +144,30 @@ export default function LandingEditorPage() {
           <Panel title="Mission & vision" description="Two short statements about why the school exists and where it is headed.">
             <Area label="Our mission" value={content.mission} onChange={(value) => patch({ mission: value })} placeholder="To give every learner a strong, supportive start…" />
             <Area label="Our vision" value={content.vision} onChange={(value) => patch({ vision: value })} placeholder="To be the school families trust most…" />
+          </Panel>
+
+          <Panel
+            title="Why families choose us"
+            description="These cards appear in the Why us section on the public landing page. Keep each one short and specific."
+            action={<button type="button" onClick={() => patch({ whyUs: [...content.whyUs, blankWhyUs(content.whyUs.length)] })} className="rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">+ Add card</button>}
+          >
+            {content.whyUs.length === 0 ? <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">No Why us cards yet. Add the benefits your school is known for.</p> : (
+              <div className="space-y-4">
+                {content.whyUs.map((item, index) => (
+                  <div key={item.id || index} className="rounded-xl border border-slate-200 p-4">
+                    <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold text-slate-700">Card {index + 1}</p><button type="button" onClick={() => patch({ whyUs: content.whyUs.filter((_, i) => i !== index) })} className="text-xs font-semibold text-rose-600 hover:underline">Remove</button></div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <Field label="Number" value={item.number} onChange={(value) => setWhyUs(index, { number: value })} placeholder="01" />
+                      <Field label="Title" value={item.title} onChange={(value) => setWhyUs(index, { title: value })} placeholder="Supportive learning" className="sm:col-span-2" />
+                      <Area label="Description" value={item.description} onChange={(value) => setWhyUs(index, { description: value })} placeholder="Describe this school's strength…" rows={3} />
+                      <label className="text-sm font-medium">Accent
+                        <select value={item.tone} onChange={(event) => setWhyUs(index, { tone: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"><option value="blue">Blue</option><option value="emerald">Emerald</option><option value="violet">Violet</option><option value="amber">Amber</option></select>
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Panel>
 
           <Panel title="Principal's message" description="A short welcome from the head of the school, shown with an optional portrait.">

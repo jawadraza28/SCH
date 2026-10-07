@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import mongoose from "mongoose";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
@@ -11,6 +12,7 @@ async function adminAccess() {
   const session = await getCurrentUser();
   if (!session.authenticated || !session.user) return { error: "Unauthorized", status: 401 };
   if (session.user.role !== "admin") return { error: "Administrator access required", status: 403 };
+  if ((await cookies()).get("finance_unlocked")?.value !== "1") return { error: "Finance access is locked", status: 423 };
   return { user: session.user };
 }
 
@@ -82,11 +84,36 @@ export async function GET(request: Request) {
 
     const entries = await FinanceEntry.find(filter)
       .sort({ date: -1, createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .skip(params.get("format") === "csv" ? 0 : (page - 1) * limit)
+      .limit(params.get("format") === "csv" ? 5000 : limit)
       .populate("student", "fullName class section rollNumber")
       .populate("teacher", "name subject")
       .lean();
+
+    if (params.get("format") === "csv") {
+      const csvValue = (value: unknown) => `"${String(value ?? "").replace(/"/g, "\"\"")}"`;
+      const rows = [
+        ["Date", "Type", "Category", "Description", "Amount", "Source", "Class / section", "Student", "Teacher", "Note"],
+        ...entries.map((entry) => [
+          new Date(entry.date).toISOString().slice(0, 10),
+          entry.type,
+          entry.category,
+          entry.title,
+          entry.amount,
+          entry.source,
+          entry.classSection ?? "",
+          entry.student?.fullName ?? "",
+          entry.teacher?.name ?? "",
+          entry.note ?? "",
+        ]),
+      ];
+      return new Response(rows.map((row) => row.map(csvValue).join(",")).join("\r\n"), {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="finance-${type || "ledger"}-${new Date().toISOString().slice(0, 10)}.csv"`,
+        },
+      });
+    }
 
     const totals = await FinanceEntry.aggregate<{ _id: string; total: number; count: number }>([
       { $match: filter },

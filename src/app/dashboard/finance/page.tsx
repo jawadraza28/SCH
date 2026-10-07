@@ -7,6 +7,8 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "@/lib/finance";
 import { FinanceEntry } from "@/Models";
 import FinanceWorkspace, { type FinancePayload } from "./FinanceWorkspace";
 import FinanceOverview from "./FinanceOverview";
+import FinanceGate from "./FinanceGate";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,8 @@ export default async function FinancePage({
 }) {
   const session = await getCurrentUser();
   if (!session.authenticated || session.user?.role !== "admin") redirect("/dashboard");
+  const financeCookie = (await cookies()).get("finance_unlocked")?.value;
+  if (financeCookie !== "1") return <FinanceGate />;
   await connectToDatabase();
 
   // Deep links such as ?tab=expenses&month=March-2026 open that tab already

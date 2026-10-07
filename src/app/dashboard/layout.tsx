@@ -66,7 +66,6 @@ const navigation: NavItem[] = [
       { label: "Exam timetable", href: "/dashboard/exams", exact: true },
     ],
   },
-  { label: "Attendance reports", href: "/dashboard/reports/attendance", exact: true },
   {
     label: "Classes & sections",
     href: "/dashboard/classes",

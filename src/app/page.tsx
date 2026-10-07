@@ -29,7 +29,7 @@ export default async function Home() {
     await connectToDatabase();
     school = await SchoolConfiguration.findOne()
       .sort({ updatedAt: -1, createdAt: -1 })
-      .select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail socialMedia academicYear tagline mission vision principalName principalMessage principalPhoto coverImage logo topStudents newsPosts gallery")
+      .select("schoolName schoolDescription schoolAddress schoolPhone schoolEmail socialMedia academicYear tagline mission vision principalName principalMessage principalPhoto coverImage logo topStudents newsPosts gallery whyUs")
       .lean();
     const [students, teachers, classes] = await Promise.all([
       Student.countDocuments({ accountStatus: { $in: ["active", "pending"] } }),
@@ -105,15 +105,15 @@ export default async function Home() {
               <p className="mt-5 max-w-2xl text-base leading-8 text-slate-400">{description}</p>
             </div>
             <div id="highlights" className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              {[
-                ["01", "Clear communication", "Families stay connected to school life."],
-                ["02", "Focused learning", "Teachers help every learner make progress."],
-                ["03", "Confident futures", "Skills and character grow together."],
-              ].map(([number, title, detail]) => (
-                <article key={number} className="landing-feature landing-reveal">
-                  <span className="landing-feature-number">{number}</span>
-                  <h3 className="font-semibold text-white">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">{detail}</p>
+              {(content.whyUs.length ? content.whyUs : [
+                { id: "1", number: "01", title: "Clear communication", description: "Families stay connected to school life.", tone: "blue" },
+                { id: "2", number: "02", title: "Focused learning", description: "Teachers help every learner make progress.", tone: "emerald" },
+                { id: "3", number: "03", title: "Confident futures", description: "Skills and character grow together.", tone: "violet" },
+              ]).map((item) => (
+                <article key={item.id || item.number} className={`landing-feature landing-feature-${item.tone} landing-reveal`}>
+                  <span className="landing-feature-number">{item.number}</span>
+                  <h3 className="font-semibold text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{item.description}</p>
                 </article>
               ))}
             </div>
