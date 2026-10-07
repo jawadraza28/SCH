@@ -407,7 +407,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
         <nav className="app-bottom-nav print:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur lg:hidden" aria-label="Quick navigation">
           <div className="mx-auto grid max-w-lg" style={{ gridTemplateColumns: `repeat(${quickItems.length}, minmax(0, 1fr))` }}>
             {quickItems.map((item) => {
-              const active = item.href === currentHref(pathname, search, items, item);
+              const active = currentHref(pathname, search, items, item);
               return (
                 <Link
                   key={item.href}

@@ -17,7 +17,7 @@ async function adminAccess() {
  * The last twelve (month, year) pairs, newest first. The salary tab only ever
  * offers this window, which is exactly what the one-year retention keeps.
  */
-export function recentSalaryMonths(count = 12, now: Date = new Date()) {
+function recentSalaryMonths(count = 12, now: Date = new Date()) {
   const months: Array<{ month: string; year: number; key: string }> = [];
   for (let offset = 0; offset < count; offset += 1) {
     const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1));
