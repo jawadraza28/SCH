@@ -342,6 +342,8 @@ export default function FeesPage() {
             month: filters.month,
             year: filters.year,
             amount: row.remaining,
+            fee: row.amount,
+            paid: row.paidAmount,
             issuedOn: new Date(),
           }),
         })),
@@ -634,6 +636,8 @@ export default function FeesPage() {
                                 month={filters.month}
                                 year={filters.year}
                                 amount={row.remaining}
+                                fee={row.amount}
+                                paid={row.paidAmount}
                               />
                             ) : null
                           }

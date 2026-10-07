@@ -29,6 +29,10 @@ type Props = {
   year: string;
   /** The amount still owed, which is what the voucher asks for. */
   amount: number;
+  /** The month's full fee, so the message can show total / paid / remaining. */
+  fee?: number;
+  /** What the office has received against this month's fee so far. */
+  paid?: number;
 };
 
 /** The WhatsApp glyph every voucher button renders. */
@@ -51,6 +55,8 @@ export default function VoucherSendButton({
   month,
   year,
   amount,
+  fee,
+  paid,
 }: Props) {
   const recipient = normalizePhone(phone);
 
@@ -66,6 +72,8 @@ export default function VoucherSendButton({
       month,
       year,
       amount,
+      fee,
+      paid,
       issuedOn: new Date(),
     });
     // noopener stops the WhatsApp tab from reaching back into the portal.

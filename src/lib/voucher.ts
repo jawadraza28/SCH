@@ -75,7 +75,12 @@ export type VoucherDetails = {
   voucherNo: string;
   month: string;
   year: number | string;
+  /** What is still owed — the voucher's asking amount. */
   amount: number;
+  /** The month's full fee when known, so the parent sees total / paid / remaining. */
+  fee?: number;
+  /** What the office has received against this month's fee so far. */
+  paid?: number;
   /** When the voucher was issued; the due date is ten days after this. */
   issuedOn: Date;
 };
@@ -91,8 +96,21 @@ export function voucherDueDate(issuedOn: Date = new Date()) {
  */
 export function buildVoucherMessage(details: VoucherDetails): string {
   const due = voucherDueDate(details.issuedOn);
-  const amount = new Intl.NumberFormat('en-US').format(Math.round(details.amount));
+  const money = (value: number) => new Intl.NumberFormat('en-US').format(Math.round(value));
+  const remaining = Math.max(0, details.amount);
   const greeting = details.studentName.trim().split(/\s+/)[0] || details.studentName;
+  const fee = typeof details.fee === 'number' && details.fee > 0 ? details.fee : null;
+  const paid = Math.max(0, details.paid ?? 0);
+  const partPaid = fee !== null && paid > 0 && remaining > 0;
+  const cleared = fee !== null && remaining <= 0;
+
+  // With the fee known the parent sees the full picture — total, what they
+  // have paid and what is left (half-paid students read their own position).
+  // Without it the voucher keeps its single amount-due line.
+  const moneyLines =
+    fee !== null
+      ? [`*Total Fee:* Rs ${money(fee)}`, `*Paid:* Rs ${money(paid)}`, `*Remaining:* Rs ${money(remaining)}`]
+      : [`*Amount Due:* Rs ${money(remaining)}`];
 
   return [
     `*FEE VOUCHER — ${details.schoolName.trim() || 'School'}*`,
@@ -104,10 +122,14 @@ export function buildVoucherMessage(details: VoucherDetails): string {
     `*Class:* ${details.className}-${details.section}`,
     `*Roll No:* ${details.rollNumber || '-'}`,
     `*Month:* ${details.month} ${details.year}`,
-    `*Amount Due:* Rs ${amount}`,
+    ...moneyLines,
     `*Due Date:* ${formatVoucherDate(due)}`,
     '',
-    `Please pay the above amount on or before ${formatVoucherDate(due)}.`,
+    cleared
+      ? 'Your fee for this month is fully cleared — no payment is needed.'
+      : partPaid
+        ? `Please pay the remaining Rs ${money(remaining)} on or before ${formatVoucherDate(due)}.`
+        : `Please pay the above amount on or before ${formatVoucherDate(due)}.`,
     'Thank you.',
   ].join('\n');
 }

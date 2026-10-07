@@ -432,22 +432,37 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
       ) : null}
 
       <div className="space-y-3 px-5 pb-5">
-        {states.map((state, index) =>
-          state === 'pending' || state === 'blocked' ? (
-            <div
-              key={index}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${state === 'pending' ? 'bg-slate-50' : 'bg-amber-50'}`}
-            >
-              <span className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${CHIP[state].look}`}>
-                {CHIP[state].label}
-              </span>
-              <span className="font-medium text-slate-700 truncate">{messages[index].name}</span>
-              <span className="text-xs text-slate-400">
-                {normalizePhone(messages[index].phone) ? 'WhatsApp' : 'No number'}
-              </span>
-            </div>
-          ) : null,
-        )}
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Students in this run ({messages.length})
+          </p>
+          <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+            {states.map((state, index) => (
+              <div
+                key={index}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${
+                  state === 'blocked'
+                    ? 'bg-amber-50'
+                    : state === 'sent' || state === 'opened'
+                      ? 'bg-emerald-50'
+                      : state === 'failed' || state === 'skipped' || state === 'nowa'
+                        ? 'bg-rose-50'
+                        : 'bg-slate-50'
+                }`}
+              >
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${CHIP[state].look}`}
+                >
+                  {CHIP[state].label}
+                </span>
+                <span className="truncate font-medium text-slate-700">{messages[index].name}</span>
+                <span className="ml-auto shrink-0 text-xs text-slate-400">
+                  {normalizePhone(messages[index].phone) ? 'WhatsApp' : 'No number'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {waiting === 0 ? (
           botReady ? (
