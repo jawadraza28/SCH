@@ -165,7 +165,7 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
               {item.children ? (
                 <svg
                   viewBox="0 0 24 24"
-                  className="h-4 w-4 shrink-0 text-slate-400"
+                  className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 group-hover:rotate-180"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -183,15 +183,17 @@ export default function AppNav({ items, userName, roleLabel, schoolName = "Schoo
             <div key={item.href} className={`group relative ${fill ? "flex max-h-16 min-h-10 flex-1" : ""}`}>
               {link}
               {/*
-                Desktop: a dropdown panel drops under the parent on hover or
-                keyboard focus (kept inside the rail, so the rail's scroll never
-                clips it sideways). Mobile drawer: the same children render as an
-                always-visible indented sublist — thumbs have no hover.
+                Desktop: the panel opens on hover with NO gap under the parent —
+                even 4px of dead space made the menu close mid-travel, forcing a
+                click on the tab first. The panel's own top padding provides the
+                visual breathing room, and closing is delayed 150ms so a fast or
+                slightly wobbly cursor never loses the menu. Mobile drawer: the
+                children render as an always-visible indented sublist.
               */}
               <div
                 className={
                   fill
-                    ? "invisible absolute left-0 top-full z-50 mt-1 w-full rounded-xl border border-slate-200 bg-white p-1.5 opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+                    ? "invisible absolute left-0 top-full z-50 w-full rounded-b-xl border border-slate-200 bg-white p-1.5 pt-2 opacity-0 shadow-lg transition-all delay-150 duration-150 group-focus-within:visible group-focus-within:delay-0 group-focus-within:opacity-100 group-hover:visible group-hover:delay-0 group-hover:opacity-100"
                     : "mt-1 flex flex-col gap-1 pl-9"
                 }
               >
