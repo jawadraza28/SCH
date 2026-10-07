@@ -1064,10 +1064,13 @@ main .shadow-sm {
 @media (max-width: 639px) {
   .landing-cover {
     inset: 0 auto auto 0;
-    height: 16rem;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-position: center top;
   }
   .landing-cover-fade {
     display: block;
+    height: min(18rem, 52vw);
   }
 }
 

@@ -72,7 +72,7 @@ export default function LoginPage() {
           </div>
         )}
       </nav>
-      <div className="mx-auto grid w-full flex-1 max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl lg:min-h-[min(44rem,calc(100dvh-7rem))] lg:grid-cols-[1.05fr_0.95fr]">
         <section className="relative hidden min-w-0 overflow-hidden bg-blue-700 p-12 lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
           <div className="relative">
@@ -84,7 +84,7 @@ export default function LoginPage() {
           <p className="relative text-sm text-blue-200">Secure, focused, and ready for your school.</p>
         </section>
 
-        <section className="flex min-w-0 items-center justify-center p-4 sm:p-12">
+        <section className="flex min-w-0 items-start justify-center p-4 pb-8 pt-7 sm:p-12 lg:items-center">
           <div className="w-full max-w-md">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">Welcome back</p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">Sign in to your school</h2>
@@ -96,7 +96,7 @@ export default function LoginPage() {
 
             <div className="mt-8 grid gap-2 sm:grid-cols-3">
               {roles.map((item) => (
-                <button key={item.value} type="button" onClick={() => setRole(item.value)} className={`rounded-xl border p-3 text-left transition ${role === item.value ? "border-blue-400 bg-blue-500/15 text-white" : "border-white/10 text-slate-400 hover:border-white/25 hover:text-white"}`}>
+                <button key={item.value} type="button" onClick={() => setRole(item.value)} className={`rounded-xl border p-3 text-left transition active:scale-[0.99] ${role === item.value ? "border-blue-400 bg-blue-500/15 text-white" : "border-white/10 text-slate-400 hover:border-white/25 hover:text-white"}`}>
                   <span className="block text-sm font-semibold">{item.label}</span>
                   <span className="mt-1 block text-xs leading-4 opacity-70">{item.description}</span>
                 </button>

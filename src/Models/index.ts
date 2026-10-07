@@ -614,6 +614,8 @@ const timetableEntrySchema = new Schema({
   subject: { type: String, required: true, trim: true },
   room: { type: String, trim: true, default: "" },
   teacher: { type: String, trim: true, default: "" },
+  /** Teacher _id as a string — lets the teacher timetable derive from class timetables reliably even when two teachers share a name. */
+  teacherId: { type: String, trim: true, default: "" },
   classSection: { type: String, trim: true, default: "" },
 }, { _id: false });
 
@@ -745,6 +747,14 @@ const examTermSchema = new Schema({
     type: String,
     required: true,
   },
+  /**
+   * Exam window shown on the expandable term boxes ("YYYY-MM-DD"). Stored as
+   * strings so a date never shifts a day across timezones when displayed.
+   * Empty means the dates have not been announced yet.
+   */
+  startDate: { type: String, trim: true, default: "" },
+  endDate: { type: String, trim: true, default: "" },
+  description: { type: String, trim: true, default: "" },
   isActive: {
     type: Boolean,
     default: true,
@@ -756,6 +766,30 @@ const examTermSchema = new Schema({
 });
 
 export const ExamTerm = mongoose.models.ExamTerm || mongoose.model("ExamTerm", examTermSchema);
+
+// ==========================================
+// Exam schedule (date sheet) — one document per exam term per class.
+// ==========================================
+const examScheduleEntrySchema = new Schema({
+  /** "YYYY-MM-DD" — string, not Date, so the printed sheet never shifts a day. */
+  date: { type: String, required: true, trim: true, match: [/^\d{4}-\d{2}-\d{2}$/, "Exam date must be YYYY-MM-DD"] },
+  subject: { type: String, required: true, trim: true },
+  startTime: { type: String, trim: true, default: "" },
+  endTime: { type: String, trim: true, default: "" },
+  room: { type: String, trim: true, default: "" },
+}, { _id: true });
+
+const examScheduleSchema = new Schema({
+  examTerm: { type: Schema.Types.ObjectId, ref: "ExamTerm", required: true },
+  school: { type: Schema.Types.ObjectId, ref: "SchoolConfiguration", required: true },
+  academicYear: { type: String, required: true, trim: true },
+  /** Normalised "2-A" style class the sheet belongs to. */
+  classSection: { type: String, required: true, trim: true, uppercase: true },
+  entries: { type: [examScheduleEntrySchema], default: [] },
+  updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+}, { timestamps: true });
+examScheduleSchema.index({ examTerm: 1, classSection: 1 }, { unique: true });
+export const ExamSchedule = mongoose.models.ExamSchedule || mongoose.model("ExamSchedule", examScheduleSchema);
 
 // ==========================================
 // Result Schema

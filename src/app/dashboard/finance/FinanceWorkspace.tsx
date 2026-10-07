@@ -153,6 +153,7 @@ export default function FinanceWorkspace({
             role="tab"
             onClick={() => selectTab(item.key)}
             aria-selected={tab === item.key}
+            aria-controls={`finance-panel-${item.key}`}
             className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-300 sm:px-5 sm:text-sm ${
               tab === item.key
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
@@ -165,7 +166,7 @@ export default function FinanceWorkspace({
       </div>
 
       {/* Keyed on the tab so each switch remounts the panel and replays the fade-up. */}
-      <div role="tabpanel">
+      <div id={`finance-panel-${tab}`} role="tabpanel" aria-label={`${TABS.find((item) => item.key === tab)?.label ?? "Finance"} panel`}>
         <div key={tab} className="tab-enter">
           {tab === "overview" ? (
             overview
