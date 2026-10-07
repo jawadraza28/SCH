@@ -887,6 +887,10 @@ const feeSchema = new Schema({
     required: [true, "Fee amount is required"],
     min: [0, "Fee amount cannot be negative"],
   },
+  /** Net amount charged after a student-specific concession. */
+  baseAmount: { type: Number, min: 0, default: 0 },
+  discountAmount: { type: Number, min: 0, default: 0 },
+  discountReason: { type: String, trim: true, default: "" },
   status: {
     type: String,
     // "partial" is a custom payment: some of the month's fee arrived and the

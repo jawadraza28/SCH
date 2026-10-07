@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     const sortedStudents = await Student.find(scopeQuery(className, section, rawSearch)).sort({ class: 1, section: 1, rollNumber: 1 }).select("_id class section").lean();
     const sortedIds = sortedStudents.map((student) => student._id);
     const fees = sortedIds.length
-      ? await Fee.find({ student: { $in: sortedIds }, month, year }).select("student status amount paidAmount paidDate").lean()
+      ?       await Fee.find({ student: { $in: sortedIds }, month, year }).select("student status amount baseAmount discountAmount discountReason paidAmount paidDate").lean()
       : [];
     const feeByStudent = new Map(fees.map((fee) => [String(fee.student), fee]));
     const school = session.user.school ? await SchoolConfiguration.findById(session.user.school).lean() : null;
@@ -97,7 +97,8 @@ export async function GET(request: Request) {
     for (const fee of fees) {
       const stored = Number(fee.amount ?? 0);
       const scopeStudent = studentScopeById.get(String(fee.student));
-      const due = stored > 0 ? stored : scopeStudent ? feeForStudent(scopeStudent) : stored;
+      const hasExplicitPrice = stored > 0 || Number(fee.discountAmount ?? 0) > 0 || Number(fee.baseAmount ?? 0) > 0;
+      const due = hasExplicitPrice ? stored : scopeStudent ? feeForStudent(scopeStudent) : stored;
       const paid = feePaidAmount(fee);
       stateByStudent.set(String(fee.student), { status: feeStatusOf(due, paid), due, paid });
     }
@@ -129,7 +130,8 @@ export async function GET(request: Request) {
       // A stored amount of 0 is stale (written before a fee existed) — fall
       // back to the live class/school fee so the row matches the buckets above.
       const storedDue = Number(record?.amount ?? 0);
-      const due = storedDue > 0 ? storedDue : feeForStudent(student);
+      const hasExplicitPrice = storedDue > 0 || Number(record?.discountAmount ?? 0) > 0 || Number(record?.baseAmount ?? 0) > 0;
+      const due = hasExplicitPrice ? storedDue : feeForStudent(student);
       const paid = feePaidAmount(record);
       return [{
         id: String(student._id),
@@ -147,6 +149,9 @@ export async function GET(request: Request) {
         gender: student.gender ?? "",
         accountStatus: student.accountStatus ?? "active",
         amount: due,
+        baseAmount: Number(record?.baseAmount ?? due),
+        discountAmount: Number(record?.discountAmount ?? 0),
+        discountReason: String(record?.discountReason ?? ""),
         // What the office has actually received, and what is still owed — the
         // two numbers the custom-payment box and the student portal show.
         paidAmount: paid,
@@ -227,12 +232,13 @@ export async function POST(request: Request) {
       const priced = await ClassSection.find({}).select("className sectionName fee").lean();
       const priceByKey = new Map(priced.map((item) => [`${item.className}-${item.sectionName}`.toUpperCase(), Number(item.fee ?? 0)]));
       const schoolFee = Number(school?.monthlyFee ?? 0);
-      const dueFor = (student: { class: string; section: string }) => {
+      const dueFor = (student: { class: string; section: string }, existingFee?: { amount?: number; baseAmount?: number; discountAmount?: number }) => {
         const classFee = priceByKey.get(`${student.class}-${student.section}`.toUpperCase()) ?? 0;
+        if (existingFee && (Number(existingFee.discountAmount ?? 0) > 0 || Number(existingFee.baseAmount ?? 0) > 0)) return Number(existingFee.amount ?? 0);
         return classFee > 0 ? classFee : schoolFee;
       };
       const existing = students.length
-        ? await Fee.find({ student: { $in: students.map((student) => student._id) }, month, year }).select("student amount paidAmount status").lean()
+        ? await Fee.find({ student: { $in: students.map((student) => student._id) }, month, year }).select("student amount baseAmount discountAmount discountReason paidAmount status").lean()
         : [];
       const paidByStudent = new Map(existing.map((fee) => [String(fee.student), feePaidAmount(fee)]));
 
@@ -245,13 +251,14 @@ export async function POST(request: Request) {
     for (let index = 0; index < students.length; index += 20) {
       const chunk = students.slice(index, index + 20);
       await Promise.all(chunk.map(async (student) => {
-        const amount = dueFor(student);
+        const existingFee = existing.find((fee) => String(fee.student) === String(student._id));
+        const amount = dueFor(student, existingFee);
         // Already settled (or nothing to settle): leave the row alone, so the
         // date of an earlier payment is never rewritten.
         if (amount <= (paidByStudent.get(String(student._id)) ?? 0) + 0.001) return;
         const fee = await Fee.findOneAndUpdate(
           { student: student._id, month, year },
-          { $set: { amount, paidAmount: amount, status: "paid", paidDate: new Date(), markedBy }, $setOnInsert: { student: student._id, month, year } },
+          { $set: { amount, baseAmount: Number(existingFee?.baseAmount ?? amount), discountAmount: Number(existingFee?.discountAmount ?? 0), discountReason: String(existingFee?.discountReason ?? ""), paidAmount: amount, status: "paid", paidDate: new Date(), markedBy }, $setOnInsert: { student: student._id, month, year } },
           { upsert: true, new: true, setDefaultsOnInsert: true },
         );
         await syncFeeIncome(fee, student, schoolId, markedBy);
@@ -270,7 +277,7 @@ export async function POST(request: Request) {
           section: student.section,
           rollNumber: student.rollNumber ?? "",
           phone: voucherRecipient(student),
-          amount: dueFor(student),
+          amount: dueFor(student, existing.find((fee) => String(fee.student) === String(student._id))),
         }));
       return NextResponse.json({ success: true, updated: updatedIds.size, total: students.length, settled });
     }
@@ -285,10 +292,25 @@ export async function POST(request: Request) {
       sectionName: { $regex: `^${escapeRegex(String(student.section))}$`, $options: "i" },
     }).select("fee").lean();
     const classFee = Number(classSection?.fee ?? 0);
-    const amount = classFee > 0 ? classFee : Number(school?.monthlyFee ?? 0);
-
     const current = await Fee.findOne({ student: student._id, month, year }).lean();
+    const baseAmount = classFee > 0 ? classFee : Number(school?.monthlyFee ?? 0);
+    const currentDiscount = Number(current?.discountAmount ?? 0);
+    const amount = currentDiscount > 0 ? Math.max(0, baseAmount - currentDiscount) : baseAmount;
     const alreadyPaid = feePaidAmount(current);
+    if (action === "discount") {
+      const discount = Number(body.discountAmount);
+      const reason = String(body.discountReason ?? "").trim();
+      if (!Number.isFinite(discount) || discount < 0 || discount > amount) return NextResponse.json({ error: "Discount must be between zero and the full fee" }, { status: 400 });
+      const netAmount = Math.max(0, baseAmount - discount);
+      if (alreadyPaid > netAmount + 0.001) return NextResponse.json({ error: "This discount would be lower than the amount already paid" }, { status: 409 });
+      const status: FeeStatus = feeStatusOf(netAmount, alreadyPaid);
+      const fee = await Fee.findOneAndUpdate(
+        { student: student._id, month, year },
+        { $set: { amount: netAmount, baseAmount: amount, discountAmount: discount, discountReason: reason, paidAmount: alreadyPaid, status, markedBy: session.user.id }, $setOnInsert: { student: student._id, month, year } },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+      return NextResponse.json({ success: true, amount: netAmount, baseAmount: amount, discountAmount: discount, status, paidAmount: alreadyPaid, remaining: feeRemaining(netAmount, alreadyPaid), fee });
+    }
     const stillDue = feeRemaining(amount, alreadyPaid);
 
     // Three moves: settle the month in full, reverse it, or record whatever the
@@ -308,7 +330,7 @@ export async function POST(request: Request) {
     // A school with no fee configured has nothing to count, but "mark paid"
     // still has to answer the way the admin asked it to.
     const status: FeeStatus = paidAmount > 0 ? feeStatusOf(amount, paidAmount) : action === "paid" ? "paid" : "unpaid";
-    const update = { $set: { amount, paidAmount, status, paidDate: paidAmount > 0 ? new Date() : null, markedBy: session.user.id }, $setOnInsert: { student: student._id, month, year } };
+    const update = { $set: { amount, baseAmount, discountAmount: currentDiscount, discountReason: String(current?.discountReason ?? ""), paidAmount, status, paidDate: paidAmount > 0 ? new Date() : null, markedBy: session.user.id }, $setOnInsert: { student: student._id, month, year } };
     const fee = await Fee.findOneAndUpdate({ student: student._id, month, year }, update, { upsert: true, new: true, setDefaultsOnInsert: true });
 
     // Keep the finance ledger in step with the fee tabs: money received becomes

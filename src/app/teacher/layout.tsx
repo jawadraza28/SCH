@@ -12,7 +12,15 @@ const navigation: NavItem[] = [
   { label: "My profile", href: "/teacher/profile", exact: true },
   { label: "My students", href: "/teacher/students", quick: true },
   { label: "Mark attendance", href: "/teacher/attendance", exact: true, quick: true },
-  { label: "Timetable", href: "/teacher/timetable", exact: true },
+  {
+    label: "Timetable",
+    href: "/teacher/timetable",
+    children: [
+      { label: "Class timetable", href: "/teacher/timetable", exact: true },
+      { label: "Exam timetable", href: "/teacher/exams", exact: true },
+    ],
+  },
+  { label: "Exams", href: "/teacher/exams", exact: true },
   { label: "Homework", href: "/teacher/homework", exact: true, quick: true },
   { label: "Results", href: "/teacher/results", exact: true },
   { label: "Notices", href: "/teacher/notices", exact: true, quick: true },
@@ -27,7 +35,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
 
   return (
     <div className="app-shell min-h-screen bg-slate-100 text-slate-900">
-      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} schoolLogo="/logo.png" homeHref="/teacher" />
+      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} schoolLogo={school?.logo || "/logo.png"} homeHref="/teacher" />
       <div className="lg:pl-72 print:pl-0">{children}</div>
     </div>
   );

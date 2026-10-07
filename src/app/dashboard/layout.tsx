@@ -27,7 +27,15 @@ const navigation: NavItem[] = [
       { label: "Teacher salary", href: "/dashboard/finance?tab=salaries" },
     ],
   },
-  { label: "Exam seating", href: "/dashboard/exam-seating", exact: true },
+  {
+    label: "Exams",
+    href: "/dashboard/exams",
+    children: [
+      { label: "Exam timetable", href: "/dashboard/exams", exact: true },
+      { label: "Exam terms & settings", href: "/dashboard/exams?view=terms" },
+      { label: "Exam seating", href: "/dashboard/exam-seating", exact: true },
+    ],
+  },
   {
     label: "Students",
     href: "/dashboard/students",
@@ -49,7 +57,15 @@ const navigation: NavItem[] = [
       { label: "Assign classes", href: "/dashboard/teachers/assign", exact: true },
     ],
   },
-  { label: "Timetable", href: "/dashboard/timetable", exact: true },
+  {
+    label: "Timetable",
+    href: "/dashboard/timetable",
+    children: [
+      { label: "Class timetable", href: "/dashboard/timetable?scope=class" },
+      { label: "Teacher timetable", href: "/dashboard/timetable?scope=teacher" },
+      { label: "Exam timetable", href: "/dashboard/exams", exact: true },
+    ],
+  },
   { label: "Attendance reports", href: "/dashboard/reports/attendance", exact: true },
   {
     label: "Classes & sections",
@@ -60,7 +76,15 @@ const navigation: NavItem[] = [
       { label: "Assign class to teacher", href: "/dashboard/teachers/assign", exact: true },
     ],
   },
-  { label: "Fees", href: "/dashboard/fees", quick: true },
+  {
+    label: "Fees",
+    href: "/dashboard/fees",
+    quick: true,
+    children: [
+      { label: "Fee overview", href: "/dashboard/fees", exact: true },
+      { label: "Student fee discounts", href: "/dashboard/fees?tab=discounts" },
+    ],
+  },
   { label: "Notices", href: "/dashboard/notices" },
   {
     label: "School settings",
@@ -83,7 +107,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="app-shell min-h-screen bg-slate-100 text-slate-900">
-      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} schoolLogo="/logo.png" homeHref="/dashboard" />
+      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} schoolLogo={school?.logo || "/logo.png"} homeHref="/dashboard" />
       <div className="lg:pl-72 print:pl-0">{children}</div>
     </div>
   );

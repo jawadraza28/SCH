@@ -79,7 +79,7 @@ async function DashboardContent() {
     { label: "Active classes", value: classCount, hint: "Sections that are currently running", href: "/dashboard/classes", accent: "bg-violet-50 text-violet-600", icon: "classes" },
     { label: "Present today", value: presentToday, hint: `Students marked present on ${todayKey}`, href: `/dashboard/students?presentOn=${todayKey}`, accent: "bg-emerald-50 text-emerald-600", icon: "present" },
     { label: "Absent today", value: absentToday, hint: `Students marked absent on ${todayKey}`, href: "/dashboard/attendance", accent: "bg-rose-50 text-rose-600", icon: "absent" },
-    { label: "Unmarked attendance", value: registerToday.counts.unmarked, hint: `Students without attendance marked today`, href: "/dashboard/attendance", accent: "bg-amber-50 text-amber-600", icon: "unmarked" },
+    { label: "Unmarked attendance", value: registerToday.counts.unmarked, hint: `Students without attendance marked today`, href: "/dashboard/analytics/today?view=unmarked", accent: "bg-amber-50 text-amber-600", icon: "unmarked" },
     { label: "Pending requests", value: pendingCount, hint: "Student requests waiting for a decision", href: "/dashboard/students/requests", accent: "bg-amber-50 text-amber-600", icon: "requests" },
     { label: "Unpaid fees", value: unpaidFees, hint: "Fee records still waiting for payment", href: "/dashboard/fees", accent: "bg-rose-50 text-rose-600", icon: "fees" },
     { label: "Teachers present", value: teacherPresentToday, hint: `Teachers marked present on ${todayKey}`, href: `/dashboard/teacher-attendance?date=${todayKey}&status=present`, accent: "bg-emerald-50 text-emerald-600", icon: "present" },
@@ -172,6 +172,7 @@ async function DashboardContent() {
                   centerLabel="Students"
                   centerHint={`${registerRate}% attended`}
                   size={210}
+                  sliceHref={STATUS_ORDER.map((status) => status === "unmarked" ? "/dashboard/analytics/today?view=unmarked" : "/dashboard/analytics/today?view=present")}
                 />
               </div>
             )}

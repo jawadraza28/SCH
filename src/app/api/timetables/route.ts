@@ -39,9 +39,16 @@ export async function GET(request: Request) {
     if (!scope || !target || !["class", "teacher"].includes(scope)) return NextResponse.json({ error: "Timetable scope and target are required" }, { status: 400 });
     const timetable = await Timetable.findOne({ scope, target, academicYear }).lean();
     const teachers = scope === "class"
-      ? await Teacher.find({}).select("_id name accountStatus").sort({ name: 1 }).lean()
+      ? await Teacher.find({}).select("_id name accountStatus assignedClasses").sort({ name: 1 }).lean()
       : [];
-    return NextResponse.json({ timetable: timetable ?? { scope, target, academicYear, classSection: "", entries: [] }, teachers });
+    const teacherBusy: Record<string, string[]> = {};
+    if (scope === "class") {
+      const teacherTimetables = await Timetable.find({ scope: "teacher", academicYear }).select("target entries").lean();
+      for (const row of teacherTimetables) {
+        teacherBusy[String(row.target)] = (row.entries ?? []).map((entry: { day: string; period: number }) => `${entry.day}:${entry.period}`);
+      }
+    }
+    return NextResponse.json({ timetable: timetable ?? { scope, target, academicYear, classSection: "", entries: [] }, teachers, teacherBusy });
   } catch (error) {
     console.error("Timetable load error:", error);
     return NextResponse.json({ error: "Unable to load timetable" }, { status: 500 });
@@ -56,6 +63,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const scope = String(body.scope ?? "").trim();
     const target = String(body.target ?? "").trim();
+    const classSection = target.toUpperCase();
     const academicYear = String(body.academicYear ?? "2026-2027").trim();
     const entries = Array.isArray(body.entries) ? body.entries : [];
     if (!["class", "teacher"].includes(scope) || !target || !academicYear) return NextResponse.json({ error: "Timetable scope, target, and academic year are required" }, { status: 400 });
@@ -74,6 +82,7 @@ export async function POST(request: Request) {
       subject: String(entry.subject ?? "").trim(),
       room: "",
       teacher: String(entry.teacher ?? "").trim(),
+      teacherId: String(entry.teacherId ?? "").trim(),
       classSection: String(entry.classSection ?? "").trim().toUpperCase(),
     })).filter((entry: { day: string; period: number; subject: string }) => days.has(entry.day) && Number.isInteger(entry.period) && entry.period > 0 && entry.period <= 8 && entry.subject);
     const occupied = new Set<string>();
@@ -82,7 +91,44 @@ export async function POST(request: Request) {
       if (occupied.has(key)) return NextResponse.json({ error: `Period ${entry.period} is repeated on ${entry.day}` }, { status: 400 });
       occupied.add(key);
     }
+    const previous = scope === "class"
+      ? await Timetable.findOne({ scope, target, academicYear }).select("entries").lean()
+      : null;
+    if (scope === "class") {
+      const teacherIds = new Set(normalized.map((entry: { teacherId: string }) => entry.teacherId).filter(Boolean));
+      const previousTeacherIds = new Set((previous?.entries ?? []).map((entry: { teacherId?: string }) => entry.teacherId).filter(Boolean) as string[]);
+      const affected = new Set([...teacherIds, ...previousTeacherIds]);
+      for (const teacherId of affected) {
+        const teacherTimetable = await Timetable.findOne({ scope: "teacher", target: teacherId, academicYear }).select("entries").lean();
+        const occupiedByOtherClass = (teacherTimetable?.entries ?? []).filter((entry: { classSection?: string }) => entry.classSection !== classSection);
+        for (const entry of normalized.filter((item: { teacherId: string }) => item.teacherId === teacherId)) {
+          if (occupiedByOtherClass.some((item: { day: string; period: number }) => item.day === entry.day && item.period === entry.period)) {
+            return NextResponse.json({ error: `This teacher is already assigned to another class on ${entry.day}, period ${entry.period}` }, { status: 409 });
+          }
+        }
+      }
+    }
     const saved = await Timetable.findOneAndUpdate({ scope, target, academicYear }, { scope, target, academicYear, classSection: scope === "class" ? target.toUpperCase() : "", entries: normalized, updatedBy: result.user.id }, { upsert: true, new: true, setDefaultsOnInsert: true }).lean();
+    if (scope === "class") {
+      const affected = new Set([
+        ...(previous?.entries ?? []).map((entry: { teacherId?: string }) => entry.teacherId).filter(Boolean),
+        ...normalized.map((entry: { teacherId: string }) => entry.teacherId).filter(Boolean),
+      ] as string[]);
+      for (const teacherId of affected) {
+        const current = await Timetable.findOne({ scope: "teacher", target: teacherId, academicYear }).lean();
+        const retained = (current?.entries ?? []).filter((entry: { classSection?: string }) => entry.classSection !== classSection);
+        const additions = normalized.filter((entry: { teacherId: string }) => entry.teacherId === teacherId).map((entry: { teacherId: string; teacher: string; day: string; period: number; subject: string; room: string; classSection: string }) => ({
+          ...entry,
+          teacher: entry.teacher,
+          classSection,
+        }));
+        await Timetable.findOneAndUpdate(
+          { scope: "teacher", target: teacherId, academicYear },
+          { scope: "teacher", target: teacherId, academicYear, classSection: "", entries: [...retained, ...additions], updatedBy: result.user.id },
+          { upsert: true, new: true, setDefaultsOnInsert: true },
+        );
+      }
+    }
     return NextResponse.json({ success: true, timetable: saved });
   } catch (error) {
     console.error("Timetable save error:", error);

@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import FeeActions from "@/components/FeeActions";
 import VoucherSendButton from "@/components/VoucherSendButton";
 import WhatsAppBulkSend, { type WhatsAppMessage } from "@/components/WhatsAppBulkSend";
@@ -26,6 +27,9 @@ type Row = {
   accountStatus: string;
   /** The month's full fee. */
   amount: number;
+  baseAmount: number;
+  discountAmount: number;
+  discountReason: string;
   /** What the office has received against it. */
   paidAmount: number;
   /** What is still owed. */
@@ -84,6 +88,7 @@ function MoneyBreakdown({ row }: { row: Row }) {
   return (
     <div className="text-sm">
       <p className="font-semibold tabular-nums text-slate-700">{formatMoney(row.amount)}</p>
+      {row.discountAmount > 0 ? <p className="text-xs font-semibold text-violet-600">Discounted · saved {formatMoney(row.discountAmount)}</p> : null}
       <p className="mt-0.5 text-xs tabular-nums text-emerald-600">Paid {formatMoney(row.paidAmount)}</p>
       <p className={`text-xs tabular-nums ${row.remaining > 0 ? "text-rose-600" : "text-slate-400"}`}>
         {row.remaining > 0 ? `Balance ${formatMoney(row.remaining)}` : "Nothing due"}
@@ -100,6 +105,80 @@ function MoneyBreakdown({ row }: { row: Row }) {
   );
 }
 
+type DiscountStudent = { _id: string; fullName: string; studentId?: string; class?: string; section?: string };
+
+function DiscountWorkspace() {
+  const now = new Date();
+  const [students, setStudents] = useState<DiscountStudent[]>([]);
+  const [studentId, setStudentId] = useState("");
+  const [month, setMonth] = useState(months[now.getMonth()]);
+  const [year, setYear] = useState(String(now.getFullYear()));
+  const [discount, setDiscount] = useState("0");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    void fetch("/api/students?status=active")
+      .then((response) => response.json())
+      .then((result) => setStudents(Array.isArray(result.students) ? result.students : []))
+      .catch(() => setError("Unable to load students"));
+  }, []);
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true); setError(""); setMessage("");
+    try {
+      const response = await fetch("/api/fees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "discount", studentId, month, year: Number(year), discountAmount: Number(discount), discountReason: reason }),
+      });
+      const result = await response.json();
+      if (!response.ok) { setError(result.error ?? "Unable to save discount"); return; }
+      setMessage(`${formatMoney(result.discountAmount)} discount saved for ${month} ${year}. The class fee was not changed.`);
+    } catch { setError("Unable to connect to the server"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <section className="mt-8 rounded-3xl bg-white p-5 shadow-sm sm:p-8">
+      <div className="max-w-2xl">
+        <p className="text-sm font-semibold uppercase tracking-wide text-violet-600">Student-specific adjustment</p>
+        <h2 className="mt-2 text-2xl font-bold text-slate-900">Discount a student&apos;s fee</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-500">This applies only to the selected student and month. Other students in the class keep their normal fee.</p>
+      </div>
+      <form onSubmit={save} className="mt-7 grid gap-4 sm:grid-cols-2">
+        <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Student
+          <select required value={studentId} onChange={(event) => setStudentId(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3">
+            <option value="">Select a student</option>
+            {students.map((student) => <option key={student._id} value={student._id}>{student.fullName} · {student.class}-{student.section} {student.studentId ? `· ${student.studentId}` : ""}</option>)}
+          </select>
+        </label>
+        <label className="text-sm font-semibold text-slate-700">Month
+          <select value={month} onChange={(event) => setMonth(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3">{months.map((item) => <option key={item}>{item}</option>)}</select>
+        </label>
+        <label className="text-sm font-semibold text-slate-700">Year
+          <input type="number" min="2000" value={year} onChange={(event) => setYear(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" />
+        </label>
+        <label className="text-sm font-semibold text-slate-700">Discount amount (Rs)
+          <input required type="number" min="0" step="0.01" value={discount} onChange={(event) => setDiscount(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" />
+        </label>
+        <label className="text-sm font-semibold text-slate-700">Reason (optional)
+          <input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Scholarship, hardship..." className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3" />
+        </label>
+        <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
+          <button disabled={busy || !studentId} className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving..." : "Save discount"}</button>
+          <p className="text-xs text-slate-500">Enter 0 to remove the discount for this month.</p>
+        </div>
+      </form>
+      {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p> : null}
+    </section>
+  );
+}
+
 // Orders "1, 2, ... 9, 10" instead of the plain string order "1, 10, 2".
 function compareLabels(a: string, b: string) {
   const left = Number(a);
@@ -109,6 +188,8 @@ function compareLabels(a: string, b: string) {
 }
 
 export default function FeesPage() {
+  const searchParams = useSearchParams();
+  const isDiscountTab = searchParams.get("tab") === "discounts";
   const now = new Date();
   const currentYear = String(now.getFullYear());
   const defaults: Filters = { search: "", className: "", section: "", month: months[now.getMonth()], year: currentYear, status: "all" };
@@ -359,6 +440,17 @@ export default function FeesPage() {
     if (next === page) return;
     setLoading(true);
     void load(filters, next);
+  }
+
+  if (isDiscountTab) {
+    return (
+      <main className="app-page min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
+        <div className="mx-auto max-w-7xl">
+          <BackLink />
+          <DiscountWorkspace />
+        </div>
+      </main>
+    );
   }
 
   return (

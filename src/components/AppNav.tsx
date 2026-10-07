@@ -14,8 +14,9 @@
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 export type NavChild = {
   label: string;
@@ -112,21 +113,11 @@ function activeHref(pathname: string, search: string, items: NavItem[]) {
   return bestScore > -1 ? best : "";
 }
 
-function currentLabel(pathname: string, search: string, items: NavItem[]) {
-  for (const item of items) {
-    for (const child of item.children ?? []) {
-      if (childIsActive(pathname, search, child)) return child.label;
-    }
-  }
-  const current = activeHref(pathname, search, items);
-  return items.find((item) => item.href === current)?.label ?? "Menu";
-}
-
 const linkClass = (active: boolean) =>
-  `relative flex items-center rounded-xl px-3 py-2.5 text-sm transition-all duration-200 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-1 before:rounded-full before:bg-blue-600 before:transition-all before:duration-200 ${
+  `app-nav-link relative flex items-center rounded-2xl px-3.5 py-3 text-sm transition-all duration-200 before:absolute before:bottom-2.5 before:left-0 before:top-2.5 before:w-1 before:rounded-full before:bg-blue-600 before:transition-all before:duration-200 ${
     active
-      ? "bg-blue-50 font-semibold text-blue-700 before:scale-y-100 before:opacity-100"
-      : "font-medium text-slate-600 before:scale-y-0 before:opacity-0 hover:bg-slate-50 hover:text-slate-900"
+      ? "app-nav-link-active bg-blue-50/90 font-semibold text-blue-700 before:scale-y-100 before:opacity-100"
+      : "font-medium text-slate-600 before:scale-y-0 before:opacity-0 hover:bg-white hover:text-slate-950 hover:shadow-sm"
   }`;
 
 function NavIcon({ label, compact }: { label: string; compact?: boolean }) {
@@ -174,7 +165,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
   const [openedOn, setOpenedOn] = useState(pathname);
   const drawerOpen = open && openedOn === pathname;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [filter, setFilter] = useState("");
+  const [hoveredGroup, setHoveredGroup] = useState("");
 
   function openDrawer() {
     setOpenedOn(pathname);
@@ -195,30 +186,23 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
     };
   }, [drawerOpen]);
 
-  const needle = filter.trim().toLowerCase();
-  const visibleItems = useMemo(() => {
-    if (!needle) return items;
-    return items.filter((item) => {
-      if (item.label.toLowerCase().includes(needle)) return true;
-      return Boolean(item.children?.some((child) => child.label.toLowerCase().includes(needle)));
-    });
-  }, [items, needle]);
+  const visibleItems = items;
 
   const signedIn = (
-    <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+    <div className="app-nav-account rounded-2xl border border-slate-200/70 bg-white/75 px-3.5 py-3 shadow-sm">
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-slate-400">Signed in as</p>
       <p className="mt-1 break-words text-sm font-semibold leading-tight text-slate-800">{userName}</p>
       <p className="mt-0.5 text-xs capitalize leading-tight text-slate-500">{roleLabel}</p>
     </div>
   );
 
-  function brand(compact: boolean) {
+  function brand(compact: boolean, drawer = false) {
     return (
       <Link href={homeHref} className="flex min-w-0 items-center gap-3 text-sm font-bold tracking-wide text-slate-800">
         <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-600 text-lg text-white">
-          {schoolLogo ? <img src={schoolLogo} alt="" className="h-full w-full object-cover" /> : schoolName.charAt(0).toUpperCase()}
+          {schoolLogo ? <Image src={schoolLogo} alt="" width={40} height={40} className="h-full w-full object-cover" unoptimized /> : schoolName.charAt(0).toUpperCase()}
         </span>
-        <span className={`min-w-0 truncate ${compact ? "" : "hidden lg:inline"}`}>{schoolName}</span>
+        <span className={`min-w-0 ${drawer ? "break-words leading-tight" : "truncate"} ${compact ? "" : "hidden lg:inline"}`}>{schoolName}</span>
       </Link>
     );
   }
@@ -226,14 +210,13 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
   function links(onNavigate: () => void) {
     const current = activeHref(pathname, search, items);
     return (
-      <nav className="flex flex-col gap-1" aria-label="Main navigation">
+      <nav className="flex flex-col gap-1.5" aria-label="Main navigation">
         {visibleItems.length === 0 ? (
           <p className="px-3 py-4 text-sm text-slate-500">No matching pages.</p>
         ) : (
           visibleItems.map((item) => {
-            const groupActive = item.href === current || Boolean(item.children?.some((child) => childIsActive(pathname, search, child)));
-            const searching = Boolean(needle);
-            const isOpen = searching || (expanded[item.href] ?? groupActive);
+            const groupActive = item.href === current;
+            const isOpen = (expanded[item.href] ?? groupActive) || hoveredGroup === item.href;
 
             if (!item.children) {
               return (
@@ -252,7 +235,16 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
 
             const panelId = `nav-group-${item.href.replace(/[^a-z0-9]+/gi, "-")}`;
             return (
-              <div key={item.href} className="nav-group">
+              <div
+                key={item.href}
+                className="nav-group"
+                onMouseEnter={() => {
+                  if (window.matchMedia("(min-width: 1024px) and (hover: hover)").matches) setHoveredGroup(item.href);
+                }}
+                onMouseLeave={() => {
+                  if (window.matchMedia("(min-width: 1024px) and (hover: hover)").matches) setHoveredGroup("");
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setExpanded((previous) => ({ ...previous, [item.href]: !isOpen }))}
@@ -277,7 +269,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
                 </button>
                 <div id={panelId} className={`nav-collapse ${isOpen ? "is-open" : ""}`} inert={!isOpen}>
                   <div className="nav-collapse__inner">
-                    <div className="ml-5 mt-1 flex flex-col gap-0.5 border-l-2 border-blue-100 pb-1.5 pl-2">
+                    <div className="ml-5 mt-1.5 flex flex-col gap-1 border-l-2 border-blue-100/80 pb-2 pl-2.5">
                       {item.children.map((child, index) => {
                         const active = childIsActive(pathname, search, child);
                         return (
@@ -288,7 +280,7 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
                             onClick={onNavigate}
                             aria-current={active ? "page" : undefined}
                             style={{ transitionDelay: isOpen ? `${index * 35}ms` : "0ms" }}
-                            className={`nav-child flex items-center rounded-lg px-3 py-2 text-[0.8rem] transition-all duration-200 ${
+                            className={`nav-child flex items-center rounded-xl px-3 py-2.5 text-[0.8rem] transition-all duration-200 ${
                               isOpen ? "translate-x-0 opacity-100" : "-translate-x-2 opacity-0"
                             } ${
                               active
@@ -312,24 +304,6 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
     );
   }
 
-  function searchField() {
-    return (
-      <label className="relative mt-4 block">
-        <span className="sr-only">Search pages</span>
-        <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-          <circle cx="11" cy="11" r="7" />
-          <path d="M20 20l-3-3" />
-        </svg>
-        <input
-          value={filter}
-          onChange={(event) => setFilter(event.target.value)}
-          placeholder="Search pages…"
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-500"
-        />
-      </label>
-    );
-  }
-
   function signOut(fullWidth: boolean) {
     return (
       <a
@@ -342,34 +316,29 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
     );
   }
 
-  const title = currentLabel(pathname, search, items);
-  const quickItems = items.filter((item) => item.quick).slice(0, 5);
-
   return (
     <>
-      <header className="print:hidden sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/95 px-3 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
+      <header className="app-nav-mobile print:hidden sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-slate-200/80 bg-white/95 px-3 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur lg:hidden">
         <button
           type="button"
           onClick={openDrawer}
           aria-expanded={drawerOpen}
           aria-controls="app-nav-drawer"
           aria-label="Open navigation menu"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>
-        {brand(true)}
-        <p className="ml-auto min-w-0 truncate text-right text-xs font-semibold text-slate-500">{title}</p>
+        <div className="min-w-0 flex-1">{brand(true)}</div>
       </header>
 
-      <aside className="print:hidden fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-slate-200 bg-white px-4 py-6 lg:flex">
-        {brand(false)}
-        <div className="mt-5">{signedIn}</div>
-        {searchField()}
-        <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">{links(() => undefined)}</div>
-        <div className="pt-4">{signOut(true)}</div>
+      <aside className="app-nav-rail print:hidden fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-slate-200/80 bg-slate-50/90 px-4 py-5 lg:flex">
+        <div className="shrink-0">{brand(false)}</div>
+        <div className="mt-5 shrink-0">{signedIn}</div>
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">{links(() => undefined)}</div>
+        <div className="shrink-0 pt-4">{signOut(true)}</div>
       </aside>
 
       {drawerOpen && (
@@ -380,10 +349,10 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
             role="dialog"
             aria-modal="true"
             aria-label="Main navigation"
-            className="app-nav-drawer print:hidden fixed inset-y-0 left-0 z-[60] flex w-[min(92%,20rem)] max-w-xs flex-col border-r border-slate-200 bg-white px-4 py-5 lg:hidden"
+            className="app-nav-drawer print:hidden fixed inset-y-0 left-0 z-[60] flex w-[min(92%,20rem)] max-w-xs flex-col border-r border-slate-200 bg-slate-50 px-4 py-5 lg:hidden"
           >
-            <div className="flex items-center justify-between gap-3">
-              {brand(true)}
+            <div className="shrink-0 flex items-center justify-between gap-3">
+              {brand(true, true)}
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -395,45 +364,14 @@ function AppNavFrame({ items, userName, roleLabel, schoolName = "School", school
                 </svg>
               </button>
             </div>
-            <div className="mt-5">{signedIn}</div>
-            {searchField()}
-            <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">{links(() => setOpen(false))}</div>
-            <div className="pt-4">{signOut(true)}</div>
+            <div className="mt-5 shrink-0">{signedIn}</div>
+            <div className="mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">{links(() => setOpen(false))}</div>
+            <div className="shrink-0 pt-4">{signOut(true)}</div>
           </div>
         </>
       )}
-
-      {quickItems.length > 1 ? (
-        <nav className="app-bottom-nav print:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur lg:hidden" aria-label="Quick navigation">
-          <div className="mx-auto grid max-w-lg" style={{ gridTemplateColumns: `repeat(${quickItems.length}, minmax(0, 1fr))` }}>
-            {quickItems.map((item) => {
-              const active = currentHref(pathname, search, items, item);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex min-w-0 flex-col items-center gap-0.5 rounded-xl px-1 py-2 text-[0.65rem] font-semibold leading-tight ${
-                    active ? "text-blue-700" : "text-slate-500"
-                  }`}
-                >
-                  <span className={`grid h-8 w-8 place-items-center rounded-xl ${active ? "bg-blue-50" : ""}`}>
-                    <NavIcon label={item.label} compact />
-                  </span>
-                  <span className="w-full truncate text-center">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      ) : null}
     </>
   );
-}
-
-function currentHref(pathname: string, search: string, items: NavItem[], item: NavItem) {
-  const current = activeHref(pathname, search, items);
-  return current === item.href;
 }
 
 function AppNavWithSearch(props: Props) {

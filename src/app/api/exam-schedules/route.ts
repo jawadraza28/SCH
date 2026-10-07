@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { ExamSchedule, ExamTerm, Student, Teacher } from "@/Models";
+import { ClassSection, ExamSchedule, ExamTerm, Student, Teacher } from "@/Models";
 
 type Entry = { date?: unknown; subject?: unknown; startTime?: unknown; endTime?: unknown; room?: unknown };
 
@@ -43,14 +43,18 @@ export async function GET(request: Request) {
     }
     if (termFilter) query.examTerm = termFilter;
 
-    const [schedules, terms] = await Promise.all([
+    const [schedules, terms, classRows] = await Promise.all([
       ExamSchedule.find(query).populate("examTerm", "title startDate endDate academicYear isActive").sort({ classSection: 1 }).lean(),
       ExamTerm.find(access.role === "admin" ? { school: access.school } : { school: access.school, isActive: true })
         .sort({ startDate: -1, createdAt: -1 })
         .select("title academicYear startDate endDate description isActive")
         .lean(),
+      access.role === "admin" ? ClassSection.find({ isActive: true }).select("className sectionName").sort({ className: 1, sectionName: 1 }).lean() : [],
     ]);
-    return NextResponse.json({ schedules, terms, role: access.role, classes: access.classes });
+    const classes = access.role === "admin"
+      ? classRows.map((item) => `${item.className}-${item.sectionName}`.toUpperCase())
+      : access.classes;
+    return NextResponse.json({ schedules, terms, role: access.role, classes });
   } catch (error) {
     console.error("Exam schedule load error:", error);
     return NextResponse.json({ error: "Unable to load exam schedules" }, { status: 500 });

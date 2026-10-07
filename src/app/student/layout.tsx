@@ -12,7 +12,15 @@ const navigation: NavItem[] = [
   { label: "My profile", href: "/student/profile", exact: true },
   { label: "Performance", href: "/student/performance", exact: true },
   { label: "Attendance", href: "/student/attendance", exact: true, quick: true },
-  { label: "Class timetable", href: "/student/timetable", exact: true },
+  {
+    label: "Timetable",
+    href: "/student/timetable",
+    children: [
+      { label: "Class timetable", href: "/student/timetable", exact: true },
+      { label: "Exam timetable", href: "/student/exams", exact: true },
+    ],
+  },
+  { label: "Exams", href: "/student/exams", exact: true },
   { label: "Homework", href: "/student/homework", exact: true, quick: true },
   { label: "Results", href: "/student/results", exact: true, quick: true },
   { label: "Fees", href: "/student/fees", exact: true, quick: true },
@@ -28,7 +36,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   return (
     <div className="app-shell min-h-screen bg-slate-100 text-slate-900">
-      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} schoolLogo="/logo.png" homeHref="/student" />
+      <AppNav items={navigation} userName={session.user.name} roleLabel={session.user.role} schoolName={school?.schoolName} schoolLogo={school?.logo || "/logo.png"} homeHref="/student" />
       <div className="lg:pl-72 print:pl-0">{children}</div>
     </div>
   );
