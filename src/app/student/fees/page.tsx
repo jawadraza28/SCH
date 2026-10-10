@@ -35,10 +35,13 @@ export default async function StudentFeesPage() {
   }
 
   const section = await ClassSection.findOne({ className: student.class, sectionName: student.section }).select("academicYear startDate endDate").lean();
-  const fees = await Fee.find({ student: student._id, academicYear: student.academicYear || section?.academicYear || "" }).lean();
+  const activeAcademicYear = String(section?.academicYear || student.academicYear || "");
+  const fees = section?.startDate && section?.endDate
+    ? await Fee.find({ student: student._id, academicYear: activeAcademicYear }).lean()
+    : [];
   const feeByMonth = new Map(fees.map((fee) => [`${fee.month}-${fee.year}`, fee]));
-  const start = section?.startDate ? new Date(`${section.startDate}T00:00:00`) : new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1);
-  const end = section?.endDate ? new Date(`${section.endDate}T23:59:59`) : new Date();
+  const start = section?.startDate ? new Date(`${section.startDate}T00:00:00`) : new Date();
+  const end = section?.endDate ? new Date(`${section.endDate}T23:59:59`) : new Date(0);
   const through = new Date(Math.min(Date.now(), end.getTime()));
   const sessionMonths = [];
   for (let cursor = new Date(start.getFullYear(), start.getMonth(), 1); cursor <= through; cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)) {
@@ -71,7 +74,7 @@ export default async function StudentFeesPage() {
         </a>
         <h1 className="mt-6 text-2xl sm:text-3xl font-bold">Fees</h1>
         <p className="mt-2 text-slate-500">
-          Your monthly fee status for the last twelve months, including what has been paid and what still remains.
+          Your monthly fee status for the current class session, from {section?.startDate ?? "the configured session start"} to {section?.endDate ?? "the configured session end"}.
         </p>
 
         <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -102,7 +105,7 @@ export default async function StudentFeesPage() {
           <p className="mt-1 text-xs text-slate-400">
             {balanceDue > 0
               ? "Please clear this at the school office."
-              : "Nothing outstanding across the last twelve months."}
+              : "Nothing outstanding for the current class session."}
           </p>
         </div>
 

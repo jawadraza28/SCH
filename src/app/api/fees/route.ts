@@ -46,7 +46,19 @@ export async function GET(request: Request) {
     // A student reads only their own fee records.
     if (session.user.role === "student") {
       const student = await Student.findOne({ cnic: session.user.cnic }).lean();
-      const fees = student ? await Fee.find({ student: student._id, academicYear: student.academicYear || { $exists: true } }).sort({ year: -1, createdAt: -1 }).limit(12).lean() : [];
+      const currentSection = student
+        ? await ClassSection.findOne({ className: student.class, sectionName: student.section }).select("academicYear startDate endDate").lean()
+        : null;
+      const sessionStart = currentSection?.startDate ? new Date(`${currentSection.startDate}T00:00:00Z`) : null;
+      const sessionEnd = currentSection?.endDate ? new Date(`${currentSection.endDate}T23:59:59Z`) : null;
+      const fees = student && sessionStart && sessionEnd
+        ? (await Fee.find({ student: student._id, academicYear: currentSection.academicYear || student.academicYear || "" }).sort({ year: -1, createdAt: -1 }).lean())
+          .filter((fee) => {
+            const feeDate = new Date(Date.UTC(Number(fee.year), monthNames.indexOf(fee.month), 1));
+            return feeDate >= new Date(Date.UTC(sessionStart.getUTCFullYear(), sessionStart.getUTCMonth(), 1))
+              && feeDate <= new Date(Date.UTC(sessionEnd.getUTCFullYear(), sessionEnd.getUTCMonth(), 1));
+          })
+        : [];
       return NextResponse.json({ fees });
     }
 
@@ -67,7 +79,22 @@ export async function GET(request: Request) {
     // Class and section come along so the outstanding total can price the months
     // that have no fee row yet.
     const sortedStudents = await Student.find(scopeQuery(className, section, rawSearch)).sort({ class: 1, section: 1, rollNumber: 1 }).select("_id class section academicYear").lean();
-    const sortedIds = sortedStudents.map((student) => student._id);
+    const sectionRecords = await ClassSection.find({
+      $or: sortedStudents.map((student) => ({ className: student.class, sectionName: student.section })),
+    }).select("className sectionName startDate endDate").lean();
+    const sectionByKey = new Map(sectionRecords.map((item) => [`${item.className}-${item.sectionName}`.toUpperCase(), item]));
+    const selectedMonthDate = new Date(Date.UTC(year, monthNames.indexOf(month), 1));
+    const nowMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const studentsInSession = sortedStudents.filter((student) => {
+      const currentSection = sectionByKey.get(`${student.class}-${student.section}`.toUpperCase());
+      if (!currentSection?.startDate || !currentSection?.endDate) return false;
+      const sessionStart = new Date(`${currentSection.startDate}T00:00:00Z`);
+      const sessionEnd = new Date(`${currentSection.endDate}T23:59:59Z`);
+      return selectedMonthDate >= new Date(Date.UTC(sessionStart.getUTCFullYear(), sessionStart.getUTCMonth(), 1))
+        && selectedMonthDate <= new Date(Date.UTC(sessionEnd.getUTCFullYear(), sessionEnd.getUTCMonth(), 1))
+        && selectedMonthDate <= nowMonthDate;
+    });
+    const sortedIds = studentsInSession.map((student) => student._id);
     const fees = sortedIds.length
       ?       await Fee.find({ student: { $in: sortedIds }, month, year, $or: sortedStudents.map((student) => ({ student: student._id, academicYear: student.academicYear || "" })) }).select("student academicYear status amount baseAmount discountAmount discountReason paidAmount paidDate").lean()
       : [];
@@ -92,7 +119,7 @@ export async function GET(request: Request) {
     // A stored row with amount 0 is a leftover from before a fee was configured;
     // it is re-priced with the live class/school fee here, so every student of
     // the same class shows the same fee and the same balance everywhere.
-    const studentScopeById = new Map(sortedStudents.map((student) => [String(student._id), student]));
+    const studentScopeById = new Map(studentsInSession.map((student) => [String(student._id), student]));
     const stateByStudent = new Map<string, { status: FeeStatus; due: number; paid: number }>();
     for (const fee of fees) {
       const stored = Number(fee.amount ?? 0);
