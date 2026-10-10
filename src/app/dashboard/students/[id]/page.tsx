@@ -3,7 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Attendance, ClassSection, Fee, SchoolConfiguration, Student } from "@/Models";
-import { feePaidAmount, feeRemaining, feeStatusOf, lastTwelveMonthsNewestFirst } from "@/lib/fees";
+import { feePaidAmount, feeRemaining, feeStatusOf } from "@/lib/fees";
+import { monthNames } from "@/lib/retention";
 import FeeActions from "@/components/FeeActions";
 import { formatMoney } from "@/components/charts/palette";
 import { voucherRecipient } from "@/lib/voucher";
@@ -25,9 +26,17 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
   const studentId = String(student._id);
   const queryParams = await searchParams;
   const filters = buildAttendanceDateFilter(queryParams);
-  const attendanceQuery = { student: student._id, ...(filters.date ? { date: filters.date } : {}) };
+  const sessionSection = await ClassSection.findOne({ className: student.class, sectionName: student.section }).select("academicYear startDate endDate fee").lean();
+  const sessionStart = sessionSection?.startDate ? new Date(`${sessionSection.startDate}T00:00:00`) : new Date(0);
+  const sessionEnd = sessionSection?.endDate ? new Date(`${sessionSection.endDate}T23:59:59`) : new Date(0);
+  const sessionUntil = new Date(Math.min(Date.now(), sessionEnd.getTime()));
+  const attendanceDate = {
+    $gte: filters.date?.$gte && filters.date.$gte > sessionStart ? filters.date.$gte : sessionStart,
+    $lt: filters.date?.$lt && filters.date.$lt < new Date(sessionUntil.getTime() + 1) ? filters.date.$lt : new Date(sessionUntil.getTime() + 1),
+  };
+  const attendanceQuery = { student: student._id, academicYear: sessionSection?.academicYear || student.academicYear || "", date: attendanceDate };
   const [fees, attendanceTotal, attendanceStats] = await Promise.all([
-    Fee.find({ student: student._id }).lean(),
+    Fee.find({ student: student._id, academicYear: sessionSection?.academicYear || student.academicYear || "" }).lean(),
     Attendance.countDocuments(attendanceQuery),
     Attendance.aggregate([{ $match: attendanceQuery }, { $group: { _id: "$status", count: { $sum: 1 } } }]),
   ]);
@@ -48,17 +57,14 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
   const monthlyFee = Number(school?.monthlyFee ?? 0);
   // Priced exactly like the fees screen: the class's own fee when it has one,
   // school-wide fee otherwise — so the same student never shows two amounts.
-  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const classSection = await ClassSection.findOne({
-    className: { $regex: `^${escapeRegex(String(student.class))}$`, $options: "i" },
-    sectionName: { $regex: `^${escapeRegex(String(student.section))}$`, $options: "i" },
-  }).select("fee").lean();
-  const classFee = Number(classSection?.fee ?? 0);
+  const classFee = Number(sessionSection?.fee ?? 0);
   const pricedFee = classFee > 0 ? classFee : monthlyFee;
   const feeByMonth = new Map(fees.map((fee) => [`${fee.month}-${fee.year}`, fee]));
-  // Every student always shows the full one year window, most recent month first,
-  // priced with what has been received and what still remains on each month.
-  const feeRows = lastTwelveMonthsNewestFirst().map((entry) => {
+  const sessionMonths: { month: string; year: number; key: string }[] = [];
+  for (let cursor = new Date(sessionStart.getFullYear(), sessionStart.getMonth(), 1); cursor <= sessionUntil; cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)) {
+    sessionMonths.push({ month: monthNames[cursor.getMonth()], year: cursor.getFullYear(), key: `${monthNames[cursor.getMonth()]}-${cursor.getFullYear()}` });
+  }
+  const feeRows = sessionMonths.reverse().map((entry) => {
     const record = feeByMonth.get(entry.key);
     // A stored amount of 0 predates the fee being configured — fall back to the
     // live price instead of showing Rs 0 next to a paid-out history.

@@ -30,6 +30,15 @@ export default function PromoteStudentsPage() {
     setError(""); setMessage("");
     if (!selected.length || !target || !confirmed) { setError("Select students, a destination, and confirm the warning."); return; }
     const [targetClass, targetSection] = target.split("|");
+    const backupQuery = selected.map((id) => `studentId=${encodeURIComponent(id)}`).join("&");
+    const backupResponse = await fetch(`/api/records-export?${backupQuery}`);
+    if (!backupResponse.ok) { const backupResult = await backupResponse.json().catch(() => ({})); setError(backupResult.error ?? "Records backup failed. Promotion was cancelled."); return; }
+    const backupBlob = await backupResponse.blob();
+    const backupLink = document.createElement("a");
+    backupLink.href = URL.createObjectURL(backupBlob);
+    backupLink.download = "promotion-records-backup.zip";
+    backupLink.click();
+    URL.revokeObjectURL(backupLink.href);
     const response = await fetch("/api/students/promote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studentIds: selected, targetClass, targetSection, confirmOldRecords: true }) });
     const result = await response.json();
     if (!response.ok) { setError(result.error ?? "Promotion failed"); return; }

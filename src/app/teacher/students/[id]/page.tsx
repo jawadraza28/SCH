@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Attendance, Fee, Student, StudentBehavior, Teacher } from "@/Models";
+import { Attendance, ClassSection, Fee, Student, StudentBehavior, Teacher } from "@/Models";
 import AttendanceHistory from "@/components/AttendanceHistory";
 import StudentBehaviorPanel from "@/components/StudentBehaviorPanel";
 import { buildAttendanceDateFilter } from "@/lib/attendance";
 import { DEFAULT_PAGE_SIZE, clampPage, countPages, parsePageNumber } from "@/lib/pagination";
 import SiblingsPanel from "@/components/SiblingsPanel";
+import { monthNames } from "@/lib/retention";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +32,17 @@ export default async function TeacherStudentProfilePage({
   if (!assignedClasses.includes(`${student.class}-${student.section}`.toUpperCase())) redirect("/teacher/students");
 
   const filters = buildAttendanceDateFilter(queryParams);
-  const attendanceQuery = { student: student._id, ...(filters.date ? { date: filters.date } : {}) };
+  const section = await ClassSection.findOne({ className: student.class, sectionName: student.section }).select("academicYear startDate endDate").lean();
+  const sessionStart = section?.startDate ? new Date(`${section.startDate}T00:00:00`) : new Date(0);
+  const sessionEnd = section?.endDate ? new Date(`${section.endDate}T23:59:59`) : new Date(0);
+  const sessionUntil = new Date(Math.min(Date.now(), sessionEnd.getTime()));
+  const attendanceDate = {
+    $gte: filters.date?.$gte && filters.date.$gte > sessionStart ? filters.date.$gte : sessionStart,
+    $lt: filters.date?.$lt && filters.date.$lt < new Date(sessionUntil.getTime() + 1) ? filters.date.$lt : new Date(sessionUntil.getTime() + 1),
+  };
+  const attendanceQuery = { student: student._id, academicYear: section?.academicYear || student.academicYear || "", date: attendanceDate };
   const [fees, attendanceTotal, attendanceStats, behaviorRecords] = await Promise.all([
-    Fee.find({ student: student._id }).sort({ year: -1, month: -1 }).limit(12).lean(),
+    Fee.find({ student: student._id, academicYear: section?.academicYear || student.academicYear || "" }).sort({ year: -1, month: -1 }).lean(),
     Attendance.countDocuments(attendanceQuery),
     Attendance.aggregate([{ $match: attendanceQuery }, { $group: { _id: "$status", count: { $sum: 1 } } }]),
     StudentBehavior.find({ student: student._id }).sort({ observedAt: -1 }).limit(6).populate("teacher", "name").lean(),
@@ -51,6 +60,11 @@ export default async function TeacherStudentProfilePage({
     const suffix = query.toString();
     return suffix ? `?${suffix}` : ".";
   };
+
+  const feeRows = fees.filter((fee) => {
+    const date = new Date(Date.UTC(Number(fee.year), monthNames.indexOf(fee.month), 1));
+    return date >= new Date(Date.UTC(sessionStart.getFullYear(), sessionStart.getMonth(), 1)) && date <= new Date(Date.UTC(sessionUntil.getFullYear(), sessionUntil.getMonth(), 1));
+  });
 
   return (
     <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
@@ -77,7 +91,7 @@ export default async function TeacherStudentProfilePage({
             observedAt: record.observedAt ? new Date(record.observedAt).toISOString() : new Date().toISOString(),
             teacher: record.teacher && typeof record.teacher === "object" && "name" in record.teacher ? String(record.teacher.name) : "Teacher",
           }))} />
-          <details className="group rounded-2xl bg-white shadow-sm"><summary className="cursor-pointer list-none px-4 py-5 font-semibold sm:px-6">Fees <span className="float-right text-sm font-normal text-slate-400 group-open:hidden">View details +</span><span className="float-right hidden text-sm font-normal text-slate-400 group-open:inline">Hide details -</span></summary><div className="overflow-x-auto border-t border-slate-100 px-4 py-4 sm:px-6"><table className="stack-table w-full text-left text-sm md:min-w-[520px]"><thead className="text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3">Month</th><th className="py-3">Amount</th><th className="py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{fees.map((fee) => <tr key={String(fee._id)}><td data-label="Month" className="py-3">{fee.month} {fee.year}</td><td data-label="Amount" className="py-3">{fee.amount}</td><td data-label="Status" className="py-3 capitalize">{fee.status}</td></tr>)}</tbody></table>{fees.length === 0 && <p className="py-6 text-sm text-slate-400">No fee records available.</p>}</div></details>
+          <details className="group rounded-2xl bg-white shadow-sm"><summary className="cursor-pointer list-none px-4 py-5 font-semibold sm:px-6">Fees <span className="float-right text-sm font-normal text-slate-400 group-open:hidden">View details +</span><span className="float-right hidden text-sm font-normal text-slate-400 group-open:inline">Hide details -</span></summary><div className="overflow-x-auto border-t border-slate-100 px-4 py-4 sm:px-6"><table className="stack-table w-full text-left text-sm md:min-w-[520px]"><thead className="text-xs uppercase tracking-wide text-slate-500"><tr><th className="py-3">Month</th><th className="py-3">Amount</th><th className="py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">          {feeRows.map((fee) => <tr key={String(fee._id)}><td data-label="Month" className="py-3">{fee.month} {fee.year}</td><td data-label="Amount" className="py-3">{fee.amount}</td><td data-label="Status" className="py-3 capitalize">{fee.status}</td></tr>)}</tbody></table>{fees.length === 0 && <p className="py-6 text-sm text-slate-400">No fee records available.</p>}</div></details>
           <AttendanceHistory records={attendance} page={page} pages={pages} month={filters.month} from={filters.from} to={filters.to} present={countOf("present")} late={countOf("late")} absent={countOf("absent")} leave={countOf("leave")} holidays={countOf("holiday")} hrefFor={attendanceHref} />
         </div>
       </div>

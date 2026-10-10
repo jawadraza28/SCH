@@ -46,6 +46,7 @@ const navigation: NavItem[] = [
       { label: "Add student", href: "/dashboard/students/new", exact: true },
       { label: "Student requests", href: "/dashboard/students/requests", exact: true },
       { label: "Promote students", href: "/dashboard/students/promote", exact: true },
+      { label: "Download records", href: "/dashboard/records", exact: true },
     ],
   },
   {
