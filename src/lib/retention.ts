@@ -87,7 +87,10 @@ export async function pruneRetentionIfDue(now: Date = new Date()) {
   if (Date.now() - lastPrunedAt < pruneIntervalMs) return;
   lastPrunedAt = Date.now();
   try {
-    await Promise.all([pruneAttendance(now), pruneFees(now), pruneFinanceEntries(now)]);
+    // Attendance and student fees are historical academic records. They are
+    // removed only by the explicit promotion workflow, never by background
+    // retention cleanup.
+    await pruneFinanceEntries(now);
   } catch (error) {
     // Retention must never break the write that triggered it.
     console.error("Retention cleanup error:", error);

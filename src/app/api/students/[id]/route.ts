@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, normalizeCNIC } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Student, Teacher, User } from "@/Models";
+import { ClassSection, Student, Teacher, User } from "@/Models";
 import { Attendance, Fee, Result } from "@/Models";
 import { deleteFromR2 } from "@/lib/object-storage";
 import { deleteCloudinaryPhoto } from "@/lib/cloudinary";
@@ -91,6 +91,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
 
     const student = access.student;
+    const destinationSection = await ClassSection.findOne({ className, sectionName: section, isActive: true }).select("academicYear").lean();
+    if (!destinationSection) return NextResponse.json({ error: "The selected class section has no active academic session." }, { status: 400 });
     const duplicateCnic = await Student.findOne({ _id: { $ne: id }, cnic }).select("_id").lean();
     if (duplicateCnic) return NextResponse.json({ error: "Another student already uses this CNIC" }, { status: 409 });
     const duplicateRoll = await Student.findOne({ _id: { $ne: id }, class: className, section, rollNumber }).select("_id").lean();
@@ -107,8 +109,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (dateOfBirth === false || admissionDate === false) return NextResponse.json({ error: "Date of birth and admission date must be valid dates" }, { status: 400 });
 
     const previousCNIC = student.cnic;
-    student.fullName = fullName; student.cnic = cnic; student.class = className; student.section = section; student.rollNumber = rollNumber; student.gender = gender;
-    student.fatherName = String(body.fatherName ?? "").trim(); student.fatherCNIC = String(body.fatherCNIC ?? "").trim(); student.fatherOccupation = String(body.fatherOccupation ?? "").trim(); student.fatherPhone = String(body.fatherPhone ?? "").trim(); student.motherName = String(body.motherName ?? "").trim(); student.motherCNIC = String(body.motherCNIC ?? "").trim(); student.motherOccupation = String(body.motherOccupation ?? "").trim(); student.motherPhone = String(body.motherPhone ?? "").trim(); student.emergencyContact = String(body.emergencyContact ?? "").trim(); student.homeAddress = String(body.homeAddress ?? "").trim();
+    const optionalText = (value: unknown) => {
+      const text = String(value ?? "").trim();
+      return text || undefined;
+    };
+    const optionalCnic = (value: unknown) => {
+      const text = normalizeCNIC(String(value ?? "").trim());
+      return text || undefined;
+    };
+    student.fullName = fullName; student.cnic = cnic; student.class = className; student.section = section; student.rollNumber = rollNumber; student.gender = gender; student.academicYear = destinationSection.academicYear;
+    student.fatherName = optionalText(body.fatherName); student.fatherCNIC = optionalCnic(body.fatherCNIC); student.fatherOccupation = optionalText(body.fatherOccupation); student.fatherPhone = optionalText(body.fatherPhone); student.motherName = optionalText(body.motherName); student.motherCNIC = optionalCnic(body.motherCNIC); student.motherOccupation = optionalText(body.motherOccupation); student.motherPhone = optionalText(body.motherPhone); student.emergencyContact = optionalText(body.emergencyContact); student.homeAddress = optionalText(body.homeAddress);
     // Absent keys leave the stored dates alone; a blank value clears them.
     if (Object.prototype.hasOwnProperty.call(body, "dateOfBirth")) student.dateOfBirth = dateOfBirth ?? null;
     if (Object.prototype.hasOwnProperty.call(body, "admissionDate")) student.admissionDate = admissionDate ?? null;
@@ -119,6 +129,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   } catch (error) {
     if ((error as { code?: number }).code === 11000) {
       return NextResponse.json({ error: "Another student already uses this CNIC or this roll number in the same class." }, { status: 409 });
+    }
+    if ((error as { name?: string }).name === "ValidationError") {
+      const validation = error as { errors?: Record<string, { message?: string }> };
+      const message = Object.values(validation.errors ?? {}).map((item) => item.message).filter(Boolean).join("; ");
+      return NextResponse.json({ error: message || "Student details are invalid." }, { status: 400 });
     }
     console.error("Student update error:", error);
     return NextResponse.json({ error: "Unable to update student" }, { status: 500 });

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Fee, Student } from "@/Models";
-import { feePaidAmount, feeRemaining, feeStatusOf, lastTwelveMonthsNewestFirst } from "@/lib/fees";
+import { ClassSection, Fee, Student } from "@/Models";
+import { feePaidAmount, feeRemaining, feeStatusOf } from "@/lib/fees";
+import { monthNames } from "@/lib/retention";
 import { formatMoney } from "@/components/charts/palette";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +34,17 @@ export default async function StudentFeesPage() {
     );
   }
 
-  const fees = await Fee.find({ student: student._id }).lean();
+  const section = await ClassSection.findOne({ className: student.class, sectionName: student.section }).select("academicYear startDate endDate").lean();
+  const fees = await Fee.find({ student: student._id, academicYear: student.academicYear || section?.academicYear || "" }).lean();
   const feeByMonth = new Map(fees.map((fee) => [`${fee.month}-${fee.year}`, fee]));
-  // The student always sees the whole one year window, most recent month first,
-  // with what was received against each month and what still remains.
-  const feeRows = lastTwelveMonthsNewestFirst().map((entry) => {
+  const start = section?.startDate ? new Date(`${section.startDate}T00:00:00`) : new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1);
+  const end = section?.endDate ? new Date(`${section.endDate}T23:59:59`) : new Date();
+  const through = new Date(Math.min(Date.now(), end.getTime()));
+  const sessionMonths = [];
+  for (let cursor = new Date(start.getFullYear(), start.getMonth(), 1); cursor <= through; cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)) {
+    sessionMonths.push({ month: monthNames[cursor.getMonth()], year: cursor.getFullYear(), key: `${monthNames[cursor.getMonth()]}-${cursor.getFullYear()}` });
+  }
+  const feeRows = sessionMonths.reverse().map((entry) => {
     const record = feeByMonth.get(entry.key);
     const amount = Number(record?.amount ?? 0);
     const paidAmount = record ? feePaidAmount(record) : 0;

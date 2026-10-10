@@ -77,9 +77,7 @@ function matchScore(pathname: string, search: string, item: NavItem) {
 function childIsActive(pathname: string, search: string, child: NavChild) {
   const current = new URLSearchParams(search);
   const { path, params } = splitHref(child.href);
-  const tab = params.get("tab");
-
-  if (tab) return pathname === path && (current.get("tab") ?? "") === tab;
+  if (params.size) return pathname === path && paramsMatch(params, current);
 
   if (child.exact) {
     if (pathname !== path) return false;
@@ -90,7 +88,7 @@ function childIsActive(pathname: string, search: string, child: NavChild) {
     return paramsMatch(params, current);
   }
 
-  return pathname === path || pathname.startsWith(`${path}/`);
+  return pathname === path && current.size === 0;
 }
 
 function activeHref(pathname: string, search: string, items: NavItem[]) {

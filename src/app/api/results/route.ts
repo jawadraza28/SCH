@@ -37,7 +37,10 @@ export async function GET(request: Request) {
         studentFilter.class = className;
         studentFilter.section = section;
       }
-      if (search) studentFilter.fullName = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+      if (search) {
+        const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        studentFilter.$or = [{ fullName: { $regex: safeSearch, $options: "i" } }, { studentId: { $regex: safeSearch, $options: "i" } }];
+      }
       const matchingStudents = await Student.find(studentFilter).select("_id").lean();
       query = { student: { $in: matchingStudents.map((student) => student._id) } };
     }
