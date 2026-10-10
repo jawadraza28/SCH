@@ -119,6 +119,7 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
   const [botError, setBotError] = useState('');
   const submittedRef = useRef<number[] | null>(null);
   const fetchingRef = useRef(false);
+  const connectAttemptedRef = useRef(false);
 
   const botReady = Boolean(bot?.available && bot?.connected);
   const botSending = Boolean(bot?.queue?.running);
@@ -155,6 +156,10 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
         return;
       }
       setBot(data);
+      if (data.available && !data.connected && !data.qr && !connectAttemptedRef.current) {
+        connectAttemptedRef.current = true;
+        void botPost('connect').then(() => void fetchBotStatus());
+      }
       // A run started before this panel opened (page reload): when it covers
       // every row, adopt the identity mapping so results still land right.
       if (!submittedRef.current && data.queue && data.queue.total === messages.length && data.queue.index > 0) {
@@ -401,6 +406,13 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
                   alt="WhatsApp pairing QR code"
                   className="h-36 w-36 shrink-0 self-center rounded-lg border border-slate-200 bg-white"
                 />
+              ) : bot && !bot.configured ? (
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <div className="rounded-xl bg-amber-50 px-3 py-3 text-xs leading-5 text-amber-800">
+                    <p className="font-semibold">WhatsApp bot is not configured</p>
+                    <p className="mt-1">Set <code className="font-semibold">WA_BOT_URL</code> in the Next.js deployment and start the separate bot with <code className="font-semibold">npm run bot</code>. Then reopen this message panel and press Connect; the QR code will appear here.</p>
+                  </div>
+                </div>
               ) : null}
             </div>
           ) : (

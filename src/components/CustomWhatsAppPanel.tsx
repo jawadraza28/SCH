@@ -90,7 +90,7 @@ export default function CustomWhatsAppPanel() {
   }, 0);
 
   return (
-    <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 sm:p-6">
+    <section className="whatsapp-custom-panel rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 sm:p-6">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Family messaging</p>
       <h2 className="mt-2 text-xl font-bold text-slate-900">Send a custom WhatsApp message</h2>
       <p className="mt-1 text-sm text-slate-600">Use the connected bot for automatic delivery, or open prepared WhatsApp chats manually.</p>

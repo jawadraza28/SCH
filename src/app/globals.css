@@ -283,6 +283,36 @@
   border-color: var(--midnight-border);
 }
 
+/* The custom WhatsApp composer uses a soft emerald light-theme surface.
+   Replace that translucent surface and its low-contrast supporting text in
+   Midnight instead of letting the light tint wash out the form. */
+[data-theme="midnight"] .whatsapp-custom-panel {
+  border-color: oklch(43% 0.11 166);
+  background-color: oklch(23.5% 0.017 264);
+}
+[data-theme="midnight"] .whatsapp-custom-panel label,
+[data-theme="midnight"] .whatsapp-custom-panel h2 {
+  color: #f8fafc;
+}
+[data-theme="midnight"] .whatsapp-custom-panel > p:not([role="alert"]),
+[data-theme="midnight"] .whatsapp-custom-panel label span {
+  color: #cbd5e1;
+}
+[data-theme="midnight"] .whatsapp-custom-panel code {
+  color: #a7f3d0;
+}
+[data-theme="midnight"] .whatsapp-custom-panel > div {
+  border-color: var(--midnight-border);
+}
+[data-theme="midnight"] .whatsapp-custom-panel .bg-amber-50 {
+  background-color: oklch(30% 0.06 75);
+  color: #fde68a;
+}
+[data-theme="midnight"] .whatsapp-custom-panel .bg-red-50 {
+  background-color: oklch(30% 0.08 25);
+  color: #fecaca;
+}
+
 /* links read brighter on dark — and follow the selected accent, not raw blue */
 [data-theme="midnight"] .text-blue-500,
 [data-theme="midnight"] .text-blue-600 {
