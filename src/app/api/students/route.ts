@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { DEFAULT_STUDENT_PASSWORD, getCurrentUser, normalizeCNIC, hashPassword } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Student, Teacher } from "@/Models";
+import { ClassSection, Student, Teacher } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 import { fullClassMessage, seatAvailability } from "@/lib/seats";
 import { buildVoucherNo } from "@/lib/voucher";
@@ -91,6 +91,8 @@ export async function POST(request: Request) {
     const normalizedClass = String(className).trim();
     const normalizedSection = String(section).trim().toUpperCase();
     const normalizedRoll = String(rollNumber).trim();
+    const sectionRecord = await ClassSection.findOne({ className: normalizedClass, sectionName: normalizedSection, isActive: true }).select("academicYear").lean();
+    if (!sectionRecord) return NextResponse.json({ error: "This class section does not have an active academic session" }, { status: 400 });
 
     const existingCnic = await Student.findOne({ cnic: normalizedCNIC }).select("_id").lean();
     if (existingCnic) return NextResponse.json({ error: "A student with this CNIC already exists" }, { status: 409 });
@@ -119,7 +121,7 @@ export async function POST(request: Request) {
       voucherNo = requestedVoucher || buildVoucherNo(count + attempt + 1);
       try {
         student = await Student.create({
-          studentId: `STU-${String(count + 1).padStart(6, "0")}`,
+          studentId: `STU-${String(count + 1).padStart(6, "0")}`, academicYear: sectionRecord.academicYear,
           voucherNo,
           fullName: String(fullName).trim(), cnic: normalizedCNIC, dateOfBirth: dateOfBirth || undefined,
           gender: gender || undefined, class: normalizedClass, section: normalizedSection,

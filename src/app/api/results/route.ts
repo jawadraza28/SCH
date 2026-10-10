@@ -28,11 +28,27 @@ export async function GET(request: Request) {
       const students = assigned.length ? await Student.find({ $expr: { $in: [{ $concat: ["$class", "-", "$section"] }, assigned] } }).select("_id").lean() : [];
       query = { student: { $in: students.map((student) => student._id) } };
     } else {
-      query = {};
+      const params = new URL(request.url).searchParams;
+      const studentFilter: Record<string, unknown> = {};
+      const classSection = params.get("classSection")?.trim().toUpperCase();
+      const search = params.get("search")?.trim();
+      if (classSection) {
+        const [className, section] = classSection.split("-");
+        studentFilter.class = className;
+        studentFilter.section = section;
+      }
+      if (search) studentFilter.fullName = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+      const matchingStudents = await Student.find(studentFilter).select("_id").lean();
+      query = { student: { $in: matchingStudents.map((student) => student._id) } };
     }
     // Paginated callers pass ?page=; legacy callers keep the previous row cap.
     const params = new URL(request.url).searchParams;
     const requestedStudent = params.get("studentId")?.trim();
+    const examTerm = params.get("examTerm")?.trim();
+    if (examTerm) {
+      const term = await ExamTerm.findOne({ school: access.user.school, title: examTerm }).select("_id").lean();
+      query.examTerm = term?._id ?? null;
+    }
     if (requestedStudent) {
       let allowed = false;
       if (access.user.role === "teacher") {
@@ -53,7 +69,7 @@ export async function GET(request: Request) {
     const total = await Result.countDocuments(query);
     const pages = countPages(total, limit);
     const page = paginated ? clampPage(parsePageNumber(params.get("page")), pages) : 1;
-    const results = await Result.find(query).populate("examTerm", "title").sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean();
+    const results = await Result.find(query).populate("examTerm", "title").populate("student", "fullName studentId class section rollNumber").sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean();
     return NextResponse.json({ results, pagination: { page, pages, total, limit } });
   } catch (error) {
     console.error("Result load error:", error);

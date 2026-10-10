@@ -40,7 +40,9 @@ export async function POST(request: Request) {
     const className = String(body.className ?? "").trim();
     const sectionName = String(body.sectionName ?? "").trim().toUpperCase();
     const academicYear = String(body.academicYear ?? "2026-2027").trim();
-    if (!className || !sectionName || !academicYear) return NextResponse.json({ error: "Class, section, and academic year are required" }, { status: 400 });
+    const startDate = String(body.startDate ?? "").trim();
+    const endDate = String(body.endDate ?? "").trim();
+    if (!className || !sectionName || !academicYear || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || startDate >= endDate) return NextResponse.json({ error: "Class, section, academic year, and a valid start/end date are required" }, { status: 400 });
     const capacity = Number(body.capacity);
     const fee = Number(body.fee);
     if (!Number.isFinite(capacity) || capacity < 1) return NextResponse.json({ error: "Capacity must be at least 1" }, { status: 400 });
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
     await connectToDatabase();
     const duplicate = await ClassSection.findOne({ className, sectionName, academicYear }).lean();
     if (duplicate) return NextResponse.json({ error: "This class and section already exists" }, { status: 409 });
-    const created = await ClassSection.create({ className, sectionName, academicYear, capacity, fee });
+    const created = await ClassSection.create({ className, sectionName, academicYear, startDate, endDate, capacity, fee });
     return NextResponse.json({ success: true, classSection: created }, { status: 201 });
   } catch (error) {
     console.error("Class creation error:", error);
@@ -71,9 +73,11 @@ export async function PATCH(request: Request) {
     const className = String(body.className ?? "").trim();
     const sectionName = String(body.sectionName ?? "").trim().toUpperCase();
     const academicYear = String(body.academicYear ?? "").trim();
+    const startDate = String(body.startDate ?? "").trim();
+    const endDate = String(body.endDate ?? "").trim();
     const capacity = Number(body.capacity);
     const fee = Number(body.fee);
-    if (!id || !className || !sectionName || !academicYear) {
+    if (!id || !className || !sectionName || !academicYear || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || startDate >= endDate) {
       return NextResponse.json({ error: "Class, section, and academic year are required" }, { status: 400 });
     }
     if (!Number.isFinite(capacity) || capacity < 1) return NextResponse.json({ error: "Capacity must be at least 1" }, { status: 400 });
@@ -83,7 +87,7 @@ export async function PATCH(request: Request) {
     if (duplicate) return NextResponse.json({ error: "This class and section already exists" }, { status: 409 });
     const updated = await ClassSection.findByIdAndUpdate(
       id,
-      { $set: { className, sectionName, academicYear, capacity, fee } },
+      { $set: { className, sectionName, academicYear, startDate, endDate, capacity, fee } },
       { new: true },
     );
     if (!updated) return NextResponse.json({ error: "Class not found" }, { status: 404 });

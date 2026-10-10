@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Attendance, Student, Teacher } from "@/Models";
-import { pruneRetentionIfDue } from "@/lib/retention";
+import { Attendance, ClassSection, Student, Teacher } from "@/Models";
 import { clampPage, countPages, parsePageNumber, parsePageSize } from "@/lib/pagination";
 
 async function accessFor(classSection: string) {
@@ -25,11 +24,14 @@ export async function GET(request: Request) {
     const date = params.get("date")?.trim() ?? new Date().toISOString().slice(0, 10);
     if (!className || !section) return NextResponse.json({ error: "Class and section are required" }, { status: 400 });
     const classSection = `${className}-${section}`;
+    const sectionRecord = await ClassSection.findOne({ className, sectionName: section }).select("academicYear startDate endDate").lean();
+    if (!sectionRecord) return NextResponse.json({ error: "Class section session is not configured" }, { status: 400 });
+    if (date < sectionRecord.startDate || date > sectionRecord.endDate) return NextResponse.json({ error: "This date is outside the section academic session" }, { status: 400 });
     const access = await accessFor(classSection);
     if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
     if (params.get("export") === "csv") {
       if (access.user.role !== "admin") return NextResponse.json({ error: "Only administrators can export attendance" }, { status: 403 });
-      const records = await Attendance.find({ classSection, date: { $gte: new Date(`${date}T00:00:00.000Z`), $lt: new Date(`${date}T23:59:59.999Z`) } }).populate("student", "fullName studentId rollNumber").lean();
+      const records = await Attendance.find({ classSection, academicYear: sectionRecord.academicYear, date: { $gte: new Date(`${date}T00:00:00.000Z`), $lt: new Date(`${date}T23:59:59.999Z`) } }).populate("student", "fullName studentId rollNumber").lean();
       const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, "\"\"")}"`;
       const rows = ["Student,Student ID,Roll number,Class section,Date,Status", ...records.map((record) => {
         const student = record.student as { fullName?: string; studentId?: string; rollNumber?: string } | null;
@@ -44,7 +46,7 @@ export async function GET(request: Request) {
     const pages = countPages(total, limit);
     const page = paginated ? clampPage(parsePageNumber(params.get("page")), pages) : 1;
     const students = await Student.find(studentQuery).sort({ rollNumber: 1 }).skip((page - 1) * limit).limit(limit).lean();
-    const records = await Attendance.find({ classSection, date: { $gte: new Date(`${date}T00:00:00.000Z`), $lt: new Date(`${date}T23:59:59.999Z`) } }).lean();
+    const records = await Attendance.find({ classSection, academicYear: sectionRecord.academicYear, date: { $gte: new Date(`${date}T00:00:00.000Z`), $lt: new Date(`${date}T23:59:59.999Z`) } }).lean();
     const statusByStudent = new Map(records.map((record) => [String(record.student), record.status]));
       return NextResponse.json({ students: students.map((student) => ({ id: String(student._id), name: student.fullName, rollNumber: student.rollNumber, status: statusByStudent.get(String(student._id)) ?? "unmarked" })), pagination: { page, pages, total, limit } });
   } catch (error) {
@@ -63,13 +65,15 @@ export async function POST(request: Request) {
     const entries = Array.isArray(body.entries) ? body.entries : [];
     if (!className || !section || !/^\d{4}-\d{2}-\d{2}$/.test(date) || entries.length === 0) return NextResponse.json({ error: "Class, section, date, and attendance entries are required" }, { status: 400 });
     const classSection = `${className}-${section}`;
+    const sectionRecord = await ClassSection.findOne({ className, sectionName: section }).select("academicYear startDate endDate").lean();
+    if (!sectionRecord) return NextResponse.json({ error: "Class section session is not configured" }, { status: 400 });
+    if (date < sectionRecord.startDate || date > sectionRecord.endDate) return NextResponse.json({ error: "This date is outside the section academic session" }, { status: 400 });
     const access = await accessFor(classSection);
     if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
     const allowed = new Set(["present", "absent", "late", "leave", "holiday", "unmarked"]);
     const students = await Student.find({ _id: { $in: entries.map((entry: { studentId: string }) => entry.studentId) }, class: className, section, accountStatus: { $in: ["active", "pending"] } }).select("_id").lean();
     const validStudents = new Set(students.map((student) => String(student._id)));
-    await Promise.all(entries.filter((entry: { studentId: string; status: string }) => validStudents.has(entry.studentId) && allowed.has(entry.status)).map((entry: { studentId: string; status: string }) => entry.status === "unmarked" ? Attendance.deleteOne({ student: entry.studentId, date: new Date(`${date}T00:00:00.000Z`) }) : Attendance.findOneAndUpdate({ student: entry.studentId, date: new Date(`${date}T00:00:00.000Z`) }, { student: entry.studentId, classSection, date: new Date(`${date}T00:00:00.000Z`), status: entry.status, markedBy: access.user.id }, { upsert: true, new: true })));
-    await pruneRetentionIfDue();
+    await Promise.all(entries.filter((entry: { studentId: string; status: string }) => validStudents.has(entry.studentId) && allowed.has(entry.status)).map((entry: { studentId: string; status: string }) => entry.status === "unmarked" ? Attendance.deleteOne({ student: entry.studentId, academicYear: sectionRecord.academicYear, date: new Date(`${date}T00:00:00.000Z`) }) : Attendance.findOneAndUpdate({ student: entry.studentId, academicYear: sectionRecord.academicYear, date: new Date(`${date}T00:00:00.000Z`) }, { student: entry.studentId, classSection, academicYear: sectionRecord.academicYear, date: new Date(`${date}T00:00:00.000Z`), status: entry.status, markedBy: access.user.id }, { upsert: true, new: true })));
     return NextResponse.json({ success: true, message: "Attendance saved" });
   } catch (error) {
     console.error("Attendance save error:", error);

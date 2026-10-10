@@ -34,6 +34,7 @@ const navigation: NavItem[] = [
       { label: "Exam timetable", href: "/dashboard/exams", exact: true },
       { label: "Exam terms & settings", href: "/dashboard/exams?view=terms" },
       { label: "Exam seating", href: "/dashboard/exam-seating", exact: true },
+      { label: "View results", href: "/dashboard/exams?view=results" },
     ],
   },
   {
@@ -44,6 +45,7 @@ const navigation: NavItem[] = [
       { label: "All students", href: "/dashboard/students", exact: true },
       { label: "Add student", href: "/dashboard/students/new", exact: true },
       { label: "Student requests", href: "/dashboard/students/requests", exact: true },
+      { label: "Promote students", href: "/dashboard/students/promote", exact: true },
     ],
   },
   {
@@ -84,7 +86,10 @@ const navigation: NavItem[] = [
       { label: "Student fee discounts", href: "/dashboard/fees?tab=discounts" },
     ],
   },
-  { label: "Notices", href: "/dashboard/notices" },
+  { label: "Notices", href: "/dashboard/notices", children: [
+    { label: "Notice board", href: "/dashboard/notices", exact: true },
+    { label: "WhatsApp message", href: "/dashboard/notices#whatsapp" },
+  ] },
   {
     label: "School settings",
     href: "/dashboard/school-settings",

@@ -396,6 +396,7 @@ const studentSchema = new Schema({
     type: String,
     trim: true,
   },
+  academicYear: { type: String, trim: true, default: "" },
   profilePhotoUrl: {
     type: String,
     default: "",
@@ -623,6 +624,8 @@ const classSectionSchema = new Schema({
     type: String,
     required: true,
   },
+  startDate: { type: String, required: true, match: [/^\d{4}-\d{2}-\d{2}$/, "Section start date must be YYYY-MM-DD"] },
+  endDate: { type: String, required: true, match: [/^\d{4}-\d{2}-\d{2}$/, "Section end date must be YYYY-MM-DD"] },
   isActive: {
     type: Boolean,
     default: true,
@@ -669,6 +672,7 @@ const attendanceSchema = new Schema({
     type: String,
     required: true,
   },
+  academicYear: { type: String, trim: true, default: "" },
   date: {
     type: Date,
     required: true,
@@ -972,6 +976,12 @@ const noticeSchema = new Schema({
     enum: ["general", "exam", "holiday", "event", "important", "fee", "result"],
     default: "general",
   },
+  audience: {
+    type: String,
+    enum: ["all", "teachers", "students"],
+    default: "all",
+  },
+  classSection: { type: String, trim: true, default: "" },
   published: {
     type: Boolean,
     default: false,

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { buildVoucherNo } from "@/lib/voucher";
 
-type ClassOption = { className: string; sectionName: string; capacity: number; occupied?: number };
+type ClassOption = { className: string; sectionName: string; capacity: number; occupied?: number; academicYear: string; startDate?: string; endDate?: string };
 type StudentForm = Record<string, string>;
 
 const initialForm: StudentForm = {
@@ -60,7 +60,7 @@ export default function AdminNewStudentPage() {
               <label className="text-sm font-medium">Student CNIC *<input required value={form.cnic} onChange={(e) => update("cnic", e.target.value)} placeholder="42101-1234567-1" className={field} /></label>
               <label className="text-sm font-medium">Gender *<select required value={form.gender} onChange={(e) => update("gender", e.target.value)} className={field}><option value="">Select gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
               <label className="text-sm font-medium">Class *<select required value={form.className} onChange={(e) => setForm((current) => ({ ...current, className: e.target.value, section: "" }))} className={field}><option value="">{loadingClasses ? "Loading classes…" : "Select class"}</option>{classOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-              <label className="text-sm font-medium">Section *<select required disabled={!form.className} value={form.section} onChange={(e) => update("section", e.target.value)} className={`${field} disabled:bg-slate-50`}><option value="">Select section</option>{sectionOptions.map((item) => <option key={item.sectionName} value={item.sectionName}>{item.sectionName} — {item.occupied ?? 0}/{item.capacity} seats</option>)}</select></label>
+              <label className="text-sm font-medium">Section *<select required disabled={!form.className} value={form.section} onChange={(e) => update("section", e.target.value)} className={`${field} disabled:bg-slate-50`}><option value="">Select section</option>{sectionOptions.map((item) => <option key={item.sectionName} value={item.sectionName}>{item.sectionName} — {item.occupied ?? 0}/{item.capacity} seats · {item.startDate ?? "session"} to {item.endDate ?? ""}</option>)}</select></label>
               <label className="text-sm font-medium">Roll number *<input required value={form.rollNumber} onChange={(e) => update("rollNumber", e.target.value)} className={field} /></label>
               <label className="text-sm font-medium">Date of birth <input type="date" value={form.dateOfBirth} onChange={(e) => update("dateOfBirth", e.target.value)} className={field} /></label>
               <label className="text-sm font-medium">Fee voucher number <input value={form.voucherNo} onChange={(e) => update("voucherNo", e.target.value.toUpperCase())} placeholder={buildVoucherNo(1)} className={`${field} uppercase`} /><span className="mt-1 block text-xs text-slate-400">Optional; generated automatically when blank.</span></label>
