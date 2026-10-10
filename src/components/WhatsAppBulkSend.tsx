@@ -250,7 +250,7 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
     if (next < 0) return;
     setRunning(true);
     autoIndexRef.current = next;
-    if (next > 0) openOne(next);
+    openOne(next);
     timerRef.current = setInterval(advanceAuto, queueMs);
   }
 
@@ -299,7 +299,7 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
       if (stillHasWork && !timerRef.current) {
         const next = states.findIndex((state) => state === 'pending' || state === 'blocked');
         if (next >= 0) {
-          if (next > 0) openOne(next);
+          openOne(next);
           timerRef.current = setInterval(advanceAuto, queueMs);
         }
       }
@@ -543,11 +543,23 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
           )}
           <button
             type="button"
+            onClick={startQueue}
+            disabled={waiting === 0 || botSending || !responsibleUse}
+            className="flex-1 whitespace-nowrap rounded-xl border border-blue-600 px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+            title="Open each prepared WhatsApp link at a safe interval. You press Send in WhatsApp."
+          >
+            <span className="flex items-center justify-center gap-2">
+              <WaIcon />
+              Open manual links ({waiting})
+            </span>
+          </button>
+          <button
+            type="button"
             onClick={openFirstWaiting}
             disabled={waiting === 0 || botSending}
             className="flex-1 whitespace-nowrap rounded-xl border border-emerald-600 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
           >
-            {botReady ? 'Open manually' : 'Send next'}
+            Open one link
           </button>
         </div>
       </div>
@@ -581,8 +593,8 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
           : botSending
             ? 'The bot is sending one message at a time with random delays and long pauses between batches. Numbers not on WhatsApp are skipped.'
             : botReady
-              ? 'Press Send automatically and the bot delivers every voucher by itself — you can close this panel and walk away.'
-              : 'WhatsApp opens each chat with the message already typed — press send in the tab. Students without a saved number are skipped.'}
+              ? 'You can use automatic bot delivery, or open manual links. Manual mode opens one prepared chat at a time and you press Send in WhatsApp.'
+              : 'WhatsApp opens each chat with the message already typed — press Send in the tab. Students without a saved number are skipped.'}
       </p>
     </div>
   );
