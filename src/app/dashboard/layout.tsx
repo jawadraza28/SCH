@@ -89,7 +89,7 @@ const navigation: NavItem[] = [
   },
   { label: "Notices", href: "/dashboard/notices", children: [
     { label: "Notice board", href: "/dashboard/notices", exact: true },
-    { label: "WhatsApp message", href: "/dashboard/notices#whatsapp" },
+    { label: "WhatsApp message", href: "/dashboard/notices?tab=whatsapp" },
   ] },
   {
     label: "School settings",

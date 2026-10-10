@@ -3,6 +3,7 @@
  
 
 import { FormEvent, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ListSkeleton } from "@/components/Loaders";
 import Pagination from "@/components/Pagination";
 import BackLink from "@/components/BackLink";
@@ -12,6 +13,7 @@ import CustomWhatsAppPanel from "@/components/CustomWhatsAppPanel";
 
 type Notice = { _id: string; title: string; description: string; type: string; audience?: string; classSection?: string; publishDate: string; expiryDate?: string };
 export default function NoticesPage() {
+  const searchParams = useSearchParams();
   const [notices, setNotices] = useState<Notice[]>([]); const [form, setForm] = useState({ title: "", description: "", type: "general", audience: "all", classSection: "", expiryDate: "" });  const [editingId, setEditingId] = useState(""); const [error, setError] = useState(""); const [message, setMessage] = useState(""); const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -37,6 +39,9 @@ export default function NoticesPage() {
     setPage(next);
   }
   useEffect(() => { void load(page); }, [page]); const update = (key: string, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  useEffect(() => {
+    if (searchParams.get("tab") === "whatsapp") document.getElementById("whatsapp")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [searchParams]);
   async function remove(id: string) {
     if (!window.confirm("Delete this notice? This cannot be undone.")) return;
     setDeleting(id);

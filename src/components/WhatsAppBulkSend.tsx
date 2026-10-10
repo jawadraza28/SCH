@@ -94,9 +94,10 @@ type Props = {
   onClose: () => void;
   /** Milliseconds between opening each chat when the queue runs in the background. */
   queueMs?: number;
+  responsibleUse?: boolean;
 };
 
-export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3500 }: Props) {
+export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3500, responsibleUse = true }: Props) {
   const [states, setStates] = useState<ItemState[]>(() =>
     messages.map((item) => (normalizePhone(item.phone) ? 'pending' : 'skipped')),
   );
@@ -195,6 +196,7 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
   }
 
   async function sendViaBot() {
+    if (!responsibleUse) return;
     const indexes = messages
       .map((_, index) => index)
       .filter((index) => states[index] === 'pending' || states[index] === 'blocked');
@@ -409,6 +411,7 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
               {botError ? <span className="mt-0.5 block text-rose-600">{botError}</span> : null}
             </div>
           )}
+          <p className="mt-3 text-xs leading-5 text-slate-500">Messages are paced by the bot with a delay and periodic pauses. This reduces burst traffic but cannot guarantee that WhatsApp will not restrict an account. Use only with recipient consent.</p>
         </div>
       ) : null}
 
@@ -516,7 +519,7 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
               <button
                 type="button"
                 onClick={sendViaBot}
-                disabled={botBusy || waiting === 0}
+                disabled={botBusy || waiting === 0 || !responsibleUse}
                 className="flex-1 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
               >
                 <span className="flex items-center justify-center gap-2">
@@ -529,7 +532,7 @@ export default function WhatsAppBulkSend({ title, messages, onClose, queueMs = 3
             <button
               type="button"
               onClick={openAll}
-              disabled={waiting === 0}
+              disabled={waiting === 0 || !responsibleUse}
               className="flex-1 whitespace-nowrap rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
             >
               <span className="flex items-center justify-center gap-2">

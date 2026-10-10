@@ -58,10 +58,12 @@ const PORT = num('WA_BOT_PORT', 3099);
 const HOST = process.env.WA_BOT_HOST || '127.0.0.1';
 const TOKEN = process.env.WA_BOT_TOKEN || '';
 const AUTH_DIR = path.join(HERE, 'auth');
-const DELAY_MIN = num('WA_BOT_DELAY_MIN_MS', 6000);
+// Keep a conservative floor even if an unsafe environment value is supplied.
+// This is responsible pacing, not a guarantee against WhatsApp restrictions.
+const DELAY_MIN = Math.max(3000, num('WA_BOT_DELAY_MIN_MS', 6000));
 const DELAY_MAX = Math.max(DELAY_MIN, num('WA_BOT_DELAY_MAX_MS', 15000));
-const PAUSE_EVERY = num('WA_BOT_PAUSE_EVERY', 25);
-const PAUSE_MIN = num('WA_BOT_PAUSE_MIN_MS', 60000);
+const PAUSE_EVERY = Math.max(5, num('WA_BOT_PAUSE_EVERY', 25));
+const PAUSE_MIN = Math.max(30000, num('WA_BOT_PAUSE_MIN_MS', 60000));
 const PAUSE_MAX = Math.max(PAUSE_MIN, num('WA_BOT_PAUSE_MAX_MS', 120000));
 const MAX_PER_RUN = num('WA_BOT_MAX_PER_RUN', 500);
 
@@ -202,6 +204,7 @@ function startQueue(items) {
   if (queue.running) throw new Error('A send is already running.');
   if (!sock?.user) throw new Error('The bot is not connected yet.');
   if (items.length > MAX_PER_RUN) throw new Error(`At most ${MAX_PER_RUN} messages per run.`);
+  if (items.some((item) => String(item?.message ?? '').trim().length > 4000)) throw new Error('Each message must be 4000 characters or fewer.');
   queue.runId += 1;
   queue.items = items.map((item) => ({
     phone: digits(item?.phone),

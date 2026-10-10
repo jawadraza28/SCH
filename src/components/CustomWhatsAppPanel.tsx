@@ -26,6 +26,7 @@ export default function CustomWhatsAppPanel() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [responsibleUse, setResponsibleUse] = useState(false);
 
   useEffect(() => {
     fetch("/api/classes", { cache: "no-store" })
@@ -125,7 +126,11 @@ export default function CustomWhatsAppPanel() {
             </div>
             <button type="button" onClick={() => setOpen(false)} className="text-sm font-semibold text-slate-500">Close</button>
           </div>
-          {messages.length ? <div className="mt-4"><WhatsAppBulkSend title={`Message · ${classSection}`} messages={messages} onClose={() => setOpen(false)} /></div> : <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-700">No phone numbers are available for this contact type.</p>}
+          <label className="mt-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+            <input type="checkbox" checked={responsibleUse} onChange={(event) => setResponsibleUse(event.target.checked)} className="mt-1" />
+            <span>I reviewed this recipient list and have permission to contact these families. I understand WhatsApp may restrict unsolicited or excessive messaging, and pacing cannot guarantee account safety.</span>
+          </label>
+          {messages.length ? <div className="mt-4"><WhatsAppBulkSend title={`Message · ${classSection}`} messages={messages} onClose={() => setOpen(false)} responsibleUse={responsibleUse} /></div> : <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-700">No phone numbers are available for this contact type.</p>}
         </div>
       ) : null}
     </section>
