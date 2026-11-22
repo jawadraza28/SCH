@@ -1,8 +1,11 @@
+import Image from "next/image";
+
 type StudentIdCardProps = {
   schoolName: string;
   schoolAddress: string;
   schoolPhone: string;
   schoolIcon?: string;
+  qrCodeDataUrl: string;
   student: {
     _id: unknown;
     fullName: string;
@@ -18,7 +21,7 @@ type StudentIdCardProps = {
   };
 };
 
-export default function StudentIdCard({ schoolName, schoolAddress, schoolPhone, schoolIcon, student }: StudentIdCardProps) {
+export default function StudentIdCard({ schoolName, schoolAddress, schoolPhone, schoolIcon, qrCodeDataUrl, student }: StudentIdCardProps) {
   return (
     <section className="student-id-card" aria-label="Printable student identification card">
       <div className="student-id-card-topline">
@@ -42,6 +45,10 @@ export default function StudentIdCard({ schoolName, schoolAddress, schoolPhone, 
             <span>Roll number</span><strong>{student.rollNumber}</strong>
             <span>CNIC</span><strong>{student.cnic || "-"}</strong>
           </div>
+        </div>
+        <div className="student-id-qr">
+          <Image src={qrCodeDataUrl} alt="Student attendance QR code" width={256} height={256} unoptimized />
+          <span>Scan for attendance</span>
         </div>
       </div>
       <div className="student-id-card-footer">

@@ -13,9 +13,7 @@ export async function GET() {
       .lean();
     if (!school) return NextResponse.json({ school: null });
 
-    return NextResponse.json({ school }, {
-      headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" },
-    });
+    return NextResponse.json({ school }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Public school details error:", error);
     return NextResponse.json({ error: "Unable to load school details" }, { status: 500 });

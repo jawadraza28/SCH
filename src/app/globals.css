@@ -1519,6 +1519,20 @@ main .shadow-sm {
   min-width: 0;
   flex: 1;
 }
+.student-id-qr {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  gap: 0.25rem;
+  color: var(--color-slate-500);
+  font-size: 0.55rem;
+  text-align: center;
+}
+.student-id-qr img {
+  width: 5.25rem;
+  height: 5.25rem;
+  image-rendering: pixelated;
+}
 .student-id-details h1 {
   color: var(--color-slate-900);
   font-size: 1.45rem;
@@ -1597,6 +1611,13 @@ main .shadow-sm {
     font-size: 1.05rem;
     line-height: 1.2;
     overflow-wrap: anywhere;
+  }
+  .student-id-qr img {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+  .student-id-qr {
+    font-size: 0.45rem;
   }
   .student-id-grid {
     grid-template-columns: 4.25rem minmax(0, 1fr);

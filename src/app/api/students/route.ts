@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { DEFAULT_STUDENT_PASSWORD, getCurrentUser, normalizeCNIC, hashPassword } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ClassSection, Student, Teacher } from "@/Models";
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
       voucherNo = requestedVoucher || buildVoucherNo(count + attempt + 1);
       try {
         student = await Student.create({
-          studentId: `STU-${String(count + 1).padStart(6, "0")}`, academicYear: sectionRecord.academicYear,
+          studentId: `STU-${String(count + 1).padStart(6, "0")}`, attendanceQrToken: randomUUID(), academicYear: sectionRecord.academicYear,
           voucherNo,
           fullName: String(fullName).trim(), cnic: normalizedCNIC, dateOfBirth: dateOfBirth || undefined,
           gender: gender || undefined, class: normalizedClass, section: normalizedSection,

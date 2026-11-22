@@ -96,6 +96,10 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function preservedText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 /** Reads an ObjectId-ish value (or a saved subdocument id) as a string. */
 function id(value: unknown): string {
   if (typeof value === "string") return value;
@@ -126,7 +130,7 @@ export function readLanding(raw: unknown): LandingContent {
       name: text(item.name),
       className: text(item.className),
       section: text(item.section),
-      achievement: text(item.achievement),
+      achievement: preservedText(item.achievement),
       year: text(item.year),
       photo: text(item.photo),
       photoPublicId: text(item.photoPublicId),
@@ -138,7 +142,7 @@ export function readLanding(raw: unknown): LandingContent {
     return {
       id: id(item._id ?? item.id),
       title: text(item.title),
-      description: text(item.description),
+      description: preservedText(item.description),
       image: text(item.image),
       imagePublicId: text(item.imagePublicId),
       published: item.published === undefined ? true : Boolean(item.published),
@@ -152,20 +156,20 @@ export function readLanding(raw: unknown): LandingContent {
       id: id(item._id ?? item.id),
       image: text(item.image),
       imagePublicId: text(item.imagePublicId),
-      caption: text(item.caption),
+      caption: preservedText(item.caption),
     };
   });
   const whyUs: WhyUsItem[] = list(source.whyUs).map((entry, index) => {
     const item = (entry ?? {}) as Record<string, unknown>;
-    return { id: id(item._id ?? item.id), number: text(item.number) || String(index + 1).padStart(2, "0"), title: text(item.title), description: text(item.description), tone: text(item.tone) || "blue" };
+    return { id: id(item._id ?? item.id), number: text(item.number) || String(index + 1).padStart(2, "0"), title: text(item.title), description: preservedText(item.description), tone: text(item.tone) || "blue" };
   });
 
   return {
     tagline: text(source.tagline),
-    mission: text(source.mission),
-    vision: text(source.vision),
+    mission: preservedText(source.mission),
+    vision: preservedText(source.vision),
     principalName: text(source.principalName),
-    principalMessage: text(source.principalMessage),
+    principalMessage: preservedText(source.principalMessage),
     principalPhoto: text(source.principalPhoto),
     principalPhotoPublicId: text(source.principalPhotoPublicId),
     coverImage: text(source.coverImage),
@@ -182,7 +186,7 @@ export function readLanding(raw: unknown): LandingContent {
 /** Only the news posts the admin marked as published, newest first. */
 export function publishedNews(content: LandingContent): NewsPost[] {
   return content.newsPosts
-    .filter((post) => post.published && (post.title || post.description || post.image))
+    .filter((post) => post.published && (post.title || post.description.trim() || post.image))
     .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
 }
 

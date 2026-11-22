@@ -2,38 +2,29 @@
 
 import { useEffect, useState } from "react";
 
-type School = { schoolName?: string };
-
-let schoolRequest: Promise<School | null> | null = null;
+type School = { schoolName?: string; logo?: string };
 
 export default function SchoolBrandMark({ compact = false }: { compact?: boolean }) {
   const [school, setSchool] = useState<School>({});
+  const [failedLogo, setFailedLogo] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const cached = JSON.parse(localStorage.getItem("public-school-branding") || "{}");
-      if (cached.schoolName) setSchool(cached);
-    } catch {
-      // Ignore an unavailable or malformed browser cache and use the API.
-    }
-    schoolRequest ??= fetch("/api/public/school")
+    fetch("/api/public/school", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((result) => result?.school ?? null);
-    schoolRequest
       .then((result) => {
-        if (result?.schoolName) {
-          setSchool(result);
-          localStorage.setItem("public-school-branding", JSON.stringify(result));
-        }
+        const branding = result?.school as School | undefined;
+        if (branding) setSchool(branding);
       })
       .catch((error) => console.error("Unable to load public school branding:", error));
   }, []);
 
   const name = school.schoolName || "Your School";
+  const logo = school.logo && failedLogo !== school.logo ? school.logo : "/logo.png";
   return (
     <span className={`flex min-w-0 items-center gap-3 ${compact ? "text-sm" : ""}`}>
       <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-blue-500 text-lg font-black text-white">
-        <img src="/logo.png" alt="" className="h-full w-full object-cover" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logo} alt="" onError={() => setFailedLogo(logo)} className="h-full w-full object-contain p-1" />
       </span>
       <span className="min-w-0 truncate">{name}</span>
     </span>

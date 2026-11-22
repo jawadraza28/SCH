@@ -13,7 +13,7 @@ const topStudentSchema = new Schema({
   name: { type: String, trim: true, default: "" },
   className: { type: String, trim: true, default: "" },
   section: { type: String, trim: true, default: "" },
-  achievement: { type: String, trim: true, default: "" },
+  achievement: { type: String, default: "" },
   year: { type: String, trim: true, default: "" },
   // Cloudinary secure URL plus the public id kept only so the old asset can be
   // deleted when the admin swaps the photo.
@@ -24,7 +24,7 @@ const topStudentSchema = new Schema({
 /** One news / announcement card on the public page. */
 const newsPostSchema = new Schema({
   title: { type: String, trim: true, default: "" },
-  description: { type: String, trim: true, default: "" },
+  description: { type: String, default: "" },
   image: { type: String, default: "" },
   imagePublicId: { type: String, default: "" },
   published: { type: Boolean, default: true },
@@ -35,13 +35,13 @@ const newsPostSchema = new Schema({
 const galleryImageSchema = new Schema({
   image: { type: String, default: "" },
   imagePublicId: { type: String, default: "" },
-  caption: { type: String, trim: true, default: "" },
+  caption: { type: String, default: "" },
 });
 
 const whyUsSchema = new Schema({
   number: { type: String, trim: true, default: "" },
   title: { type: String, trim: true, default: "" },
-  description: { type: String, trim: true, default: "" },
+  description: { type: String, default: "" },
   tone: { type: String, trim: true, default: "blue" },
 });
 
@@ -69,7 +69,6 @@ const schoolConfigurationSchema = new Schema({
   },
   schoolDescription: {
     type: String,
-    trim: true,
   },
   schoolTheme: {
     type: String,
@@ -97,6 +96,14 @@ const schoolConfigurationSchema = new Schema({
   schoolTimezone: {
     type: String,
     default: "Asia/Karachi",
+  },
+  attendanceStartTime: { type: String, default: "07:00" },
+  attendanceLateAfter: { type: String, default: "08:00" },
+  attendanceAbsentAfter: { type: String, default: "09:00" },
+  attendanceDays: {
+    type: [String],
+    enum: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+    default: ["monday", "tuesday", "wednesday", "thursday", "friday"],
   },
   socialMedia: {
     facebook: { type: String, trim: true, default: "" },
@@ -134,12 +141,10 @@ const schoolConfigurationSchema = new Schema({
   },
   mission: {
     type: String,
-    trim: true,
     default: "",
   },
   vision: {
     type: String,
-    trim: true,
     default: "",
   },
   // Principal / head message band.
@@ -150,7 +155,6 @@ const schoolConfigurationSchema = new Schema({
   },
   principalMessage: {
     type: String,
-    trim: true,
     default: "",
   },
   principalPhoto: {
@@ -281,6 +285,12 @@ const studentSchema = new Schema({
     type: String,
     unique: true,
     sparse: true,
+  },
+  attendanceQrToken: {
+    type: String,
+    unique: true,
+    sparse: true,
+    select: false,
   },
   fullName: {
     type: String,
@@ -690,6 +700,9 @@ const attendanceSchema = new Schema({
   markedAt: {
     type: Date,
     default: Date.now,
+  },
+  checkInAt: {
+    type: Date,
   },
 });
 

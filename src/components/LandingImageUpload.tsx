@@ -14,6 +14,14 @@ import { useState, type ChangeEvent } from "react";
  */
 
 type Kind = "cover" | "logo" | "principal" | "topStudent" | "news" | "gallery";
+const recommendedDimensions: Record<Kind, string> = {
+  cover: "1600 × 900 px or larger (landscape)",
+  logo: "512 × 512 px (square)",
+  principal: "800 × 800 px (square)",
+  topStudent: "800 × 800 px (square)",
+  news: "1200 × 800 px (landscape)",
+  gallery: "1200 × 800 px (landscape)",
+};
 
 type Props = {
   /** Where the picture is used — decides the Cloudinary folder and size cap. */
@@ -112,7 +120,8 @@ export default function LandingImageUpload({ kind, value, onChange, label = "Ima
         </div>
       </div>
 
-      {hint && <p className="mt-2 text-xs text-slate-400 max-w-xs sm:max-w-[16rem]">{hint}</p>}
+      <p className="mt-2 text-xs text-slate-500">Recommended: {recommendedDimensions[kind]}. The display crops responsively without stretching.</p>
+      {hint && <p className="mt-1 text-xs text-slate-400 max-w-xs sm:max-w-[16rem]">{hint}</p>}
       {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
     </div>
   );

@@ -23,32 +23,36 @@ const blankGallery = (): GalleryImage => ({ id: "", image: "", imagePublicId: ""
 const blankWhyUs = (index: number): WhyUsItem => ({ id: "", number: String(index + 1).padStart(2, "0"), title: "", description: "", tone: "blue" });
 
 /** A labelled single-line text input. */
-function Field({ label, value, onChange, placeholder, className = "" }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; className?: string }) {
+function Field({ label, value, onChange, placeholder, className = "", maxLength = 160 }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; className?: string; maxLength?: number }) {
   return (
     <label className={`block text-sm font-medium text-slate-700 ${className}`}>
       {label}
       <input
         value={value}
+        maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
       />
+      <span className="mt-1 block text-right text-xs font-normal text-slate-400">{value.length}/{maxLength}</span>
     </label>
   );
 }
 
 /** A labelled multi-line text area. */
-function Area({ label, value, onChange, placeholder, rows = 4 }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; rows?: number }) {
+function Area({ label, value, onChange, placeholder, rows = 4, maxLength = 600 }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; rows?: number; maxLength?: number }) {
   return (
     <label className="block text-sm font-medium text-slate-700">
       {label}
       <textarea
         rows={rows}
         value={value}
+        maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
       />
+      <span className="mt-1 block text-right text-xs font-normal text-slate-400">{value.length}/{maxLength}</span>
     </label>
   );
 }
@@ -142,8 +146,8 @@ export default function LandingEditorPage() {
           </Panel>
 
           <Panel title="Mission & vision" description="Two short statements about why the school exists and where it is headed.">
-            <Area label="Our mission" value={content.mission} onChange={(value) => patch({ mission: value })} placeholder="To give every learner a strong, supportive start…" />
-            <Area label="Our vision" value={content.vision} onChange={(value) => patch({ vision: value })} placeholder="To be the school families trust most…" />
+            <Area label="Our mission" value={content.mission} onChange={(value) => patch({ mission: value })} placeholder="To give every learner a strong, supportive start…" maxLength={4000} />
+            <Area label="Our vision" value={content.vision} onChange={(value) => patch({ vision: value })} placeholder="To be the school families trust most…" maxLength={4000} />
           </Panel>
 
           <Panel
@@ -159,7 +163,7 @@ export default function LandingEditorPage() {
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
                       <Field label="Number" value={item.number} onChange={(value) => setWhyUs(index, { number: value })} placeholder="01" />
                       <Field label="Title" value={item.title} onChange={(value) => setWhyUs(index, { title: value })} placeholder="Supportive learning" className="sm:col-span-2" />
-                      <Area label="Description" value={item.description} onChange={(value) => setWhyUs(index, { description: value })} placeholder="Describe this school's strength…" rows={3} />
+                      <Area label="Description" value={item.description} onChange={(value) => setWhyUs(index, { description: value })} placeholder="Describe this school's strength…" rows={3} maxLength={600} />
                       <label className="text-sm font-medium">Accent
                         <select value={item.tone} onChange={(event) => setWhyUs(index, { tone: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"><option value="blue">Blue</option><option value="emerald">Emerald</option><option value="violet">Violet</option><option value="amber">Amber</option></select>
                       </label>
@@ -175,7 +179,7 @@ export default function LandingEditorPage() {
               <LandingImageUpload kind="principal" label="Portrait" frameClass="h-40 w-40 rounded-2xl" value={content.principalPhoto} onChange={(url, publicId) => patch({ principalPhoto: url, principalPhotoPublicId: publicId })} />
               <div className="space-y-4">
                 <Field label="Principal's name" value={content.principalName} onChange={(value) => patch({ principalName: value })} placeholder="e.g. Mrs. Ayesha Khan" />
-                <Area label="Message" value={content.principalMessage} onChange={(value) => patch({ principalMessage: value })} placeholder="Welcome to our school. We believe…" />
+                <Area label="Message" value={content.principalMessage} onChange={(value) => patch({ principalMessage: value })} placeholder="Welcome to our school. We believe…" maxLength={4000} />
               </div>
             </div>
           </Panel>
@@ -208,7 +212,7 @@ export default function LandingEditorPage() {
                         <Field label="Class" value={student.className} onChange={(value) => setStudent(index, { className: value })} placeholder="e.g. 10" />
                         <Field label="Section" value={student.section} onChange={(value) => setStudent(index, { section: value })} placeholder="e.g. A" />
                         <Field label="Year" value={student.year} onChange={(value) => setStudent(index, { year: value })} placeholder="e.g. 2025" />
-                        <Field label="Achievement" value={student.achievement} onChange={(value) => setStudent(index, { achievement: value })} placeholder="e.g. Top of the board exams" className="sm:col-span-2" />
+                        <Area label="Achievement" value={student.achievement} onChange={(value) => setStudent(index, { achievement: value })} placeholder="e.g. Top of the board exams" rows={3} maxLength={600} />
                       </div>
                     </div>
                   </div>
@@ -244,7 +248,7 @@ export default function LandingEditorPage() {
                       <LandingImageUpload kind="news" label="Image" frameClass="h-28 w-40 rounded-2xl" value={post.image} onChange={(url, publicId) => setNews(index, { image: url, imagePublicId: publicId })} />
                       <div className="space-y-3">
                         <Field label="Headline" value={post.title} onChange={(value) => setNews(index, { title: value })} placeholder="e.g. Annual sports day" />
-                        <Area label="Details" rows={3} value={post.description} onChange={(value) => setNews(index, { description: value })} placeholder="A short paragraph about the update…" />
+                        <Area label="Details" rows={3} value={post.description} onChange={(value) => setNews(index, { description: value })} placeholder="A short paragraph about the update…" maxLength={4000} />
                         <label className="block text-sm font-medium text-slate-700">
                           Date
                           <input
@@ -278,7 +282,7 @@ export default function LandingEditorPage() {
                   <div key={item.id || index} className="rounded-xl border border-slate-200 p-4">
                     <LandingImageUpload kind="gallery" label={`Photo ${index + 1}`} frameClass="h-36 w-full rounded-xl" value={item.image} onChange={(url, publicId) => setGallery(index, { image: url, imagePublicId: publicId })} />
                     <div className="mt-3">
-                      <Field label="Caption" value={item.caption} onChange={(value) => setGallery(index, { caption: value })} placeholder="Optional caption" />
+                      <Area label="Caption" value={item.caption} onChange={(value) => setGallery(index, { caption: value })} placeholder="Optional caption" rows={2} maxLength={160} />
                     </div>
                     <button type="button" onClick={() => patch({ gallery: content.gallery.filter((_, i) => i !== index) })} className="mt-3 text-xs font-semibold text-rose-600 hover:underline">
                       Remove

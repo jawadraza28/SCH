@@ -96,7 +96,7 @@ export default async function AdminStudentProfile({ params, searchParams }: { pa
   return (
     <main className="app-page bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-4xl">
-        <div className="flex items-center justify-between"><Link href="/dashboard/students" className="text-sm font-medium text-blue-600">← Students</Link><Link href={`/dashboard/students/${String(student._id)}/edit`} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Edit profile</Link></div>
+        <div className="flex flex-wrap items-center justify-between gap-2"><Link href="/dashboard/students" className="text-sm font-medium text-blue-600">← Students</Link><div className="flex gap-2"><Link href={`/dashboard/students/${String(student._id)}/id-card`} className="rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700">Print ID card</Link><Link href={`/dashboard/students/${String(student._id)}/edit`} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Edit profile</Link></div></div>
         <SiblingsPanel studentId={studentId} basePath="/dashboard/students" />
         <section className="mt-6 overflow-hidden rounded-3xl bg-white shadow-sm">
           <div className="bg-blue-700 p-8 text-white">

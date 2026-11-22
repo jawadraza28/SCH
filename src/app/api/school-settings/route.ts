@@ -38,7 +38,14 @@ export async function PATCH(request: Request) {
     const form = await request.formData();
     for (const field of ["schoolName", "schoolAddress", "schoolPhone", "schoolEmail", "schoolDescription", "schoolTimezone", "subscriptionPlan"]) {
       const value = form.get(field);
-      if (typeof value === "string") school[field] = value.trim();
+      if (typeof value === "string") {
+        if (field === "schoolDescription") {
+          if (value.length > 4000) return NextResponse.json({ error: "School description must be 4000 characters or fewer" }, { status: 400 });
+          school[field] = value;
+        } else {
+          school[field] = value.trim();
+        }
+      }
     }
     for (const field of socialFields) {
       const value = form.get(`social${field[0].toUpperCase()}${field.slice(1)}`);

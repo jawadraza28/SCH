@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ClassSection, SchoolConfiguration, Student, Teacher } from "@/Models";
 import LandingNav from "@/components/LandingNav";
+import ReadMoreText from "@/components/ReadMoreText";
 import { formatCount } from "@/components/charts/palette";
 import { publishedNews, readLanding, visibleGallery, visibleTopStudents } from "@/lib/landing";
 
@@ -79,7 +80,7 @@ export default async function Home() {
         <div className="relative z-10 mx-auto max-w-7xl pt-10 sm:pt-16 lg:pt-24">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400 sm:text-sm sm:tracking-[0.22em]">Welcome to</p>
           <h1 className="mt-4 max-w-3xl text-[clamp(1.75rem,8vw,3.75rem)] font-bold leading-[1.1] tracking-tight sm:mt-6">{schoolName}</h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-slate-400 sm:mt-7 sm:text-lg sm:leading-8">{heroLead}</p>
+          <p className="mt-5 max-w-xl whitespace-pre-wrap break-words text-base leading-7 text-slate-400 sm:mt-7 sm:text-lg sm:leading-8">{heroLead}</p>
           <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row">
             <Link href="/login" className="landing-cta-primary rounded-2xl px-6 py-3.5 text-center font-semibold text-white">Open your workspace <span aria-hidden>→</span></Link>
             <Link href="/about-us" className="landing-cta-secondary rounded-2xl px-6 py-3.5 text-center font-semibold text-slate-200">Discover our school</Link>
@@ -102,7 +103,7 @@ export default async function Home() {
             <div>
               <p className="landing-eyebrow text-blue-300">A better school day</p>
               <h2 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">A welcoming place to learn, grow, and belong.</h2>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-slate-400">{description}</p>
+              <ReadMoreText text={description} className="mt-5 max-w-2xl text-base leading-8 text-slate-400" />
             </div>
             <div id="highlights" className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               {(content.whyUs.length ? content.whyUs : [
@@ -113,7 +114,7 @@ export default async function Home() {
                 <article key={item.id || item.number} className={`landing-feature landing-feature-${item.tone} landing-reveal`}>
                   <span className="landing-feature-number">{item.number}</span>
                   <h3 className="font-semibold text-white">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">{item.description}</p>
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-400">{item.description}</p>
                 </article>
               ))}
             </div>
@@ -127,13 +128,13 @@ export default async function Home() {
               {content.mission ? (
                 <article className="landing-panel border-blue-300/20">
                   <p className="landing-eyebrow text-blue-300">Our mission</p>
-                  <p className="mt-3 text-base leading-7 text-slate-300">{content.mission}</p>
+                  <p className="mt-3 whitespace-pre-wrap break-words text-base leading-7 text-slate-300">{content.mission}</p>
                 </article>
               ) : null}
               {content.vision ? (
                 <article className="landing-panel border-emerald-300/20">
                   <p className="landing-eyebrow text-emerald-300">Our vision</p>
-                  <p className="mt-3 text-base leading-7 text-slate-300">{content.vision}</p>
+                  <p className="mt-3 whitespace-pre-wrap break-words text-base leading-7 text-slate-300">{content.vision}</p>
                 </article>
               ) : null}
             </div>
@@ -153,7 +154,7 @@ export default async function Home() {
               ) : null}
               <div>
                 <p className="landing-eyebrow text-blue-300">From the principal</p>
-                {content.principalMessage ? <p className="mt-4 text-lg italic leading-8 text-slate-300">“{content.principalMessage}”</p> : null}
+                {content.principalMessage ? <ReadMoreText text={`“${content.principalMessage}”`} className="mt-4 text-lg italic leading-8 text-slate-300" /> : null}
                 {content.principalName ? <p className="mt-5 font-semibold text-white">{content.principalName}</p> : null}
               </div>
             </div>
@@ -189,7 +190,7 @@ export default async function Home() {
                       </p>
                     </div>
                   </div>
-                  {student.achievement ? <p className="mt-4 text-sm leading-6 text-slate-300">{student.achievement}</p> : null}
+                  {student.achievement ? <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">{student.achievement}</p> : null}
                 </article>
               ))}
             </div>
@@ -216,7 +217,7 @@ export default async function Home() {
                   <div className="p-5">
                     {post.publishedAt ? <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">{formatDate(post.publishedAt)}</p> : null}
                     {post.title ? <h3 className="mt-2 font-semibold text-white">{post.title}</h3> : null}
-                    {post.description ? <p className="mt-2 text-sm leading-6 text-slate-400">{post.description}</p> : null}
+                    {post.description ? <ReadMoreText text={post.description} previewLength={240} className="mt-2 text-sm leading-6 text-slate-400" /> : null}
                   </div>
                 </article>
               ))}
@@ -236,7 +237,7 @@ export default async function Home() {
                 <figure key={item.id || index} className="overflow-hidden rounded-2xl border border-white/10">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={item.image} alt={item.caption || "Campus"} className="h-40 w-full object-cover transition duration-300 hover:scale-105 sm:h-44" />
-                  {item.caption ? <figcaption className="bg-white/5 px-3 py-2 text-xs text-slate-300">{item.caption}</figcaption> : null}
+                  {item.caption ? <figcaption className="whitespace-pre-wrap break-words bg-white/5 px-3 py-2 text-xs text-slate-300">{item.caption}</figcaption> : null}
                 </figure>
               ))}
             </div>

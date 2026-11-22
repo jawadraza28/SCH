@@ -9,12 +9,22 @@ export const dynamic = "force-dynamic";
 /**
  * Admin shell. The menu lives here — once — so every admin screen gets the same
  * side rail (desktop) or hamburger drawer (mobile/tablet) without repeating it.
- * NOTE: the Attendance tab was removed from this list; teachers still mark
- * attendance from their own workspace.
+ * Teachers continue to mark class attendance from their own workspace.
  */
 const navigation: NavItem[] = [
   { label: "Overview", href: "/dashboard", exact: true, quick: true },
   { label: "Analytics", href: "/dashboard/analytics", exact: true },
+  {
+    label: "Attendance",
+    href: "/dashboard/attendance",
+    quick: true,
+    children: [
+      { label: "Mark attendance", href: "/dashboard/attendance", exact: true },
+      { label: "Scan student QR", href: "/dashboard/attendance/scan", exact: true },
+      { label: "Attendance settings", href: "/dashboard/attendance/settings", exact: true },
+      { label: "Attendance reports", href: "/dashboard/reports/attendance", exact: true },
+    ],
+  },
   {
     label: "Finance",
     href: "/dashboard/finance",
